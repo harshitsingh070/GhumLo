@@ -1,0 +1,249 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design tokens ─────────────────────────────────────────────────────── */
+:root {
+  --tcc-cream: #F7F5F0;
+  --tcc-surface: #FFFFFF;
+  --tcc-ink: #172033;
+  --tcc-smoke: #667085;
+  --tcc-clay: #FF6B35;
+  --tcc-clay-dark: #E85524;
+  --tcc-pine: #0F766E;
+  --tcc-leaf: #198754;
+  --tcc-line: #E6E2DA;
+  --tcc-dark: #172033;
+  --tcc-sand: #F0EEE8;
+}
+
+/* ─── Base ──────────────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+body {
+  background: var(--tcc-cream);
+  color: var(--tcc-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+}
+
+.font-display {
+  font-family: "Plus Jakarta Sans", "Manrope", "Inter", sans-serif;
+}
+
+/* ─── Consistent page container: 1200px, 24px gutters ──────────────────── */
+.tcc-container {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+@media (max-width: 1024px) {
+  .tcc-container { padding-left: 20px; padding-right: 20px; }
+}
+@media (max-width: 768px) {
+  .tcc-container { padding-left: 16px; padding-right: 16px; }
+}
+
+/* ─── Entrance + micro animations (subtle, 200–350ms) ──────────────────── */
+@keyframes fade-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-rise {
+  animation: fade-rise 0.3s ease-out backwards;
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out backwards;
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in {
+  animation: scale-in 0.25s ease-out backwards;
+}
+
+/* Skeleton shimmer for loading states */
+@keyframes tcc-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+.tcc-skeleton {
+  background: linear-gradient(90deg, #F0EEE8 25%, #E6E2DA 50%, #F0EEE8 75%);
+  background-size: 200% 100%;
+  animation: tcc-shimmer 1.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tcc-skeleton { animation: none; }
+  .animate-fade-rise, .animate-slide-in-right, .animate-scale-in { animation: none; }
+}
+
+/* ─── Page-change entrance ─────────────────────────────────────────────── */
+@keyframes tcc-page-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+.tcc-page {
+  animation: tcc-page-in 0.38s ease-out backwards;
+}
+
+/* ─── Scroll reveal ────────────────────────────────────────────────────── */
+.tcc-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  will-change: opacity, transform;
+}
+.tcc-reveal-visible {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tcc-page { animation: none; }
+  .tcc-reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* Destination card image zoom on hover */
+.tcc-zoom img {
+  transition: transform 0.35s ease;
+}
+.tcc-zoom:hover img {
+  transform: scale(1.05);
+}
+
+/* Accessible focus ring (warm CTA color) */
+.tcc-focus:focus-visible {
+  outline: 2px solid var(--tcc-clay);
+  outline-offset: 2px;
+}
+
+/* ─── Itinerary timeline connector ───────────────────────────────────────── */
+.itinerary-dot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  width: 2px;
+  background: #e2e8f0;
+  height: 100%;
+}
+.dark .itinerary-dot::after {
+  background: #334155;
+}
+
+/* ─── ItineraryMap Leaflet tooltips/pins ─────────────────────────────────── */
+
+/* White pill with ellipsis for stop names */
+.leaflet-tooltip.stop-label {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 8px;
+  max-width: 130px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.leaflet-tooltip-top.stop-label::before,
+.leaflet-tooltip-bottom.stop-label::before {
+  display: none;
+}
+.leaflet-tooltip.stop-label.stop-active {
+  border-color: #0f172a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* Slate pill for the hotel name tag */
+.leaflet-tooltip.hotel-label {
+  background: #475569;
+  border: 1px solid #ffffff;
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.35);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.leaflet-tooltip-top.hotel-label::before {
+  display: none;
+}
+
+/* Hotel "H" pin (divIcon) */
+.hotel-pin {
+  background: transparent;
+  border: none;
+}
+.hotel-pin-inner {
+  width: 30px;
+  height: 30px;
+  border-radius: 9999px;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.45);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 24px;
+  text-align: center;
+}
+
+/* Numbered stop badges */
+.stop-badge-wrap {
+  background: transparent;
+  border: none;
+}
+.stop-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.4);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+}
+.stop-badge-active {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.45);
+  font-size: 13px;
+  line-height: 22px;
+}
+
+/* Dark chip centered on each route leg */
+.leaflet-tooltip.leg-label {
+  background: rgba(15, 23, 42, 0.88);
+  border: none;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.35);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 6px;
+  white-space: nowrap;
+}
