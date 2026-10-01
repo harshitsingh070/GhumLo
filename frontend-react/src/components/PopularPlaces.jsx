@@ -1,4 +1,5 @@
 import { MapPinned, Star } from "lucide-react";
+import { useState } from "react";
 import { CATEGORY_META } from "../lib/categories.js";
 import { buildMapUrl } from "../lib/format.js";
 
@@ -10,16 +11,20 @@ const metaFor = (category) =>
  *  fetched — zero new API calls), independent of the day-by-day schedule.
  *  Renders null when there's nothing to show. Props: places, destination. */
 export default function PopularPlaces({ places, destination }) {
+  const [filter, setFilter] = useState("all");
+  const source = (Array.isArray(places) ? places : []).filter((p) => p && p.name);
   const top = (Array.isArray(places) ? places : [])
     .filter((p) => p && p.name)
     .slice()
     .sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0))
+    .filter((p) => filter === "all" || (filter === "attractions" ? p.category !== "restaurants" : p.category === "restaurants"))
     .slice(0, 6);
 
   if (top.length === 0) return null;
 
   return (
     <section
+      id="places"
       aria-label="Popular places to visit"
       className="rounded-[18px] border border-line bg-white p-6 shadow-card sm:p-7 dark:border-white/10 dark:bg-ink"
     >
@@ -30,6 +35,13 @@ export default function PopularPlaces({ places, destination }) {
         Top-rated spots across your attraction &amp; restaurant results — worth seeing, whichever
         day you schedule them.
       </p>
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filter popular places">
+        {[['all', `All ${source.length}`], ['attractions', "Attractions"], ['restaurants', "Restaurants"]].map(([value, label]) => (
+          <button key={value} type="button" onClick={() => setFilter(value)} className={`tcc-focus rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${filter === value ? "bg-ink text-white dark:bg-white dark:text-ink" : "border border-line text-smoke hover:border-clay hover:text-clay dark:border-white/15 dark:text-white/65"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {top.map((p, i) => {
           const meta = metaFor(p.category);
@@ -38,7 +50,7 @@ export default function PopularPlaces({ places, destination }) {
           return (
             <li
               key={`${p.name}-${i}`}
-              className="flex items-start gap-3 rounded-xl border border-line bg-cream p-4 dark:border-white/10 dark:bg-white/5"
+              className="flex min-w-0 items-start gap-3 rounded-xl border border-line bg-cream p-4 dark:border-white/10 dark:bg-white/5"
             >
               <span
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white ${meta.bg}`}

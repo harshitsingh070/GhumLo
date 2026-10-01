@@ -52,6 +52,8 @@ No database, no auth — everything is per-request. The UI is React + Tailwind, 
 - **Savings suggestions (over-budget only)** — up to 2 concrete ideas computed from already-fetched data, zero new API calls: `CHEAPER_HOTEL`, `CHEAPER_FLIGHT` (equal-or-fewer-stops filter), `SHORTER_TRIP` (one fewer night ≈ `hotel_total / nights`). Messages honestly say whether the saving closes the gap or only reduces it. `[]` when already cheapest.
 - **Trip insight** — one-sentence summary from real numbers (budget headroom + avg place rating + day tightness), e.g. *"Comfortable fit — ₹12,400 to spare, and your stops average 4.3★."* Never crashes; falls back to a factual line.
 - **Popular places** — full unclustered attractions + restaurants list (re-sort of already-fetched data, zero extra calls).
+- **Popular-place filters** — switch between all places, attractions, and restaurants without another API request.
+- **Transport hints** — itinerary legs show a practical suggestion based on straight-line distance: walk, walk or taxi, or taxi/local transport.
 - **Live vs saved badge** — every result shows `● Live prices` (fresh SerpApi) or `○ Saved results` (file cache), backed by server logs (`[live API]` vs `[cache HIT]`).
 
 ### Optional enrichments (each isolated — failure only omits its field, never a 502)
@@ -65,14 +67,18 @@ No database, no auth — everything is per-request. The UI is React + Tailwind, 
 ### App / UX features
 
 - **Build-your-trip form** — From / To (swap-route button), date-range picker with return-after-departure validation, travelers (1–9), budget (₹, step 1000), sensible defaults (`DEL → Goa, 2026-10-10 → 2026-10-13, 2 travelers, ₹60,000`), "Always fetch fresh results" (`force_refresh`) checkbox.
+- **Travel modes** — Saver, Balanced, and Comfort ranking modes. Each mode ranks already-fetched flight × hotel combinations differently without extra SerpApi quota.
+- **Smart options** — ranked alternatives, a what-if budget slider, a weather-aware packing list, a live-versus-cached price label, and share support.
 - **Best-match card** — total, % of budget with progress bar, over/under messaging, "Why we picked this trip" reasons + insight, flight & hotel cards (per-person price, nightly × nights math, rating stars, hotel→Google-Maps link).
 - **Budget bar + sticky budget summary** — visual flight/hotel/total split that stays visible while scrolling results.
 - **Destinations** — 6 curated cards (Goa, Jaipur, Manali, Mumbai, Delhi, London) with photo, story, season, starting price, on both the home page and a full `/destinations` page. **"Plan this trip" prefills the planner** and scrolls to it.
 - **Landing story** — Hero, How-it-works, Budget showcase, Sample trip, Benefits, About, CTA sections (hidden while results show).
-- **Dark / light theme** — toggle in header, persisted to `localStorage`, survives reloads.
+- **Coastal Explorer theme** — consistent shell cream, ocean teal, seafoam, and coral visual system across the app.
 - **Loading progress + helpful empty state** — animated searching state; on error, "No trips found" card with the actual error plus recovery hints (raise budget / change dates / nearby destination).
 - **Responsive + accessible** — mobile-first Tailwind layout, semantic labels, `role=tablist` days, focus rings, aria-live map status.
+- **Comfort-focused visual system** — responsive planner steps, tappable travel-mode cards, readable AI answers, weather context chips, Coastal Explorer colors, paper-grid travel texture, and mobile overflow protection.
 - **Standalone endpoints** — `/api/flights`, `/api/hotels`, `/api/places` for debugging each leg independently (each supports `force_refresh`).
+- **Groq itinerary assistant** — optional AI panel on results. Ask for a less tiring day, weather-aware changes, or packing advice using only the current plan context. Current weather, temperature, humidity, wind, and precipitation are included when available. The core planner still works without Groq.
 
 ---
 
@@ -90,6 +96,8 @@ User form ──POST /api/plan──▶ FastAPI
 ```
 
 Core plan = **exactly 4 SerpApi searches** (1 + 1 + 2). Optionals add at most 3 more (weather, events, FX), each cached with its own TTL and each silently omitted on failure.
+
+The result page then adds local, zero-quota enhancements: travel-mode alternatives, budget simulation, packing guidance, place filters, transport hints, sharing, and the optional Groq assistant.
 
 ---
 
@@ -123,6 +131,7 @@ cd Serp-Travel-Project   # this repo folder
 pip install -r requirements.txt
 copy .env.example .env
 # open .env and set SERPAPI_API_KEY=your_key_here
+# optional: set GROQ_API_KEY=your_groq_key_here for the AI assistant
 ```
 
 ### 1) Probe SerpApi shapes first (recommended, uses ~3 searches, then cached)
@@ -167,6 +176,8 @@ API docs (Swagger): http://localhost:8000/docs
    - **Flight + Hotel cards** — airline/duration/stops, per-person price when >1 traveler; hotel nightly × nights math, rating, map link.
    - **More stays** — expand to see 5 hotel options with tier badges; clicking one rebuilds the trip around it (places + itinerary re-anchor; "Updating trip…" shows while recomputing).
    - **Budget bar**, **exchange-rate note** (international only), **ways to reduce the cost** (over-budget only), **current conditions**, **popular places**, **day-by-day itinerary with map**, **events**.
+  - **Smart options** — compare Saver/Balanced/Comfort alternatives, test a different budget, view a weather-aware packing list, and share the trip summary.
+  - **Ask about your itinerary** — use the Groq panel for weather-aware changes such as a less tiring day or an indoor alternative.
 
 ### Use the itinerary + map
 
@@ -178,10 +189,6 @@ API docs (Swagger): http://localhost:8000/docs
 
 - Home-page cards or header **Destinations** link → full page with 6 places, season, and starting price. **Plan this trip** fills the home form's destination and scrolls to it (other fields untouched).
 
-### Toggle theme
-
-- Sun/moon button in the header switches dark/light; preference persists in `localStorage` (`tcc-theme`).
-
 ---
 
 ## API reference
@@ -191,7 +198,8 @@ API docs (Swagger): http://localhost:8000/docs
 | POST | `/api/flights` | `{origin, destination, departure_date, return_date?, travelers?, force_refresh?}` |
 | POST | `/api/hotels` | `{destination, check_in, check_out, travelers?, force_refresh?}` |
 | POST | `/api/places` | `{location, category: "attractions" \| "restaurants", force_refresh?}` |
-| POST | `/api/plan` | `{origin, destination, departure_date, return_date, travelers?, budget, force_refresh?, selected_hotel_name?}` |
+| POST | `/api/plan` | `{origin, destination, departure_date, return_date, travelers?, budget, force_refresh?, selected_hotel_name?, travel_mode?}` |
+| POST | `/api/assistant` | `{destination, dates?, request, itinerary?, weather?}` |
 | GET | `/api/health` | — |
 
 Status codes: `200` (+ `from_cache` / `live_search` flags), `400` unknown city / bad category / unknown pinned hotel, `404` no flights or hotels found, `502` SerpApi failure with a friendly message (missing key, invalid key, quota, transient).
@@ -314,10 +322,14 @@ Copy `.env.example` → `.env`:
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
 | `SERPAPI_API_KEY` | yes | — | SerpApi key from https://serpapi.com/ |
+| `GROQ_API_KEY` | no | — | Groq key from https://console.groq.com/keys |
+| `GROQ_MODEL` | no | `openai/gpt-oss-20b` | Model used by `/api/assistant` |
 | `USE_CACHE` | no | `true` | `false` = always hit live API (burns quota) |
 | `PORT` | no | `8000` | Informational; pass `--port` to uvicorn to change |
 
 Never commit `.env` (already in `.gitignore`).
+
+After adding `GROQ_API_KEY` to `.env`, restart Uvicorn and open a completed trip. The **Ask about your itinerary** panel sends the itinerary, dates, destination, and current weather to the backend assistant. The key is never sent to the browser. If an older unavailable model is left in `GROQ_MODEL`, the backend falls back to `openai/gpt-oss-20b`.
 
 ---
 
@@ -327,7 +339,7 @@ Never commit `.env` (already in `.gitignore`).
 backend/
   main.py            # FastAPI app + /api/* routes + static mount (serves the React build)
   serpapi_client.py  # SerpApi fetchers + defensive parsers + airport resolver + weather/events/FX
-  budget.py          # pure budget-matching + savings-suggestion functions
+  budget.py          # pure budget-matching, mode-ranking, and savings functions
   itinerary.py       # proximity-clustered day builder
   insight.py         # one-line trip-insight generator (pure, no I/O)
   cache.py           # JSON file cache (TTL per data type, USE_CACHE toggle)
@@ -338,6 +350,7 @@ frontend-react/
     components/          # TripForm, PickCard, BudgetBar, StickyBudgetSummary,
                          # ItinerarySection/Day/Map, PopularPlaces, EventsSection,
                          # WeatherSnapshot, ExchangeRateNote, SavingsSuggestions,
+                         # SmartOptions, AITripAssistant,
                          # Destinations(+Page), Hero, HowItWorks, BudgetShowcase,
                          # SampleTrip, Benefits, About, CtaSection, Header, Footer, ...
     lib/                 # router (hash), destinations catalogue, format, geo, reasons

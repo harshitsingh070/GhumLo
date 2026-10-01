@@ -16,6 +16,7 @@ const DEFAULTS = {
   return_date: "2026-10-13",
   travelers: 2,
   budget: 60000,
+  travel_mode: "balanced",
   force_refresh: false,
 };
 
@@ -54,6 +55,7 @@ export default function TripForm({ loading, onSubmit, prefillDestination }) {
       return_date: form.return_date,
       travelers: Number(form.travelers),
       budget: Number(form.budget),
+      travel_mode: form.travel_mode,
       force_refresh: Boolean(form.force_refresh),
     });
   };
@@ -80,6 +82,12 @@ export default function TripForm({ loading, onSubmit, prefillDestination }) {
         <span className="rounded-full bg-sand px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.1em] text-ink/70 dark:bg-white/10 dark:text-white/70">
           Flight + hotel + plan
         </span>
+      </div>
+
+      <div className="mb-6 grid grid-cols-3 gap-2 border-y border-line py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-smoke dark:border-white/10 dark:text-white/45 sm:text-xs">
+        <span className="flex items-center gap-2 text-ink dark:text-white"><b className="flex h-6 w-6 items-center justify-center rounded-full bg-clay text-white">1</b> Route</span>
+        <span className="flex items-center gap-2"><b className="flex h-6 w-6 items-center justify-center rounded-full bg-sand text-ink dark:bg-white/10 dark:text-white">2</b> Details</span>
+        <span className="flex items-center gap-2"><b className="flex h-6 w-6 items-center justify-center rounded-full bg-sand text-ink dark:bg-white/10 dark:text-white">3</b> Style</span>
       </div>
 
       <form onSubmit={submit} id="trip-form">
@@ -225,6 +233,23 @@ export default function TripForm({ loading, onSubmit, prefillDestination }) {
           </p>
         )}
 
+        <fieldset className="mt-6">
+          <legend className={labelCls}>Travel style</legend>
+          <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Travel style">
+            {[
+              ["saver", "Saver", "Lowest total"],
+              ["balanced", "Balanced", "Value + comfort"],
+              ["comfort", "Comfort", "Better ratings"],
+            ].map(([value, title, description]) => (
+              <label key={value} className={`tcc-focus cursor-pointer rounded-xl border px-4 py-3 transition-all ${form.travel_mode === value ? "border-clay bg-clay/5 shadow-sm" : "border-line bg-cream hover:border-clay/50 dark:border-white/15 dark:bg-white/5"}`}>
+                <input className="sr-only" type="radio" name="travel_mode" value={value} checked={form.travel_mode === value} onChange={set("travel_mode")} />
+                <span className="block text-sm font-bold text-ink dark:text-white">{title}</span>
+                <span className="mt-0.5 block text-xs text-smoke dark:text-white/55">{description}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
         {/* CTA row */}
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
@@ -264,7 +289,7 @@ export default function TripForm({ loading, onSubmit, prefillDestination }) {
             type="checkbox"
             checked={form.force_refresh}
             onChange={set("force_refresh")}
-            className="h-4 w-4 rounded accent-[#FF6B35]"
+            className="h-4 w-4 rounded accent-clay"
           />
           Always fetch fresh results (slower, uses more live searches)
         </label>

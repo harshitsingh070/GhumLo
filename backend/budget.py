@@ -39,6 +39,58 @@ def find_best_combination(flights: list[dict], hotels: list[dict], budget: int) 
     }
 
 
+def rank_combinations(flights: list[dict], hotels: list[dict], budget: int,
+                      mode: str = "balanced") -> list[dict]:
+    """Return up to three data-backed plan choices for the UI.
+
+    The mode changes ranking only; it never invents prices or makes another
+    API call. Fitting combinations are preferred, with the cheapest fallback
+    retained when the budget is too small.
+    """
+    combos = [
+        {"flight": f, "hotel": h, "total_cost": f["price"] + h["total_price"]}
+        for f in flights for h in hotels
+    ]
+    if not combos:
+        return []
+    fitting = [c for c in combos if c["total_cost"] <= budget]
+    if not fitting:
+        return sorted(combos, key=lambda combo: combo["total_cost"])[:3]
+    pool = fitting
+
+    def score(combo: dict) -> tuple:
+        flight = combo["flight"]
+        hotel = combo["hotel"]
+        rating = float(hotel.get("rating") or 0)
+        try:
+            stops = int(flight.get("stops", 0))
+        except (TypeError, ValueError):
+            stops = 0
+        if mode == "saver":
+            return (combo["total_cost"], -rating)
+        if mode == "comfort":
+            return (-rating, stops, combo["total_cost"])
+        return (combo["total_cost"] + stops * 2500 + max(0, 4.2 - rating) * 4000,
+                combo["total_cost"])
+
+    return sorted(pool, key=score)[:3]
+
+
+def build_mode_alternatives(flights: list[dict], hotels: list[dict], budget: int) -> list[dict]:
+    """Pick one best combination for each visible travel mode."""
+    alternatives = []
+    for mode in ("saver", "balanced", "comfort"):
+        ranked = rank_combinations(flights, hotels, budget, mode)
+        if ranked:
+            choice = ranked[0]
+            alternatives.append({
+                "mode": mode,
+                **choice,
+                "fits_budget": choice["total_cost"] <= budget,
+            })
+    return alternatives
+
+
 def _same_hotel(a: dict, b: dict) -> bool:
     return a.get("name") == b.get("name") and a.get("total_price") == b.get("total_price")
 

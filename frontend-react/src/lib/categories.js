@@ -5,7 +5,7 @@ import { Hotel, Landmark, Plane, UtensilsCrossed } from "lucide-react";
  *  without the full panel. Lives here (not in the component file) so
  *  fast-refresh lint stays quiet. */
 export const CATEGORY_META = {
-  flight: { icon: Plane, bg: "bg-gradient-to-br from-[#FF8A50] to-[#E85524]" },
+  flight: { icon: Plane, bg: "bg-gradient-to-br from-[#FF9B87] to-[#E96B55]" },
   hotel: { icon: Hotel, bg: "bg-gradient-to-br from-amber-400 to-orange-500" },
   restaurant: { icon: UtensilsCrossed, bg: "bg-gradient-to-br from-rose-400 to-pink-600" },
   attraction: { icon: Landmark, bg: "bg-gradient-to-br from-emerald-400 to-teal-600" },

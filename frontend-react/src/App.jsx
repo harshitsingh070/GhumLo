@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { SearchX } from "lucide-react";
 import { go, navigate, useHashRoute } from "./lib/router.js";
 import Header from "./components/Header.jsx";
@@ -22,6 +22,9 @@ import WeatherSnapshot from "./components/WeatherSnapshot.jsx";
 import ExchangeRateNote from "./components/ExchangeRateNote.jsx";
 import EventsSection from "./components/EventsSection.jsx";
 import PopularPlaces from "./components/PopularPlaces.jsx";
+import SmartOptions from "./components/SmartOptions.jsx";
+import AITripAssistant from "./components/AITripAssistant.jsx";
+import ResultsNav from "./components/ResultsNav.jsx";
 
 /** Top-level layout. Holds plan result, loading, and error state.
  *  POSTs to same-origin /api/plan — no axios, no state library. */
@@ -36,26 +39,6 @@ export default function App() {
   // Monotonic request id: a stale recompute resolving after a fresh form
   // submit must not overwrite the newer plan.
   const reqIdRef = useRef(0);
-  // Theme toggle: `dark` class drives Tailwind dark: variants;
-  // data-theme mirrors it as the semantic marker. Persisted, best-effort.
-  const [dark, setDark] = useState(() => {
-    try {
-      return window.localStorage.getItem("tcc-theme") === "dark";
-    } catch {
-      return false;
-    }
-  });
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.toggle("dark", dark);
-    root.dataset.theme = dark ? "dark" : "light";
-    try {
-      window.localStorage.setItem("tcc-theme", dark ? "dark" : "light");
-    } catch {
-      /* private mode etc. — theme just won't persist */
-    }
-  }, [dark]);
-
   // Destination-card prefill: sets the form's destination field (everything
   // else the user typed is untouched), returns to the home page when called
   // from the Destinations page, and scrolls the form into view.
@@ -118,11 +101,41 @@ export default function App() {
       // Same trip params + chosen hotel. Flights/hotels hit the trip's
       // existing cache; places are searched near the new hotel's anchor
       // (cached when previously searched, else 2 live searches).
-      const data = await postPlan({ ...base, selected_hotel_name: name });
-      if (reqIdRef.current === id) setPlan(data);
+      const data = await postPlan({
+        ...base,
+        travel_mode: plan?.travel_mode ?? base.travel_mode,
+        selected_hotel_name: name,
+      });
+      if (reqIdRef.current === id) {
+        lastPayloadRef.current = {
+          ...base,
+          travel_mode: data.travel_mode ?? base.travel_mode,
+          selected_hotel_name: data.selected_hotel_name ?? name,
+        };
+        setPlan(data);
+      }
     } catch (err) {
       // Keep the previous plan on screen — a failed swap must not nuke
       // working results; surface the message above them.
+      if (reqIdRef.current === id) setError(err.message);
+    } finally {
+      if (reqIdRef.current === id) setRecomputing(false);
+    }
+  };
+
+  const selectAlternative = async (option) => {
+    const base = lastPayloadRef.current;
+    if (!base || recomputing || !option?.mode || option.mode === plan?.travel_mode) return;
+    const id = ++reqIdRef.current;
+    setRecomputing(true);
+    setError("");
+    try {
+      const data = await postPlan({ ...base, travel_mode: option.mode, selected_hotel_name: null });
+      if (reqIdRef.current === id) {
+        lastPayloadRef.current = { ...base, travel_mode: data.travel_mode ?? option.mode, selected_hotel_name: null };
+        setPlan(data);
+      }
+    } catch (err) {
       if (reqIdRef.current === id) setError(err.message);
     } finally {
       if (reqIdRef.current === id) setRecomputing(false);
@@ -133,7 +146,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-cream font-sans text-ink dark:bg-ink dark:text-white">
-      <Header dark={dark} onToggleTheme={() => setDark((d) => !d)} />
+      <Header />
       {route === "home" && <Hero />}
 
       <main className="tcc-container space-y-12 pb-20 pt-12 sm:space-y-20 sm:pt-14">
@@ -193,6 +206,7 @@ export default function App() {
               budget={plan.budget}
               fits_budget={plan.fits_budget}
             />
+            <ResultsNav />
             <PickCard
               best_pick={plan.best_pick}
               fits_budget={plan.fits_budget}
@@ -211,6 +225,7 @@ export default function App() {
               onSelectHotel={selectHotel}
               recomputing={recomputing}
             />
+            <AITripAssistant plan={plan} />
             <BudgetBar
               flight_price={plan.best_pick.flight.price}
               hotel_total={plan.best_pick.hotel.total_price}
@@ -218,6 +233,7 @@ export default function App() {
               budget={plan.budget}
               fits_budget={plan.fits_budget}
             />
+            <SmartOptions plan={plan} onSelectAlternative={selectAlternative} recomputing={recomputing} />
             {/* Optional extras — each component renders null when its field
                 is absent (domestic trip / fetch failure), so the core flow
                 never depends on them. */}

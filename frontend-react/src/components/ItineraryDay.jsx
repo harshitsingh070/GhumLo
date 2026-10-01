@@ -13,6 +13,12 @@ const BLOCK_ICONS = { Morning: Sunrise, Afternoon: Sun, Evening: Sunset };
 const metaFor = (category) =>
   CATEGORY_META[category === "restaurants" ? "restaurant" : "attraction"];
 
+const transportFor = (km) => {
+  if (km < 1) return "Walk";
+  if (km < 4) return "Walk or taxi";
+  return "Taxi or local transport";
+};
+
 /** One day's stops as a vertical timeline (rail + dots + per-leg distance
  *  chips), grouped under Morning/Afternoon/Evening headers.
  *  Props: {day} — shape unchanged. Day tabs + map live in ItinerarySection. */
@@ -47,6 +53,10 @@ export default function ItineraryDay({ day }) {
             {g.stops.map((p) => {
               const idx = seen++;
               const leg = legs[idx];
+              const previous = idx > 0 ? day.places[idx - 1] : null;
+              const legKm = previous && hasCoords(p) && hasCoords(previous)
+                ? haversineKm(previous.lat, previous.lng, p.lat, p.lng)
+                : null;
               const mapUrl = buildMapUrl(
                 p.lat,
                 p.lng,
@@ -99,7 +109,7 @@ export default function ItineraryDay({ day }) {
                             className="inline-flex items-center gap-1 rounded bg-slate-800 px-1.5 py-px text-[10px] font-semibold text-white dark:bg-slate-200 dark:text-slate-900"
                             title="Straight-line distance from previous stop"
                           >
-                            <Route className="h-3 w-3" /> {leg}
+                            <Route className="h-3 w-3" /> {leg}{legKm !== null ? ` · ${transportFor(legKm)}` : ""}
                           </span>
                         )}
                       </p>

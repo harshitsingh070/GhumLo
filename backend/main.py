@@ -8,6 +8,7 @@ Run from project root:
 Frontend (plain HTML/CSS/JS) is served from /frontend at http://localhost:8000/
 """
 import logging
+import os
 from datetime import date
 from pathlib import Path
 
@@ -18,10 +19,11 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 try:
-    from backend.budget import find_best_combination, generate_savings_suggestions
+    from backend.budget import (build_mode_alternatives, find_best_combination,
+                                generate_savings_suggestions, rank_combinations)
     from backend.insight import generate_trip_insight
     from backend.itinerary import build_itinerary
     from backend.serpapi_client import (
@@ -39,7 +41,8 @@ try:
         parse_places,
     )
 except ImportError:  # running as `uvicorn main:app` from backend/
-    from budget import find_best_combination, generate_savings_suggestions  # type: ignore
+    from budget import (build_mode_alternatives, find_best_combination,
+                        generate_savings_suggestions, rank_combinations)  # type: ignore
     from insight import generate_trip_insight  # type: ignore
     from itinerary import build_itinerary  # type: ignore
     from serpapi_client import (  # type: ignore
@@ -104,6 +107,15 @@ class PlanReq(BaseModel):
     # Optional: pin the hotel by exact name (must match one of the
     # trip's hotel_options). Absent = automatic best-pick selection.
     selected_hotel_name: str | None = None
+    travel_mode: str = Field(default="balanced", examples=["balanced"])
+
+
+class AssistantReq(BaseModel):
+    destination: str = Field(min_length=1, max_length=100)
+    dates: str = Field(default="", max_length=80)
+    request: str = Field(min_length=2, max_length=600)
+    itinerary: list[dict] = Field(default_factory=list, max_length=30)
+    weather: dict | None = None
 
 
 # ---------------- helpers ----------------
@@ -258,6 +270,7 @@ def api_plan(req: PlanReq):
             for h in hotels[:5]
         ]
 
+        mode = req.travel_mode if req.travel_mode in ("saver", "balanced", "comfort") else "balanced"
         if req.selected_hotel_name:
             chosen = next((h for h in hotels
                            if h["name"] == req.selected_hotel_name), None)
@@ -269,9 +282,30 @@ def api_plan(req: PlanReq):
             # single-hotel list. Minimizing flight+fixed-hotel total reduces
             # to the cheapest flight — no new budget logic, identical
             # response shape (fits_budget / best_pick / over_by / candidates).
-            match = find_best_combination(flights, [chosen], req.budget)
+            ranked = rank_combinations(flights, [chosen], req.budget, mode)
+            selected = ranked[0] if ranked else None
+            if selected:
+                fits = selected["total_cost"] <= req.budget
+                match = {
+                    "fits_budget": fits,
+                    "best_pick": selected if fits else {**selected, "over_by": selected["total_cost"] - req.budget},
+                    "candidates": ranked,
+                    "remaining_budget": max(0, req.budget - selected["total_cost"]),
+                }
+            else:
+                match = find_best_combination(flights, [chosen], req.budget)
         else:
+            ranked = rank_combinations(flights, hotels, req.budget, mode)
             match = find_best_combination(flights, hotels, req.budget)
+            if ranked:
+                selected = ranked[0]
+                fits = selected["total_cost"] <= req.budget
+                match = {
+                    "fits_budget": fits,
+                    "best_pick": selected if fits else {**selected, "over_by": selected["total_cost"] - req.budget},
+                    "candidates": ranked,
+                    "remaining_budget": max(0, req.budget - selected["total_cost"]),
+                }
         best = match["best_pick"]
         hotel_name = best["hotel"]["name"]
         anchor = f"{hotel_name}, {req.destination}"
@@ -340,6 +374,8 @@ def api_plan(req: PlanReq):
             "other_options": match["candidates"][1:5],
             "hotel_options": hotel_options,
             "selected_hotel_name": req.selected_hotel_name,  # null = auto-pick
+            "travel_mode": mode,
+            "plan_alternatives": build_mode_alternatives(flights, hotels, req.budget),
             "itinerary": itinerary,
             # Full (unclustered) places list: feeds the standalone
             # "Popular places" view — a re-sort of data already fetched,
@@ -379,6 +415,70 @@ def api_plan(req: PlanReq):
                          f"try the 3-letter airport code instead (e.g. DEL, LHR, JFK)"})
         log.exception("plan failed")
         return JSONResponse(status_code=502, content={"error": _friendly_error(e)})
+
+
+@app.post("/api/assistant")
+def api_assistant(req: AssistantReq):
+    """Answer a bounded itinerary question using only the current plan data."""
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    if not api_key or api_key == "your_groq_key_here":
+        return JSONResponse(status_code=503, content={
+            "error": "Groq is not configured yet. Add GROQ_API_KEY to your .env file and restart the server."
+        })
+    try:
+        from groq import Groq
+
+        client = Groq(api_key=api_key)
+        configured_model = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+        unavailable_models = {
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
+        }
+        model = "openai/gpt-oss-20b" if configured_model in unavailable_models else configured_model
+        context = {
+            "destination": req.destination,
+            "dates": req.dates,
+            "weather": req.weather or {},
+            "itinerary": req.itinerary,
+        }
+        completion = client.chat.completions.create(
+            model=model,
+            temperature=0.2,
+            max_tokens=500,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are Trip Cost Compass's practical travel assistant. "
+                        "Answer only using the supplied trip context. Treat the "
+                        "weather object as important planning data: use its current "
+                        "condition, temperature, rain/precipitation, wind, and humidity "
+                        "when suggesting outdoor versus indoor activities, timing, or "
+                        "packing. Clearly say that current weather is not a forecast "
+                        "when relevant. Do not invent prices, opening hours, bookings, "
+                        "or safety claims. If the context is insufficient, say so. "
+                        "Keep the answer under 120 words and use short bullets when useful."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Trip context:\n{context}\n\nUser request: {req.request}",
+                },
+            ],
+        )
+        answer = (completion.choices[0].message.content or "").strip()
+        if not answer:
+            raise RuntimeError("Groq returned an empty response")
+        return {"answer": answer, "model": model}
+    except ImportError:
+        return JSONResponse(status_code=503, content={
+            "error": "Groq support is not installed. Run pip install -r requirements.txt and restart the server."
+        })
+    except Exception as e:
+        log.exception("Groq assistant failed")
+        return JSONResponse(status_code=502, content={
+            "error": "The travel assistant is temporarily unavailable. Check your Groq key and try again."
+        })
     except Exception as e:
         log.exception("plan failed")
         return JSONResponse(status_code=502, content={"error": _friendly_error(e)})

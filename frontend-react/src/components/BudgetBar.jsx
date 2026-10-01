@@ -10,10 +10,10 @@ export default function BudgetBar({ flight_price, hotel_total, total_cost, budge
   const total = Number(total_cost) || flight + hotel;
   const flightShare = total > 0 ? Math.round((flight / total) * 100) : 0;
   const hotelShare = total > 0 ? 100 - flightShare : 0; // remainder: shares always sum to 100
-  const over = !fits_budget;
 
   return (
     <section
+      id="budget"
       className="rounded-[18px] border border-line bg-white p-6 shadow-card sm:p-7 dark:border-white/10 dark:bg-ink"
       aria-label="Cost breakdown"
     >
@@ -40,17 +40,6 @@ export default function BudgetBar({ flight_price, hotel_total, total_cost, budge
             <span className="text-sm text-smoke dark:text-white/55">{hotelShare}% of total</span>
           </span>
           <strong className="whitespace-nowrap text-ink dark:text-white">{inr(hotel)}</strong>
-        </li>
-        <li className="flex items-center justify-between gap-2 border-t border-line pt-3 text-base dark:border-white/10">
-          <span className="font-bold text-ink dark:text-white">
-            Total{" "}
-            <span className={`text-sm font-normal ${over ? "text-clay" : "text-smoke dark:text-white/55"}`}>
-              of {inr(budget)} budget{over ? " — over budget" : ""}
-            </span>
-          </span>
-          <strong className={`whitespace-nowrap font-display text-xl ${over ? "text-clay" : "text-ink dark:text-white"}`}>
-            {inr(total)}
-          </strong>
         </li>
       </ul>
       <div
