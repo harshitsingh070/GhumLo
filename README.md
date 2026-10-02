@@ -1,4 +1,4 @@
-# 🧭 Trip Cost Compass
+# GhoomLo — plan trips that fit your budget
 
 **Travel & Local Discovery track — SerpApi India Hackathon 2026.**
 
@@ -67,7 +67,12 @@ No database, no auth — everything is per-request. The UI is React + Tailwind, 
 ### App / UX features
 
 - **Build-your-trip form** — From / To (swap-route button), date-range picker with return-after-departure validation, travelers (1–9), budget (₹, step 1000), sensible defaults (`DEL → Goa, 2026-10-10 → 2026-10-13, 2 travelers, ₹60,000`), "Always fetch fresh results" (`force_refresh`) checkbox.
+- **Demo Mode** — "Try demo trip (no key needed)" loads a saved Goa plan via `GET /api/demo` (committed `backend/demo_goa.json`, zero SerpApi calls, zero key). Judges see the full UI even with dead quota; results carry a "Demo data" chip.
+- **Print / Save PDF** — results header has a Print button; `@media print` CSS hides nav/form/maps and prints a clean day-wise trip sheet (all days + know-before-you-go).
+- **Natural-language input** — type *"Goa under 50k next weekend, 2 people, veg food"* above the form → `POST /api/parse-trip` fills origin/destination/dates/travelers/budget/mode. Heuristic offline parser always works; Groq refines when `GROQ_API_KEY` is set. Food hints (`veg`/`jain`/`halal`) are detected and shown; gibberish returns `422` with an example.
 - **Travel modes** — Saver, Balanced, and Comfort ranking modes. Each mode ranks already-fetched flight × hotel combinations differently without extra SerpApi quota.
+- **Know before you go** — 1× `google` search (visa/entry, best time, safety) with source links, destination-cached 24h, omitted on failure.
+- **Destination vlogs** — top-3 YouTube results via 1× `youtube` search, destination-cached 24h, omitted on failure.
 - **Smart options** — ranked alternatives, a what-if budget slider, a weather-aware packing list, a live-versus-cached price label, and share support.
 - **Best-match card** — total, % of budget with progress bar, over/under messaging, "Why we picked this trip" reasons + insight, flight & hotel cards (per-person price, nightly × nights math, rating stars, hotel→Google-Maps link).
 - **Budget bar + sticky budget summary** — visual flight/hotel/total split that stays visible while scrolling results.
@@ -75,10 +80,12 @@ No database, no auth — everything is per-request. The UI is React + Tailwind, 
 - **Landing story** — Hero, How-it-works, Budget showcase, Sample trip, Benefits, About, CTA sections (hidden while results show).
 - **Coastal Explorer theme** — consistent shell cream, ocean teal, seafoam, and coral visual system across the app.
 - **Loading progress + helpful empty state** — animated searching state; on error, "No trips found" card with the actual error plus recovery hints (raise budget / change dates / nearby destination).
-- **Responsive + accessible** — mobile-first Tailwind layout, semantic labels, `role=tablist` days, focus rings, aria-live map status.
+- **Responsive + accessible + system dark mode** — mobile-first Tailwind layout, semantic labels, `role=tablist` days, focus rings, aria-live map status. Dark theme follows the OS setting (no toggle); map tiles intentionally stay light in both themes.
 - **Comfort-focused visual system** — responsive planner steps, tappable travel-mode cards, readable AI answers, weather context chips, Coastal Explorer colors, paper-grid travel texture, and mobile overflow protection.
 - **Standalone endpoints** — `/api/flights`, `/api/hotels`, `/api/places` for debugging each leg independently (each supports `force_refresh`).
 - **Groq itinerary assistant** — optional AI panel on results. Ask for a less tiring day, weather-aware changes, or packing advice using only the current plan context. Current weather, temperature, humidity, wind, and precipitation are included when available. The core planner still works without Groq.
+- **Assistant guardrails (trip-only use)** — `POST /api/assistant` is fenced so the server-side Groq key can't be repurposed: per-IP rate limit (15 requests / 10 min → `429`), a regex pre-filter that rejects prompt-injection / code / homework / poetry attempts before any Groq call (`400`, zero cost), and a scope-locked system prompt that refuses anything outside the current trip with a one-line redirect. The key never leaves the server.
+- **Resilient SerpApi photos** — shared `SafeImage` component used for place cards, flight/hotel photos, vlog thumbnails, and the weather icon: sends no `Referer` (fixes Google's `lh3.googleusercontent.com` hotlink 403s) and swaps any still-dead URL for a themed placeholder instead of a broken-image icon.
 
 ---
 
@@ -91,11 +98,11 @@ User form ──POST /api/plan──▶ FastAPI
                                 ├─ budget match (pure fn) ──▶ best_pick + hotel_options[5]
                                 ├─ 2× google_maps     (attractions + restaurants near winning hotel)
                                 ├─ itinerary cluster  (pure fn, hotel-seeded, 3/day)
-                                ├─ [optional] weather │ events │ FX rate (each try/except'd)
+                                 ├─ [optional] weather │ events │ FX rate │ know │ videos (each try/except'd)
                                 └─ JSON ──▶ React: PickCard → BudgetBar → Map → Itinerary → Extras
 ```
 
-Core plan = **exactly 4 SerpApi searches** (1 + 1 + 2). Optionals add at most 3 more (weather, events, FX), each cached with its own TTL and each silently omitted on failure.
+Core plan = **exactly 4 SerpApi searches** (1 + 1 + 2). Optionals add at most 5 more (weather, events, FX, know, videos), each cached with its own TTL and each silently omitted on failure.
 
 The result page then adds local, zero-quota enhancements: travel-mode alternatives, budget simulation, packing guidance, place filters, transport hints, sharing, and the optional Groq assistant.
 
@@ -111,6 +118,8 @@ The result page then adds local, zero-quota enhancements: travel-mode alternativ
 | `google` (weather answer box) | optional step of `/api/plan` | Current conditions for the destination. Only the `weather_result` box is accepted; averages/other box types are ignored. |
 | `google_events` | optional step of `/api/plan` | Concerts/festivals during the trip window. No server-side date filter exists (only today/week/month chips), so dates are applied client-side. |
 | `google_finance` (`FROM-TO` pair) | optional step of `/api/plan` | Currency context for international trips (headline `summary.extracted_price`, `graph` fallback). |
+| `google` (organic results) | optional step of `/api/plan` → `know` | Know-before-you-go: visa/entry, best time, safety pointers with source links (top 5 `organic_results`), destination-cached 24h. |
+| `youtube` (`search_query`) | optional step of `/api/plan` → `videos` | Top-3 destination vlogs (`video_results`: title/link/thumbnail/channel/duration), destination-cached 24h. |
 
 `/api/plan` core costs exactly **4 searches** (1 + 1 + 2). No loops, no retries, no polling.
 
@@ -175,9 +184,10 @@ API docs (Swagger): http://localhost:8000/docs
    - **Why we picked this trip** — insight sentence + reason bullets.
    - **Flight + Hotel cards** — airline/duration/stops, per-person price when >1 traveler; hotel nightly × nights math, rating, map link.
    - **More stays** — expand to see 5 hotel options with tier badges; clicking one rebuilds the trip around it (places + itinerary re-anchor; "Updating trip…" shows while recomputing).
-   - **Budget bar**, **exchange-rate note** (international only), **ways to reduce the cost** (over-budget only), **current conditions**, **popular places**, **day-by-day itinerary with map**, **events**.
-  - **Smart options** — compare Saver/Balanced/Comfort alternatives, test a different budget, view a weather-aware packing list, and share the trip summary.
-  - **Ask about your itinerary** — use the Groq panel for weather-aware changes such as a less tiring day or an indoor alternative.
+    - **Budget bar**, **exchange-rate note** (international only), **ways to reduce the cost** (over-budget only), **current conditions**, **popular places**, **day-by-day itinerary with map**, **events**, **know before you go** + **destination vlogs** (when their optional fetches succeed).
+   - **Smart options** — compare Saver/Balanced/Comfort alternatives, test a different budget, view a weather-aware packing list, and share the trip summary.
+   - **Ask about your itinerary** — use the Groq panel for weather-aware changes such as a less tiring day or an indoor alternative. Three one-tap quick prompts included; trip questions only (other requests are declined by the guardrails below).
+   - **Sticky section nav + Print** — a sticky `Overview / Cost / AI guide / Itinerary / Good to know / Vlogs` navigator stays visible over long results; the **Print / Save PDF** button exports a clean day-wise trip sheet.
 
 ### Use the itinerary + map
 
@@ -199,10 +209,12 @@ API docs (Swagger): http://localhost:8000/docs
 | POST | `/api/hotels` | `{destination, check_in, check_out, travelers?, force_refresh?}` |
 | POST | `/api/places` | `{location, category: "attractions" \| "restaurants", force_refresh?}` |
 | POST | `/api/plan` | `{origin, destination, departure_date, return_date, travelers?, budget, force_refresh?, selected_hotel_name?, travel_mode?}` |
-| POST | `/api/assistant` | `{destination, dates?, request, itinerary?, weather?}` |
+| POST | `/api/assistant` | `{destination, dates?, request, itinerary?, weather?}` — trip-only; `400` off-topic, `429` over 15 reqs/10 min per IP |
+| GET | `/api/demo` | — (saved Goa plan, no key needed) |
+| POST | `/api/parse-trip` | `{text}` → `{fields: {origin?, destination?, departure_date?, return_date?, travelers?, budget?, travel_mode?, diet?}}` |
 | GET | `/api/health` | — |
 
-Status codes: `200` (+ `from_cache` / `live_search` flags), `400` unknown city / bad category / unknown pinned hotel, `404` no flights or hotels found, `502` SerpApi failure with a friendly message (missing key, invalid key, quota, transient).
+Status codes: `200` (+ `from_cache` / `live_search` flags), `400` unknown city / bad category / unknown pinned hotel / off-topic assistant request, `404` no flights or hotels found, `422` unparseable natural-language trip, `429` assistant rate limit (15 reqs/10 min per IP), `502` SerpApi failure with a friendly message (missing key, invalid key, quota, transient), `503` assistant without `GROQ_API_KEY`.
 
 Example plan request:
 
@@ -247,6 +259,8 @@ curl -Method POST http://localhost:8000/api/plan `
   "places": [ "...all attractions + restaurants..." ],
   "events": [ { "title": "...", "date": "...", "venue": "...", "description": "...", "link": "..." } ],
   "weather": { "temperature": "31", "unit": "Celsius", "condition": "Partly cloudy" },
+  "know": [ { "title": "...", "link": "...", "snippet": "..." } ],   // omitted on failure
+  "videos": [ { "title": "...", "link": "...", "thumbnail": "...", "channel": "...", "duration": "..." } ],   // omitted on failure
   "exchange_rate": null,   // present only for international trips, e.g. {"rate": 109.42, ...}
   "suggestions": null,     // present only when over budget
   "insight": "Comfortable fit — ₹20,600 to spare, and your stops average 4.3★.",
@@ -255,7 +269,7 @@ curl -Method POST http://localhost:8000/api/plan `
 }
 ```
 
-Field notes: `weather` is omitted on failure; `events` is always present (`[]` when none/unsupported); `suggestions` only when `fits_budget` is false; `selected_hotel_name` is `null` for auto-pick.
+Field notes: `weather`/`know`/`videos` are omitted on failure; `events` is always present (`[]` when none/unsupported); `suggestions` only when `fits_budget` is false; `selected_hotel_name` is `null` for auto-pick.
 
 ---
 
@@ -291,8 +305,8 @@ Why greedy, not optimal routing: full TSP/VRP is O(n!) per day and needs road-ne
 
 ## Quota protection & caching
 
-- File cache in `backend/.cache/` (default **24h TTL**; **weather 6h**, **exchange-rate 12h**; toggle everything with `USE_CACHE=false`).
-- `/api/plan` core uses exactly 4 searches (1 flights + 1 hotels + 2 places). No loops/retries. Optionals add ≤3, each independently cached.
+- File cache in `backend/.cache/` (default **24h TTL** — flights, hotels, places, events, know, videos; **weather 6h**, **exchange-rate 12h**; toggle everything with `USE_CACHE=false`).
+- `/api/plan` core uses exactly 4 searches (1 flights + 1 hotels + 2 places). No loops/retries. Optionals add ≤5, each independently cached.
 - **Negative backoff for optional engines**: a live failure (e.g. `google_events` unsupported on your plan, quota blip) is remembered per-params for 6h so repeats skip the doomed call (zero quota) and degrade to omitted/`[]`. Success clears the entry.
 - `test_serpapi.py` uses 3 searches, then free. `test_optional_shapes.py` likewise caches weather/FX.
 - Server logs mark every fetch: `[cache HIT]`, `[live API]`, `[force live]`, `[backoff]`.
@@ -304,7 +318,7 @@ Why greedy, not optimal routing: full TSP/VRP is O(n!) per day and needs road-ne
 Cached runs return instantly, which hides the "live search" story. For the actual demo video, do one of these right before recording:
 
 ```powershell
-# Option 1 (recommended): tick "Force live search" in the web form — costs 4 searches, ignores cache
+# Option 1 (recommended): tick "Force live search" in the web form — costs 4 core searches (+ up to 5 optional), ignores cache
 # Option 2: bypass cache for every call
 $env:USE_CACHE="false"; uvicorn backend.main:app --reload --port 8000
 # Option 3: wipe the cache
@@ -323,7 +337,8 @@ Copy `.env.example` → `.env`:
 |---|---|---|---|
 | `SERPAPI_API_KEY` | yes | — | SerpApi key from https://serpapi.com/ |
 | `GROQ_API_KEY` | no | — | Groq key from https://console.groq.com/keys |
-| `GROQ_MODEL` | no | `openai/gpt-oss-20b` | Model used by `/api/assistant` |
+| `GROQ_MODEL` | no | `openai/gpt-oss-20b` | Model used by `/api/assistant` and `/api/parse-trip` refinement |
+| `SERPAPI_TIMEOUT_SECONDS` | no | `20` | Cap per live SerpApi call so a stalled provider can't hang the app (min 5) |
 | `USE_CACHE` | no | `true` | `false` = always hit live API (burns quota) |
 | `PORT` | no | `8000` | Informational; pass `--port` to uvicorn to change |
 
@@ -338,19 +353,22 @@ After adding `GROQ_API_KEY` to `.env`, restart Uvicorn and open a completed trip
 ```
 backend/
   main.py            # FastAPI app + /api/* routes + static mount (serves the React build)
-  serpapi_client.py  # SerpApi fetchers + defensive parsers + airport resolver + weather/events/FX
+  serpapi_client.py  # SerpApi fetchers + defensive parsers + airport resolver + weather/events/FX/know/videos
   budget.py          # pure budget-matching, mode-ranking, and savings functions
   itinerary.py       # proximity-clustered day builder
   insight.py         # one-line trip-insight generator (pure, no I/O)
+  nlparse.py         # natural-language trip parser (heuristic + Groq refine, no SerpApi)
+  demo_goa.json      # committed Demo-Mode Goa plan (served by GET /api/demo, zero quota)
   cache.py           # JSON file cache (TTL per data type, USE_CACHE toggle)
   .cache/            # local SerpApi response cache (git-ignored, 24h/6h/12h TTLs)
 frontend-react/
   src/
     App.jsx              # plan/loading/error state, hotel re-plan, theme, hash routing
-    components/          # TripForm, PickCard, BudgetBar, StickyBudgetSummary,
+    components/          # TripForm, NaturalLanguageInput, PickCard, BudgetBar, StickyBudgetSummary,
                          # ItinerarySection/Day/Map, PopularPlaces, EventsSection,
                          # WeatherSnapshot, ExchangeRateNote, SavingsSuggestions,
-                         # SmartOptions, AITripAssistant,
+                         # SmartOptions, AITripAssistant, KnowBeforeYouGo, DestinationVlogs,
+                         # PrintTripButton, PrintableTrip (print-only), SafeImage (photo fallback),
                          # Destinations(+Page), Hero, HowItWorks, BudgetShowcase,
                          # SampleTrip, Benefits, About, CtaSection, Header, Footer, ...
     lib/                 # router (hash), destinations catalogue, format, geo, reasons
@@ -405,6 +423,9 @@ On Windows with a venv: `venv\Scripts\python.exe test_resolver.py` (same for the
 - `No flights found` → check dates/airports; an unknown city returns a 400 naming it instead of searching. Flights accept airport codes (DEL) or city names — resolved automatically via offline airport data, covering essentially any city worldwide, not just a hardcoded list.
 - `No hotels found` → try a broader destination name (`Goa` beats a tiny village).
 - `Map unavailable` → tile network blocked; the itinerary list below still works.
-- Weather/events/FX section missing → that optional fetch failed or doesn't apply (domestic trip, no answer box, unsupported engine) — core trip is unaffected by design.
+- Weather/events/FX section missing → that optional fetch failed or doesn't apply (domestic trip, no answer box, unsupported engine) — core trip is unaffected by design. Same for know-before-you-go / vlogs sections.
+- `Groq is not configured yet` (assistant, `503`) → add `GROQ_API_KEY` to `.env` and restart; the core planner works without it.
+- `Too many assistant requests` (`429`) → per-IP limit is 15 requests / 10 min; wait and retry.
+- `Couldn't understand that` (parse-trip, `422`) → rephrase plainly, e.g. `Goa under 50k next weekend, 2 people`.
 - Port in use → `uvicorn backend.main:app --port 8001` (update dev proxy only if using `npm run dev`).
 - Frontend changes not visible at `localhost:8000` → you edited `src/` but forgot `npm run build`; the server serves `dist/`.

@@ -28,7 +28,7 @@ const ITEMS = [
 /** Concise trust/benefits strip. Static content. */
 export default function Benefits() {
   return (
-    <section aria-label="Why Trip Cost Compass">
+    <section aria-label="Why GhoomLo">
       <SectionHeading
         eyebrow="Why it works"
         title="Travel planning that respects your wallet"

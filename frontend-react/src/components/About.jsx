@@ -7,7 +7,7 @@ export default function About() {
         Built around your budget
       </h2>
       <p className="mt-3 max-w-3xl text-base leading-relaxed text-ink/75 dark:text-white/70">
-        Trip Cost Compass searches live flights, hotels, and nearby places, then matches
+        GhoomLo searches live flights, hotels, and nearby places, then matches
         the cheapest workable combination to the budget you set — with a day-by-day
         itinerary clustered around your stay. Built for the SerpApi India Hackathon
         2026, Travel &amp; Local Discovery track.

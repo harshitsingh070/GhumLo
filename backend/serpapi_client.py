@@ -29,7 +29,7 @@ try:
 except ImportError:
     import cache  # type: ignore  (run as uvicorn main:app from backend/)
 
-log = logging.getLogger("trip-compass")
+log = logging.getLogger("ghoomlo")
 logging.basicConfig(level=logging.INFO)
 
 # Cache TTLs (seconds) per data type. Places/flights/hotels/events are stable
@@ -754,4 +754,117 @@ def fetch_exchange_rate(from_currency: str, to_currency: str,
     except Exception as e:
         _opt_mark_failed("exchange_rate", params)
         log.warning(f"exchange rate failed (omitted): {type(e).__name__}: {e}")
+        return None
+
+
+# ---------------- 4. know-before-you-go (google organic results) ----------------
+
+def parse_know(raw: dict, cap: int = 5) -> list[dict]:
+    """Parse google organic_results -> [{title, link, snippet}].
+
+    Returns [] when nothing usable — callers omit the section, never crash.
+    """
+    results = raw.get("organic_results")
+    if not isinstance(results, list):
+        return []
+    out: list[dict] = []
+    for r in results:
+        if len(out) >= cap:
+            break
+        if not isinstance(r, dict):
+            continue
+        title = r.get("title") or ""
+        link = r.get("link") or ""
+        if not title or not link:
+            continue
+        snippet = str(r.get("snippet") or "").strip()
+        if len(snippet) > 220:
+            snippet = snippet[:219].rstrip() + "…"
+        out.append({"title": str(title), "link": str(link), "snippet": snippet})
+    return out
+
+
+def fetch_know_raw(destination: str, force_refresh: bool = False) -> dict | None:
+    """1x google search for visa / advisory / best-time context.
+
+    Destination-only cache key (24h). Returns None on ANY failure —
+    callers omit the field entirely.
+    """
+    dest = (destination or "").strip()
+    if not dest:
+        return None
+    params = {
+        "engine": "google",
+        "q": f"{dest} travel visa entry requirements best time to visit advisory",
+        "hl": "en",
+        "gl": "in",
+        "num": 10,
+    }
+    if _opt_in_backoff("know", params):
+        log.info(f"[backoff] know for {dest!r} — recent failure, skipping live call")
+        return None
+    try:
+        raw = _search(params, "know", skip_cache=force_refresh)
+        _opt_mark_ok("know", params)
+        return raw
+    except Exception as e:
+        _opt_mark_failed("know", params)
+        log.warning(f"know lookup failed (omitted): {type(e).__name__}: {e}")
+        return None
+
+
+# ---------------- 5. destination vlogs (youtube search) ----------------
+
+def parse_videos(raw: dict, cap: int = 3) -> list[dict]:
+    """Parse youtube video_results -> [{title, link, thumbnail, channel, duration}].
+
+    Defensive across SerpApi thumbnail shapes. Returns [] on miss.
+    """
+    results = raw.get("video_results")
+    if not isinstance(results, list):
+        # some responses nest under organic-style keys; nothing else to try
+        return []
+    out: list[dict] = []
+    for v in results:
+        if len(out) >= cap:
+            break
+        if not isinstance(v, dict):
+            continue
+        title = v.get("title") or ""
+        link = v.get("link") or ""
+        if not title or not link:
+            continue
+        thumb = v.get("thumbnail") or v.get("thumbnail_static") or ""
+        if isinstance(thumb, dict):
+            thumb = thumb.get("static") or thumb.get("rich") or ""
+        channel = v.get("channel") or {}
+        channel_name = channel.get("name") if isinstance(channel, dict) else str(channel or "")
+        out.append({
+            "title": str(title),
+            "link": str(link),
+            "thumbnail": str(thumb or ""),
+            "channel": str(channel_name or ""),
+            "duration": str(v.get("duration") or v.get("length") or ""),
+        })
+    return out
+
+
+def fetch_videos_raw(destination: str, force_refresh: bool = False) -> dict | None:
+    """1x youtube search for destination vlogs. Destination-only cache key
+    (24h). Returns None on ANY failure — callers omit the field entirely.
+    """
+    dest = (destination or "").strip()
+    if not dest:
+        return None
+    params = {"engine": "youtube", "search_query": f"{dest} travel vlog itinerary guide"}
+    if _opt_in_backoff("videos", params):
+        log.info(f"[backoff] videos for {dest!r} — recent failure, skipping live call")
+        return None
+    try:
+        raw = _search(params, "videos", skip_cache=force_refresh)
+        _opt_mark_ok("videos", params)
+        return raw
+    except Exception as e:
+        _opt_mark_failed("videos", params)
+        log.warning(f"videos lookup failed (omitted): {type(e).__name__}: {e}")
         return None

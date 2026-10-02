@@ -25,12 +25,17 @@ import PopularPlaces from "./components/PopularPlaces.jsx";
 import SmartOptions from "./components/SmartOptions.jsx";
 import AITripAssistant from "./components/AITripAssistant.jsx";
 import ResultsNav from "./components/ResultsNav.jsx";
+import KnowBeforeYouGo from "./components/KnowBeforeYouGo.jsx";
+import DestinationVlogs from "./components/DestinationVlogs.jsx";
+import PrintTripButton from "./components/PrintTripButton.jsx";
+import PrintableTrip from "./components/PrintableTrip.jsx";
 
 /** Top-level layout. Holds plan result, loading, and error state.
  *  POSTs to same-origin /api/plan — no axios, no state library. */
 export default function App() {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [recomputing, setRecomputing] = useState(false);
   const [error, setError] = useState("");
   // Last submitted form values (without selected_hotel_name). Kept so the
@@ -142,6 +147,41 @@ export default function App() {
     }
   };
 
+  const handleDemo = async () => {
+    const id = ++reqIdRef.current;
+    setDemoLoading(true);
+    setError("");
+    setPlan(null);
+    try {
+      const res = await fetch("/api/demo");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Demo unavailable.");
+      if (reqIdRef.current === id) {
+        // Seed last payload so hotel re-pick attempts the live endpoint
+        // (fails gracefully with plan kept when no key is configured).
+        lastPayloadRef.current = {
+          origin: data.origin,
+          destination: data.destination,
+          departure_date: data.departure_date,
+          return_date: data.return_date,
+          travelers: data.travelers,
+          budget: data.budget,
+          travel_mode: data.travel_mode || "balanced",
+          force_refresh: false,
+        };
+        setPlan(data);
+        setTimeout(
+          () => document.getElementById("results")?.scrollIntoView({ behavior: "smooth" }),
+          100
+        );
+      }
+    } catch (err) {
+      if (reqIdRef.current === id) setError(err.message);
+    } finally {
+      if (reqIdRef.current === id) setDemoLoading(false);
+    }
+  };
+
   const showingResults = !!plan || loading || !!error;
 
   return (
@@ -156,7 +196,7 @@ export default function App() {
           <>
             {/* ── Planner ── */}
             <div id="plan" className="scroll-mt-24">
-              <TripForm loading={loading} onSubmit={handleSubmit} prefillDestination={prefillDestination} />
+              <TripForm loading={loading} onSubmit={handleSubmit} prefillDestination={prefillDestination} onDemo={handleDemo} demoLoading={demoLoading} />
             </div>
 
         {/* ── Loading ── */}
@@ -207,6 +247,14 @@ export default function App() {
               fits_budget={plan.fits_budget}
             />
             <ResultsNav />
+            <div className="no-print flex flex-wrap gap-2">
+              <PrintTripButton />
+              {plan.demo && (
+                <span className="inline-flex items-center rounded-full bg-sand px-3 py-1.5 text-xs font-bold text-ink/70 dark:bg-white/10 dark:text-white/70">
+                  Demo data · no API key used
+                </span>
+              )}
+            </div>
             <PickCard
               best_pick={plan.best_pick}
               fits_budget={plan.fits_budget}
@@ -249,6 +297,9 @@ export default function App() {
               destination={plan.destination}
             />
             <EventsSection events={plan.events} destination={plan.destination} />
+            <KnowBeforeYouGo know={plan.know} destination={plan.destination} />
+            <DestinationVlogs videos={plan.videos} destination={plan.destination} />
+            <PrintableTrip plan={plan} />
           </div>
         )}
 

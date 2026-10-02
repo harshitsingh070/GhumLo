@@ -29,10 +29,10 @@ const STEPS = [
 /** Three-step product story with numbers + icons on soft contrast cards. */
 export default function HowItWorks() {
   return (
-    <section id="how" aria-label="How Trip Cost Compass works" className="scroll-mt-24">
+    <section id="how" aria-label="How GhoomLo works" className="scroll-mt-24">
       <SectionHeading
         eyebrow="How it works"
-        title="How Trip Cost Compass works"
+        title="How GhoomLo works"
         subtitle="From search to itinerary, everything is built around your budget."
       />
       <div className="mt-8 grid gap-5 md:grid-cols-3">

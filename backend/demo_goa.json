@@ -1,0 +1,107 @@
+{
+  "origin": "DEL",
+  "destination": "Goa",
+  "departure_date": "2026-10-10",
+  "return_date": "2026-10-13",
+  "travelers": 2,
+  "budget": 60000,
+  "num_nights": 3,
+  "fits_budget": true,
+  "best_pick": {
+    "flight": {
+      "airline": "IndiGo",
+      "price": 12400,
+      "price_per_person": 6200,
+      "duration": "2h 35m",
+      "stops": 0,
+      "departure": {},
+      "arrival": {}
+    },
+    "hotel": {
+      "name": "Palolem Beach Resort",
+      "rating": 4.3,
+      "price_per_night": 7200,
+      "total_price": 21600,
+      "amenities": ["Free WiFi", "Pool", "Beach access", "Breakfast", "Parking", "AC"],
+      "lat": 15.01,
+      "lng": 74.023
+    },
+    "total_cost": 34000
+  },
+  "remaining_budget": 26000,
+  "other_options": [
+    {
+      "flight": {
+        "airline": "Air India",
+        "price": 13900,
+        "price_per_person": 6950,
+        "duration": "2h 45m",
+        "stops": 0,
+        "departure": {},
+        "arrival": {}
+      },
+      "hotel": {
+        "name": "Palolem Beach Resort",
+        "rating": 4.3,
+        "price_per_night": 7200,
+        "total_price": 21600,
+        "amenities": ["Free WiFi", "Pool", "Beach access"],
+        "lat": 15.01,
+        "lng": 74.023
+      },
+      "total_cost": 35500
+    }
+  ],
+  "hotel_options": [
+    {"name": "Palolem Beach Resort", "rating": 4.3, "price_per_night": 7200, "total_price": 21600, "lat": 15.01, "lng": 74.023, "tier": "Budget"},
+    {"name": "Agonda Palm Villa", "rating": 4.5, "price_per_night": 8900, "total_price": 26700, "lat": 15.04, "lng": 74.01, "tier": "Mid-range"},
+    {"name": "Taj Exotica Goa", "rating": 4.7, "price_per_night": 14500, "total_price": 43500, "lat": 15.01, "lng": 73.91, "tier": "Higher-end"}
+  ],
+  "selected_hotel_name": null,
+  "travel_mode": "balanced",
+  "plan_alternatives": [
+    {"mode": "saver", "flight": {"airline": "IndiGo", "price": 12400, "price_per_person": 6200, "duration": "2h 35m", "stops": 0}, "hotel": {"name": "Palolem Beach Resort", "rating": 4.3, "price_per_night": 7200, "total_price": 21600}, "total_cost": 34000, "fits_budget": true},
+    {"mode": "balanced", "flight": {"airline": "IndiGo", "price": 12400, "price_per_person": 6200, "duration": "2h 35m", "stops": 0}, "hotel": {"name": "Palolem Beach Resort", "rating": 4.3, "price_per_night": 7200, "total_price": 21600}, "total_cost": 34000, "fits_budget": true},
+    {"mode": "comfort", "flight": {"airline": "Air India", "price": 13900, "price_per_person": 6950, "duration": "2h 45m", "stops": 0}, "hotel": {"name": "Agonda Palm Villa", "rating": 4.5, "price_per_night": 8900, "total_price": 26700}, "total_cost": 40600, "fits_budget": true}
+  ],
+  "itinerary": [
+    {"day": 1, "distance_km": 4.2, "places": [
+      {"name": "Palolem Beach", "rating": 4.6, "category": "attractions", "address": "Palolem, Goa", "lat": 15.01, "lng": 74.023},
+      {"name": "Fisherman's Wharf", "rating": 4.4, "category": "restaurants", "address": "Palolem, Goa", "lat": 15.012, "lng": 74.025},
+      {"name": "Butterfly Beach", "rating": 4.5, "category": "attractions", "address": "South Goa", "lat": 15.02, "lng": 74.03}
+    ]},
+    {"day": 2, "distance_km": 6.8, "places": [
+      {"name": "Agonda Beach", "rating": 4.5, "category": "attractions", "address": "Agonda, Goa", "lat": 15.04, "lng": 74.01},
+      {"name": "Fatima's Corner", "rating": 4.3, "category": "restaurants", "address": "Agonda, Goa", "lat": 15.041, "lng": 74.012},
+      {"name": "Cabo de Rama Fort", "rating": 4.4, "category": "attractions", "address": "South Goa", "lat": 15.08, "lng": 73.92}
+    ]},
+    {"day": 3, "distance_km": 3.1, "places": [
+      {"name": "Basilica of Bom Jesus", "rating": 4.6, "category": "attractions", "address": "Old Goa", "lat": 15.5, "lng": 73.91},
+      {"name": "Viva Panjim", "rating": 4.5, "category": "restaurants", "address": "Panjim, Goa", "lat": 15.49, "lng": 73.83}
+    ]}
+  ],
+  "places": [
+    {"name": "Palolem Beach", "rating": 4.6, "category": "attractions", "address": "Palolem, Goa", "lat": 15.01, "lng": 74.023},
+    {"name": "Fisherman's Wharf", "rating": 4.4, "category": "restaurants", "address": "Palolem, Goa", "lat": 15.012, "lng": 74.025},
+    {"name": "Agonda Beach", "rating": 4.5, "category": "attractions", "address": "Agonda, Goa", "lat": 15.04, "lng": 74.01}
+  ],
+  "events": [
+    {"title": "Goa Sunset Food Festival", "date": "Sat, Oct 11", "venue": "Palolem Beach", "description": "Local seafood stalls and live music at sunset.", "link": ""}
+  ],
+  "weather": {"temperature": "31", "unit": "Celsius", "condition": "Partly cloudy", "humidity": "74%", "location": "Goa", "observed": "Right now"},
+  "exchange_rate": null,
+  "insight": "Comfortable fit — ₹26,000 to spare, and your stops average 4.5★. (Demo data — no API key needed.)",
+  "know": [
+    {"title": "Goa best time to visit — Oct to Mar is peak season", "link": "https://www.goa-tourism.com/", "snippet": "October to March offers pleasant weather for beaches; monsoon (Jun–Sep) brings heavy rain. Carry light cotton and sun protection."},
+    {"title": "India entry & ID requirements for domestic travel", "link": "https://www.incredibleindia.gov.in/", "snippet": "Indian nationals need a valid photo ID for flights/hotels. Foreign nationals need passport + valid Indian visa; check the latest advisory before booking."},
+    {"title": "Goa travel advisory — beach safety tips", "link": "https://tourism.goa.gov.in/", "snippet": "Swim only in lifeguarded zones, avoid isolated beaches at night, and use registered taxis or app cabs."}
+  ],
+  "videos": [
+    {"title": "48 Hours in Goa — perfect 3-day itinerary", "link": "https://www.youtube.com/results?search_query=goa+travel+vlog+3+day+itinerary", "thumbnail": "", "channel": "Travel vlogs", "duration": ""},
+    {"title": "South Goa on a budget — Palolem & Agonda guide", "link": "https://www.youtube.com/results?search_query=south+goa+budget+travel+guide", "thumbnail": "", "channel": "Travel vlogs", "duration": ""},
+    {"title": "What to eat in Goa — fish thali to bebinca", "link": "https://www.youtube.com/results?search_query=what+to+eat+in+goa", "thumbnail": "", "channel": "Food travel", "duration": ""}
+  ],
+  "counts": {"flights": 2, "hotels": 3, "attractions": 5, "restaurants": 3},
+  "live_search": false,
+  "demo": true
+}

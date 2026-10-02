@@ -14,6 +14,7 @@ import {
   Star,
 } from "lucide-react";
 import CategoryPanel from "./CategoryPanel.jsx";
+import SafeImage from "./SafeImage.jsx";
 import { buildMapUrl, inr } from "../lib/format.js";
 import { buildReasons } from "../lib/reasons.js";
 
@@ -173,7 +174,11 @@ export default function PickCard({
           <div className="overflow-hidden rounded-2xl border border-line dark:border-white/10">
             {best.flight.image ? (
               <div className="flex h-24 items-center justify-center bg-sand px-6 dark:bg-white/5">
-                <img src={best.flight.image} alt={`${best.flight.airline} logo`} loading="lazy" className="max-h-12 max-w-[180px] object-contain" />
+                <SafeImage
+                  src={best.flight.image}
+                  alt={`${best.flight.airline} logo`}
+                  className="max-h-12 max-w-[180px] object-contain"
+                />
               </div>
             ) : <CategoryPanel category="flight" className="h-24 w-full" />}
             <div className="p-5">
@@ -205,7 +210,12 @@ export default function PickCard({
           </div>
           <div className="overflow-hidden rounded-2xl border border-line dark:border-white/10">
             {best.hotel.image ? (
-              <img src={best.hotel.image} alt={`${best.hotel.name} hotel`} loading="lazy" className="h-24 w-full object-cover" />
+              <SafeImage
+                src={best.hotel.image}
+                alt={`${best.hotel.name} hotel`}
+                className="h-24 w-full object-cover"
+                fallback={<CategoryPanel category="hotel" className="h-24 w-full" />}
+              />
             ) : <CategoryPanel category="hotel" className="h-24 w-full" />}
             <div className="p-5">
               <p className="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-smoke dark:text-white/55">

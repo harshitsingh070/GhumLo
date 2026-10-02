@@ -5,9 +5,11 @@ import {
   IndianRupee,
   MapPin,
   Plane,
+  PlayCircle,
   Search,
   Users,
 } from "lucide-react";
+import NaturalLanguageInput from "./NaturalLanguageInput.jsx";
 
 const DEFAULTS = {
   origin: "DEL",
@@ -24,13 +26,30 @@ const DEFAULTS = {
  *  Same defaults, validation and submit payload as before; only the
  *  presentation is new. Technical controls live under Advanced options.
  *  Props: loading, onSubmit(payload), prefillDestination. */
-export default function TripForm({ loading, onSubmit, prefillDestination }) {
+export default function TripForm({ loading, onSubmit, prefillDestination, onDemo, demoLoading }) {
   const [form, setForm] = useState(DEFAULTS);
   const [dateError, setDateError] = useState("");
 
   useEffect(() => {
     if (prefillDestination) setForm((f) => ({ ...f, destination: prefillDestination }));
   }, [prefillDestination]);
+
+  const applyNlFields = (fields) => {
+    if (!fields || typeof fields !== "object") return;
+    setForm((f) => ({
+      ...f,
+      origin: fields.origin ?? f.origin,
+      destination: fields.destination ?? f.destination,
+      departure_date: fields.departure_date ?? f.departure_date,
+      return_date: fields.return_date ?? f.return_date,
+      travelers: fields.travelers ?? f.travelers,
+      budget: fields.budget ?? f.budget,
+      travel_mode: ["saver", "balanced", "comfort"].includes(fields.travel_mode)
+        ? fields.travel_mode
+        : f.travel_mode,
+    }));
+    setDateError("");
+  };
 
   const set = (name) => (e) => {
     const v = e.target.type === "checkbox" ? e.target.checked : e.target.value;
@@ -91,6 +110,7 @@ export default function TripForm({ loading, onSubmit, prefillDestination }) {
       </div> */}
 
       <form onSubmit={submit} id="trip-form">
+        <NaturalLanguageInput onFill={applyNlFields} />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_auto_1fr_1.3fr_0.8fr_0.9fr]">
           {/* From */}
           <div>
@@ -281,6 +301,18 @@ export default function TripForm({ loading, onSubmit, prefillDestination }) {
             <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
             Swap route
           </button>
+          {onDemo && (
+            <button
+              type="button"
+              onClick={onDemo}
+              disabled={loading || demoLoading}
+              title="Load a saved Goa trip — no API key needed"
+              className="tcc-focus inline-flex h-[50px] items-center justify-center gap-1.5 rounded-xl border border-dashed border-clay/50 px-5 text-sm font-semibold text-clay transition-colors hover:bg-clay/10 disabled:opacity-50"
+            >
+              <PlayCircle className="h-4 w-4" aria-hidden="true" />
+              {demoLoading ? "Loading demo…" : "Try demo trip (no key needed)"}
+            </button>
+          )}
         </div>
 
         {/* Fresh-results toggle */}

@@ -2,6 +2,7 @@ import { MapPinned, Star } from "lucide-react";
 import { useState } from "react";
 import { CATEGORY_META } from "../lib/categories.js";
 import { buildMapUrl } from "../lib/format.js";
+import SafeImage from "./SafeImage.jsx";
 
 const metaFor = (category) =>
   CATEGORY_META[category === "restaurants" ? "restaurant" : "attraction"];
@@ -53,7 +54,15 @@ export default function PopularPlaces({ places, destination }) {
               className="min-w-0 overflow-hidden rounded-xl border border-line bg-cream dark:border-white/10 dark:bg-white/5"
             >
               {p.image ? (
-                <img src={p.image} alt="" loading="lazy" className="h-32 w-full object-cover" />
+                <SafeImage
+                  src={p.image}
+                  className="h-32 w-full object-cover"
+                  fallback={
+                    <div className={`flex h-20 items-center justify-center text-white ${meta.bg}`} aria-hidden="true">
+                      <Icon className="h-7 w-7" />
+                    </div>
+                  }
+                />
               ) : (
                 <div className={`flex h-20 items-center justify-center text-white ${meta.bg}`} aria-hidden="true">
                   <Icon className="h-7 w-7" />

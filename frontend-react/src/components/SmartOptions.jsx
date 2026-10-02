@@ -30,7 +30,7 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
 
   const share = async () => {
     const best = plan.best_pick;
-    const text = `${plan.destination} trip | ${plan.departure_date} to ${plan.return_date}\n${inr(best.total_cost)} total for ${plan.travelers} traveler(s)\n${best.flight.airline} + ${best.hotel.name}\n${(plan.itinerary || []).length}-day itinerary planned by Trip Cost Compass`;
+    const text = `${plan.destination} trip | ${plan.departure_date} to ${plan.return_date}\n${inr(best.total_cost)} total for ${plan.travelers} traveler(s)\n${best.flight.airline} + ${best.hotel.name}\n${(plan.itinerary || []).length}-day itinerary planned by GhoomLo`;
     const shareData = { title: `${plan.destination} trip plan`, text, url: window.location.href };
     try {
       if (navigator.share) {

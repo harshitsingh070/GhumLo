@@ -3,6 +3,8 @@ const LINKS = [
   ["budget", "Cost"],
   ["assistant", "AI guide"],
   ["itinerary", "Itinerary"],
+  ["know", "Good to know"],
+  ["vlogs", "Vlogs"],
 ];
 
 export default function ResultsNav() {

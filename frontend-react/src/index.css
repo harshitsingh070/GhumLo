@@ -259,6 +259,40 @@ body {
   line-height: 22px;
 }
 
+/* ─── Print: day-wise trip sheet only ─────────────────────────────────── */
+.print-only {
+  display: none;
+}
+@media print {
+  .no-print,
+  header,
+  footer,
+  #plan,
+  #assistant,
+  nav[aria-label="Trip result sections"] {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .print-only {
+    display: block !important;
+    color: #000;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .print-only h1 {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+  .print-only h2 {
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+  main {
+    padding: 0 !important;
+  }
+}
 /* Dark chip centered on each route leg */
 .leaflet-tooltip.leg-label {
   background: rgba(15, 23, 42, 0.88);

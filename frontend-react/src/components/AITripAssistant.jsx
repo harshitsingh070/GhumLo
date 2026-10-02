@@ -70,7 +70,7 @@ export default function AITripAssistant({ plan }) {
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-clay">Powered by Groq</p>
             <h2 className="font-display mt-1 text-xl font-extrabold text-ink dark:text-white">Ask about your itinerary</h2>
-            <p className="mt-1 max-w-xl text-sm leading-relaxed text-smoke dark:text-white/60">Get practical changes based on this trip, not generic travel advice.</p>
+            <p className="mt-1 max-w-xl text-sm leading-relaxed text-smoke dark:text-white/60">Trip questions only — itinerary tweaks, timing, food, packing, weather. Other requests are declined.</p>
           </div>
         </div>
         <Sparkles className="h-5 w-5 text-clay" aria-hidden="true" />
@@ -97,7 +97,7 @@ export default function AITripAssistant({ plan }) {
       </div>
 
       <form className="mt-4 flex gap-2" onSubmit={(event) => { event.preventDefault(); ask(); }}>
-        <input value={request} onChange={(event) => setRequest(event.target.value)} maxLength={600} placeholder="e.g. Replace the busiest day with a relaxed plan" className="tcc-focus h-11 min-w-0 flex-1 rounded-xl border border-line bg-white px-4 text-sm text-ink placeholder:text-smoke/60 dark:border-white/15 dark:bg-ink dark:text-white" aria-label="Ask the travel assistant" />
+        <input value={request} onChange={(event) => setRequest(event.target.value)} maxLength={600} placeholder="e.g. Make Day 2 less tiring (trip questions only)" className="tcc-focus h-11 min-w-0 flex-1 rounded-xl border border-line bg-white px-4 text-sm text-ink placeholder:text-smoke/60 dark:border-white/15 dark:bg-ink dark:text-white" aria-label="Ask the travel assistant about this trip" />
         <button type="submit" disabled={loading || !request.trim()} className="tcc-focus flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-clay text-white hover:bg-clay-dark disabled:cursor-not-allowed disabled:opacity-50" title="Ask assistant" aria-label="Ask assistant">
           {loading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Send className="h-4 w-4" />}
         </button>

@@ -1,4 +1,3 @@
-import { Compass } from "lucide-react";
 import { go } from "../lib/router.js";
 
 const LINKS = [
@@ -16,12 +15,15 @@ export default function Footer() {
         <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
           {/* Brand */}
           <div>
-            <a href="#/" className="flex items-center gap-2.5" aria-label="Trip Cost Compass — home">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-ink">
-                <Compass className="h-5 w-5" />
-              </span>
+            <a href="#/" className="flex items-center gap-2.5" aria-label="GhoomLo — home">
+              <img
+                src="/logo.png"
+                alt="GhoomLo logo"
+                className="h-9 w-9 rounded-full object-cover"
+                loading="lazy"
+              />
               <span className="font-display text-[17px] font-extrabold tracking-tight text-white">
-                Trip Cost Compass
+                GhoomLo
               </span>
             </a>
             <p className="mt-3 max-w-xs text-[15px] leading-relaxed text-white/60">
@@ -55,7 +57,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col items-center justify-between gap-2 border-t border-white/10 pt-6 text-sm text-white/45 sm:flex-row">
-          <p>© 2026 Trip Cost Compass</p>
+          <p>© 2026 GhoomLo</p>
           <p>Built for smarter travel planning.</p>
         </div>
       </div>

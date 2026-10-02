@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Compass, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { go } from "../lib/router.js";
 
 /** Premium sticky navbar: logo left, links center, and CTA right.
@@ -18,12 +18,15 @@ export default function Header() {
       <div className="tcc-container">
         <div className="flex h-[68px] items-center gap-6">
           {/* ── Left: logo ── */}
-          <a href="#/" className="flex shrink-0 items-center gap-2.5" aria-label="Trip Cost Compass — home">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-white dark:bg-white dark:text-ink">
-              <Compass className="h-5 w-5" />
-            </span>
+          <a href="#/" className="flex shrink-0 items-center gap-2.5" aria-label="GhoomLo — home">
+            <img
+              src="/logo.png"
+              alt="GhoomLo logo"
+              className="h-9 w-9 rounded-full object-cover"
+              loading="eager"
+            />
             <span className="font-display hidden text-[17px] font-extrabold tracking-tight text-ink min-[400px]:inline dark:text-white">
-              Trip Cost Compass
+              GhoomLo
             </span>
           </a>
 
