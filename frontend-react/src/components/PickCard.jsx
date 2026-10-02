@@ -171,7 +171,11 @@ export default function PickCard({
         {/* ── Flight + hotel cards ── */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="overflow-hidden rounded-2xl border border-line dark:border-white/10">
-            <CategoryPanel category="flight" className="h-24 w-full" />
+            {best.flight.image ? (
+              <div className="flex h-24 items-center justify-center bg-sand px-6 dark:bg-white/5">
+                <img src={best.flight.image} alt={`${best.flight.airline} logo`} loading="lazy" className="max-h-12 max-w-[180px] object-contain" />
+              </div>
+            ) : <CategoryPanel category="flight" className="h-24 w-full" />}
             <div className="p-5">
               <p className="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-smoke dark:text-white/55">
                 Flight
@@ -200,7 +204,9 @@ export default function PickCard({
             </div>
           </div>
           <div className="overflow-hidden rounded-2xl border border-line dark:border-white/10">
-            <CategoryPanel category="hotel" className="h-24 w-full" />
+            {best.hotel.image ? (
+              <img src={best.hotel.image} alt={`${best.hotel.name} hotel`} loading="lazy" className="h-24 w-full object-cover" />
+            ) : <CategoryPanel category="hotel" className="h-24 w-full" />}
             <div className="p-5">
               <p className="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-smoke dark:text-white/55">
                 Hotel · {nights} night{nights === 1 ? "" : "s"}

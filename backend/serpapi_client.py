@@ -45,6 +45,7 @@ TTL_EXCHANGE_RATE = 12 * 3600  # 12h — fine for same-day trip planning
 # they surface errors loudly. Success clears the entry.
 _OPTIONAL_FAIL_UNTIL: dict[str, float] = {}
 _OPTIONAL_BACKOFF_SECONDS = 6 * 3600
+SERPAPI_TIMEOUT_SECONDS = max(5, int(os.getenv("SERPAPI_TIMEOUT_SECONDS", "20")))
 
 
 def _opt_key(cache_name: str, params: dict) -> str:
@@ -84,7 +85,11 @@ def _search(params: dict, cache_name: str, skip_cache: bool = False,
         log.info(f"[force live] {cache_name} params={params}")
     log.info(f"[live API] {cache_name} params={params}")
     try:
-        results = GoogleSearch({**params, "api_key": _api_key()}).get_dict()
+        search = GoogleSearch({**params, "api_key": _api_key()})
+        # The SDK default is 60000, but requests interprets this as seconds.
+        # Keep live searches bounded so a stalled provider cannot hang the app.
+        search.timeout = SERPAPI_TIMEOUT_SECONDS
+        results = search.get_dict()
     except Exception as e:
         log.error(f"SerpApi {cache_name} failed: {type(e).__name__}: {e}")
         raise
@@ -297,7 +302,7 @@ def parse_flights(raw: dict, travelers: int = 1) -> list[dict]:
                 n_stops = stops
             else:
                 n_stops = len(legs) - 1 if len(legs) > 1 else 0
-            out.append({
+            flight = {
                 "airline": str(airline),
                 "price": price * max(1, travelers),
                 "price_per_person": price,
@@ -305,7 +310,11 @@ def parse_flights(raw: dict, travelers: int = 1) -> list[dict]:
                 "stops": n_stops,
                 "departure": first.get("departure_airport", {}) if isinstance(first.get("departure_airport"), dict) else {},
                 "arrival": first.get("arrival_airport", {}) if isinstance(first.get("arrival_airport"), dict) else {},
-            })
+            }
+            image = first.get("airline_logo") or first.get("logo") or g.get("airline_logo") or g.get("logo")
+            if isinstance(image, str) and image.strip():
+                flight["image"] = image.strip()
+            out.append(flight)
         except Exception as e:
             log.warning(f"skip malformed flight entry: {e}")
             continue
@@ -323,6 +332,18 @@ def _to_lat_lng(item: dict) -> tuple[float | None, float | None]:
         return float(lat), float(lng)
     except (ValueError, TypeError):
         return None, None
+
+
+def _image_url(value) -> str | None:
+    """Extract a usable image URL from common SerpApi image shapes."""
+    if isinstance(value, str) and value.strip().startswith(("http://", "https://")):
+        return value.strip()
+    if isinstance(value, dict):
+        for key in ("thumbnail", "image", "original", "link", "url"):
+            found = _image_url(value.get(key))
+            if found:
+                return found
+    return None
 
 
 def parse_hotels(raw: dict, num_nights: int) -> list[dict]:
@@ -357,7 +378,7 @@ def parse_hotels(raw: dict, num_nights: int) -> list[dict]:
             if nightly is None:
                 continue
             lat, lng = _to_lat_lng(h)
-            out.append({
+            hotel = {
                 "name": str(name),
                 "rating": rating,
                 "price_per_night": nightly,
@@ -365,7 +386,15 @@ def parse_hotels(raw: dict, num_nights: int) -> list[dict]:
                 "amenities": (h.get("amenities") or [])[:6],
                 "lat": lat,
                 "lng": lng,
-            })
+            }
+            image = _image_url(h.get("thumbnail") or h.get("image"))
+            if not image:
+                hotel_images = h.get("images") or h.get("photos") or []
+                if isinstance(hotel_images, list):
+                    image = next((_image_url(item) for item in hotel_images), None)
+            if image:
+                hotel["image"] = image
+            out.append(hotel)
         except Exception as e:
             log.warning(f"skip malformed hotel entry: {e}")
             continue
@@ -373,7 +402,7 @@ def parse_hotels(raw: dict, num_nights: int) -> list[dict]:
 
 
 def parse_places(raw: dict, category: str) -> list[dict]:
-    """Return [{name, rating, category, address, lat, lng}]."""
+    """Return place cards, preserving image data when Maps provides it."""
     results = raw.get("local_results") or raw.get("place_results") or []
     out: list[dict] = []
     for p in results[:20]:
@@ -387,14 +416,25 @@ def parse_places(raw: dict, category: str) -> list[dict]:
             except ValueError:
                 rating = None
             lat, lng = _to_lat_lng(p)
-            out.append({
+            image = p.get("thumbnail") or p.get("image")
+            photos = p.get("images") or p.get("photos") or []
+            if not image and isinstance(photos, list) and photos:
+                first_photo = photos[0]
+                if isinstance(first_photo, str):
+                    image = first_photo
+                elif isinstance(first_photo, dict):
+                    image = first_photo.get("thumbnail") or first_photo.get("image")
+            place = {
                 "name": str(name),
                 "rating": rating,
                 "category": category,
                 "address": p.get("address") or p.get("description") or "",
                 "lat": lat,
                 "lng": lng,
-            })
+            }
+            if isinstance(image, str) and image.strip():
+                place["image"] = image.strip()
+            out.append(place)
         except Exception as e:
             log.warning(f"skip malformed place entry: {e}")
             continue

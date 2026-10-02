@@ -84,11 +84,11 @@ export default function TripForm({ loading, onSubmit, prefillDestination }) {
         </span>
       </div>
 
-      <div className="mb-6 grid grid-cols-3 gap-2 border-y border-line py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-smoke dark:border-white/10 dark:text-white/45 sm:text-xs">
+      {/* <div className="mb-6 grid grid-cols-3 gap-2 border-y border-line py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-smoke dark:border-white/10 dark:text-white/45 sm:text-xs">
         <span className="flex items-center gap-2 text-ink dark:text-white"><b className="flex h-6 w-6 items-center justify-center rounded-full bg-clay text-white">1</b> Route</span>
         <span className="flex items-center gap-2"><b className="flex h-6 w-6 items-center justify-center rounded-full bg-sand text-ink dark:bg-white/10 dark:text-white">2</b> Details</span>
         <span className="flex items-center gap-2"><b className="flex h-6 w-6 items-center justify-center rounded-full bg-sand text-ink dark:bg-white/10 dark:text-white">3</b> Style</span>
-      </div>
+      </div> */}
 
       <form onSubmit={submit} id="trip-form">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_auto_1fr_1.3fr_0.8fr_0.9fr]">

@@ -265,12 +265,14 @@ def api_plan(req: PlanReq):
             {"name": h["name"], "rating": h.get("rating"),
              "price_per_night": h["price_per_night"],
              "total_price": h["total_price"],
+             "image": h.get("image"),
              "lat": h.get("lat"), "lng": h.get("lng"),
              "tier": _hotel_tier(h["price_per_night"], lo_price, span)}
             for h in hotels[:5]
         ]
 
         mode = req.travel_mode if req.travel_mode in ("saver", "balanced", "comfort") else "balanced"
+        alternative_hotels = hotels
         if req.selected_hotel_name:
             chosen = next((h for h in hotels
                            if h["name"] == req.selected_hotel_name), None)
@@ -294,6 +296,7 @@ def api_plan(req: PlanReq):
                 }
             else:
                 match = find_best_combination(flights, [chosen], req.budget)
+            alternative_hotels = [chosen]
         else:
             ranked = rank_combinations(flights, hotels, req.budget, mode)
             match = find_best_combination(flights, hotels, req.budget)
@@ -375,7 +378,7 @@ def api_plan(req: PlanReq):
             "hotel_options": hotel_options,
             "selected_hotel_name": req.selected_hotel_name,  # null = auto-pick
             "travel_mode": mode,
-            "plan_alternatives": build_mode_alternatives(flights, hotels, req.budget),
+            "plan_alternatives": build_mode_alternatives(flights, alternative_hotels, req.budget),
             "itinerary": itinerary,
             # Full (unclustered) places list: feeds the standalone
             # "Popular places" view — a re-sort of data already fetched,

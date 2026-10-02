@@ -129,7 +129,7 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     try {
-      const map = L.map(containerRef.current, { scrollWheelZoom: false }).setView([15.5, 73.8], 11);
+      const map = L.map(containerRef.current, { scrollWheelZoom: false, preferCanvas: true }).setView([15.5, 73.8], 11);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -271,7 +271,7 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
         // Remember the fitted area so "Reset view" can restore it after
         // the user pans/zooms. Cleared on empty data.
         lastBoundsRef.current = L.latLngBounds(bounds);
-        map.fitBounds(lastBoundsRef.current, { padding: [30, 30] });
+        map.fitBounds(lastBoundsRef.current, { padding: [30, 30], maxZoom: 14 });
       } else {
         lastBoundsRef.current = null;
       }
@@ -339,9 +339,16 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
           this stacking context so they can't overlay the sticky budget bar.
           Tiles stay light in both themes (decision: no dark-tile swap — see
           report); only the frame adapts. */}
+      <div className="mb-2 flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/80">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Trip map</p>
+          <p className="text-xs text-slate-700 dark:text-slate-200">Hotel anchor · colored routes · numbered stops</p>
+        </div>
+        <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 shadow-sm dark:bg-slate-700 dark:text-slate-200">{showAll ? "All days" : `Day ${active?.day || 1}`}</span>
+      </div>
       <div
         ref={containerRef}
-        className="relative z-0 h-[300px] w-full max-w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 sm:h-[420px]"
+        className="relative z-0 h-[360px] w-full max-w-full overflow-hidden rounded-xl border border-slate-200 shadow-sm dark:border-slate-700 sm:h-[480px]"
         role="img"
         aria-label="Map of clustered itinerary stops"
       />

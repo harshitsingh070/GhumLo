@@ -50,43 +50,46 @@ export default function PopularPlaces({ places, destination }) {
           return (
             <li
               key={`${p.name}-${i}`}
-              className="flex min-w-0 items-start gap-3 rounded-xl border border-line bg-cream p-4 dark:border-white/10 dark:bg-white/5"
+              className="min-w-0 overflow-hidden rounded-xl border border-line bg-cream dark:border-white/10 dark:bg-white/5"
             >
-              <span
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white ${meta.bg}`}
-                aria-hidden="true"
-              >
-                <Icon className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-ink dark:text-white" title={p.name}>
-                  {p.name}
-                </p>
-                <p className="truncate text-xs capitalize text-smoke dark:text-white/55">
-                  {p.category}
-                  {p.address ? ` · ${p.address}` : ""}
-                </p>
+              {p.image ? (
+                <img src={p.image} alt="" loading="lazy" className="h-32 w-full object-cover" />
+              ) : (
+                <div className={`flex h-20 items-center justify-center text-white ${meta.bg}`} aria-hidden="true">
+                  <Icon className="h-7 w-7" />
+                </div>
+              )}
+              <div className="flex min-w-0 items-start gap-3 p-4">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-ink dark:text-white" title={p.name}>
+                    {p.name}
+                  </p>
+                  <p className="truncate text-xs capitalize text-smoke dark:text-white/55">
+                    {p.category}
+                    {p.address ? ` · ${p.address}` : ""}
+                  </p>
+                </div>
+                <span className="flex shrink-0 items-center gap-2">
+                  {p.rating ? (
+                    <span className="inline-flex items-center gap-0.5 text-xs font-bold text-ink dark:text-white">
+                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      {p.rating}
+                    </span>
+                  ) : null}
+                  {mapUrl && (
+                    <a
+                      href={mapUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="View on map"
+                      aria-label={`View ${p.name} on map`}
+                      className="tcc-focus text-smoke transition-colors hover:text-clay"
+                    >
+                      <MapPinned className="h-4 w-4" />
+                    </a>
+                  )}
+                </span>
               </div>
-              <span className="flex shrink-0 items-center gap-2">
-                {p.rating ? (
-                  <span className="inline-flex items-center gap-0.5 text-xs font-bold text-ink dark:text-white">
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                    {p.rating}
-                  </span>
-                ) : null}
-                {mapUrl && (
-                  <a
-                    href={mapUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="View on map"
-                    aria-label={`View ${p.name} on map`}
-                    className="tcc-focus text-smoke transition-colors hover:text-clay"
-                  >
-                    <MapPinned className="h-4 w-4" />
-                  </a>
-                )}
-              </span>
             </li>
           );
         })}
