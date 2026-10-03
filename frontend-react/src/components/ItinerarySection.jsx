@@ -1,15 +1,8 @@
 import { useEffect, useState } from "react";
 import {
-  Map,
-  Calendar,
-  Wallet,
-  Sparkles,
-  Info,
-  Film,
   Plus,
   Plane,
   Hotel,
-  ChevronRight,
   Maximize2,
 } from "lucide-react";
 import ItineraryMap from "./ItineraryMap.jsx";
@@ -17,15 +10,6 @@ import SafeImage from "./SafeImage.jsx";
 import { placeMapUrl } from "../lib/format.js";
 import { CATEGORY_META } from "../lib/categories.js";
 import { photoFor } from "../lib/destinations.js";
-
-const TABS = [
-  { id: "itinerary", label: "Itinerary", icon: Calendar },
-  { id: "map", label: "Map", icon: Map },
-  { id: "cost", label: "Cost", icon: Wallet },
-  { id: "ai", label: "AI Guide", icon: Sparkles },
-  { id: "know", label: "Good to Know", icon: Info },
-  { id: "vlogs", label: "Vlogs", icon: Film },
-];
 
 /** Exact-match placeholder names providers sometimes return — never shown raw. */
 const JUNK_PLACE_NAMES = new Set(["somewhere", "unknown", "unnamed", "unnamed stop", "tbd", "test"]);
@@ -68,11 +52,10 @@ const fmtDate = (iso) => {
 };
 
 /** Unified Itinerary + Map Module — Center column of 3-column dashboard.
- *  Tabs at top: Itinerary | Map | Cost | AI Guide | Good to Know | Vlogs
- *  Inside Itinerary:
- *    - Left: Day picker (Day 1, Day 2, Day 3...) with dates & + Add activity
- *    - Middle: Day's activities (Arrival, Hotel Check-in, Attractions with thumbnails)
- *    - Right: Interactive map preview with View Full Map button. */
+ *  Inside:
+ *    - Day picker chips (Day 1, Day 2, Day 3...) with dates & + Add activity
+ *    - Day's activities (Arrival, Hotel Check-in, Attractions with thumbnails)
+ *    - Interactive map preview with Expand button for the full map view. */
 export default function ItinerarySection({
   itinerary,
   num_nights,
@@ -80,9 +63,8 @@ export default function ItinerarySection({
   destination,
   flight,
   departure_date,
-  // Optional: notified whenever the open day changes so the Trip Insights
-  // row can mirror it. Uncontrolled internally — behavior without it is
-  // identical to before.
+  // Optional: notified whenever the open day changes. Uncontrolled
+  // internally — behavior without it is identical.
   onActiveDayChange,
 }) {
   /* Backend days carry no calendar date ({day, places, distance_km}), so the
@@ -109,6 +91,13 @@ export default function ItinerarySection({
   const active = itinerary.find((d) => d.day === activeDay) ?? itinerary[0];
   const isFirstDay = active.day === 1;
   const isLastDay = active.day === itinerary.length;
+
+  /* Compact route timeline: every row is a node in visit order, so sequence
+   * numbers run arrival → hotel → stops → custom → depart without gaps. */
+  const dayCustoms = customActivities.filter((a) => a.day === activeDay);
+  const leadNodes = (isFirstDay ? 1 : 0) + (isFirstDay && hotel ? 1 : 0);
+  const stopCount = Array.isArray(active.places) ? active.places.length : 0;
+  const nodeCount = leadNodes + stopCount + dayCustoms.length + (isLastDay ? 1 : 0);
 
   const selectDay = (day) => {
     setActiveDay(day);
@@ -143,52 +132,6 @@ export default function ItinerarySection({
         border: "1px solid rgba(255, 255, 255, 0.12)",
       }}
     >
-      {/* ── Top Tabs ── */}
-      <div
-        className="flex items-center gap-1 overflow-x-auto px-4 pt-3.5 pb-0"
-        role="tablist"
-        aria-label="Trip sections"
-        style={{
-          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-          scrollbarWidth: "none",
-        }}
-      >
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => {
-                if (tab.id === "cost") {
-                  document.getElementById("trip-budget-card")?.scrollIntoView({ behavior: "smooth" });
-                } else if (tab.id === "ai") {
-                  document.getElementById("assistant")?.scrollIntoView({ behavior: "smooth" });
-                } else if (tab.id === "know") {
-                  document.getElementById("know")?.scrollIntoView({ behavior: "smooth" });
-                } else if (tab.id === "vlogs") {
-                  document.getElementById("vlogs")?.scrollIntoView({ behavior: "smooth" });
-                } else {
-                  setActiveTab(tab.id);
-                }
-              }}
-              className="tcc-focus relative flex shrink-0 items-center gap-2 rounded-t-[10px] px-3.5 py-2.5 text-[13px] font-semibold transition-all"
-              style={{
-                color: isActive ? "var(--coral)" : "var(--text-muted)",
-                background: isActive ? "rgba(255, 114, 94, 0.08)" : "transparent",
-                borderBottom: isActive ? "2px solid var(--coral)" : "2px solid transparent",
-              }}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Trip scope meta — day/night scope only. Raw fetch `counts` are
           internal API stats, not itinerary content, so they stay out of this
           header (they remain available in the plan response for debugging). */}
@@ -203,7 +146,7 @@ export default function ItinerarySection({
         )}
       </div>
 
-      {/* ── Tab: Itinerary (Days → Activities → Map, stacked) ── */}
+      {/* ── Itinerary (Days → Activities → Map, stacked) ── */}
       {activeTab === "itinerary" && (
         <div className="flex flex-col">
           {/* 1. Day selector — horizontal chip row on all breakpoints, so the
@@ -224,20 +167,20 @@ export default function ItinerarySection({
                   role="tab"
                   aria-selected={isActive}
                   onClick={() => selectDay(d.day)}
-                  className="tcc-focus flex shrink-0 items-center gap-2.5 rounded-[14px] p-2 pr-3 text-left transition-all"
+                  className="tcc-focus flex shrink-0 items-center gap-2.5 rounded-full p-1.5 pr-4 text-left transition-all"
                   style={{
-                    background: isActive ? "rgba(255, 114, 94, 0.12)" : "transparent",
+                    background: isActive ? "var(--coral)" : "transparent",
                     border: isActive
-                      ? "1px solid rgba(255, 114, 94, 0.35)"
+                      ? "1px solid var(--coral)"
                       : "1px solid transparent",
                   }}
                 >
-                  {/* Number Badge */}
+                  {/* Number Badge — white on the filled active pill */}
                   <span
                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-black transition-all"
                     style={{
-                      background: isActive ? "var(--coral)" : "rgba(255, 255, 255, 0.08)",
-                      color: isActive ? "#fff" : "var(--text-muted)",
+                      background: isActive ? "#fff" : "rgba(255, 255, 255, 0.08)",
+                      color: isActive ? "var(--coral)" : "var(--text-muted)",
                       border: isActive ? "none" : "1px solid rgba(255, 255, 255, 0.12)",
                     }}
                   >
@@ -247,12 +190,15 @@ export default function ItinerarySection({
                   <span className="hidden sm:block">
                     <span
                       className="block text-[12px] font-bold leading-tight"
-                      style={{ color: isActive ? "var(--coral)" : "var(--text-primary)" }}
+                      style={{ color: isActive ? "#fff" : "var(--text-primary)" }}
                     >
                       Day {d.day}
                     </span>
                     {dateParts.length > 0 && (
-                      <span className="block text-[10px] text-slate-400">
+                      <span
+                        className="block text-[10px]"
+                        style={{ color: isActive ? "rgba(255,255,255,0.85)" : "var(--text-muted)" }}
+                      >
                         {dateParts[0]}, {dateParts[1]?.trim().split(" ")[0]}
                       </span>
                     )}
@@ -272,8 +218,8 @@ export default function ItinerarySection({
             </button>
           </div>
 
-          {/* 2. Day Activities List — full column width */}
-          <div className="min-w-0 p-5 sm:p-6">
+          {/* 2. Day Activities List — compact connected route timeline */}
+          <div className="min-w-0 p-4 sm:p-5">
             {/* Header info */}
             <div className="mb-3 flex items-center justify-between">
               <div>
@@ -290,26 +236,28 @@ export default function ItinerarySection({
               </div>
             </div>
 
-            {/* Activities List */}
-            <div className="space-y-2.5">
-              {/* Day 1 Flight Arrival */}
+            {/* Boxless route nodes — markers joined by a vertical connector,
+                no card chrome, just dots in sequence. */}
+            <div className="relative">
+              {nodeCount > 1 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute bottom-[25px] left-[25px] top-[25px] w-px bg-white/10"
+                />
+              )}
+              <div className="relative space-y-1.5">
+              {/* Day 1 Flight Arrival — timeline node 1 */}
               {isFirstDay && (
-                <div
-                  className="flex min-w-0 items-center justify-between gap-3 rounded-[16px] p-3 transition-colors hover:bg-white/5"
-                  style={{
-                    background: "rgba(255, 255, 255, 0.04)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                  }}
-                >
-                  <div className="flex min-w-0 items-center gap-3">
+                <div className="flex min-w-0 items-center gap-2.5 rounded-lg border border-transparent px-1.5 py-1.5 transition-colors hover:bg-white/5">
+                  <div className="flex min-w-0 items-center gap-2.5">
                     <span
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                       style={{
                         background: "rgba(255, 114, 94, 0.15)",
                         color: "var(--coral)",
                       }}
                     >
-                      <Plane className="h-5 w-5" />
+                      <Plane className="h-4 w-4" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[13px] font-bold text-white">
@@ -322,28 +270,21 @@ export default function ItinerarySection({
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />
                 </div>
               )}
 
-              {/* Day 1 Hotel Check-in */}
+              {/* Day 1 Hotel Check-in — timeline node 2 */}
               {isFirstDay && hotel && (
-                <div
-                  className="flex min-w-0 items-center justify-between gap-3 rounded-[16px] p-3 transition-colors hover:bg-white/5"
-                  style={{
-                    background: "rgba(255, 255, 255, 0.04)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                  }}
-                >
-                  <div className="flex min-w-0 items-center gap-3">
+                <div className="flex min-w-0 items-center gap-2.5 rounded-lg border border-transparent px-1.5 py-1.5 transition-colors hover:bg-white/5">
+                  <div className="flex min-w-0 items-center gap-2.5">
                     <span
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                       style={{
                         background: "rgba(32, 199, 201, 0.15)",
                         color: "var(--teal)",
                       }}
                     >
-                      <Hotel className="h-5 w-5" />
+                      <Hotel className="h-4 w-4" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[13px] font-bold text-white">
@@ -356,7 +297,6 @@ export default function ItinerarySection({
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />
                 </div>
               )}
 
@@ -374,13 +314,15 @@ export default function ItinerarySection({
                   return (
                     <div
                       key={`${place.name}-${idx}`}
-                      className="flex items-center justify-between gap-2 rounded-[16px] p-2.5 transition-colors"
-                      style={{
-                        background: selected ? "rgba(255, 114, 94, 0.12)" : "rgba(255, 255, 255, 0.03)",
-                        border: selected
-                          ? "1px solid rgba(255, 114, 94, 0.45)"
-                          : "1px solid rgba(255, 255, 255, 0.07)",
-                      }}
+                      className="flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-white/5"
+                      style={
+                        selected
+                          ? {
+                              background: "rgba(255, 114, 94, 0.12)",
+                              border: "1px solid rgba(255, 114, 94, 0.45)",
+                            }
+                          : { border: "1px solid transparent" }
+                      }
                     >
                       {/* Row click highlights + opens its marker on the map.
                           A div (not a button) wraps the row so the stop name
@@ -397,10 +339,11 @@ export default function ItinerarySection({
                         }}
                         aria-pressed={selected}
                         aria-label={`${stopName} — highlight on map`}
-                        className="tcc-focus flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left"
+                        className="tcc-focus flex min-w-0 flex-1 items-center gap-2.5 rounded-lg text-left"
                       >
-                        {/* Thumbnail image or category icon */}
-                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
+                        {/* Thumbnail marker with sequence number */}
+                        <div className="relative h-9 w-9 shrink-0 overflow-visible rounded-lg">
+                          <div className="h-full w-full overflow-hidden rounded-lg">
                           {thumb ? (
                             <SafeImage
                               src={thumb}
@@ -408,15 +351,16 @@ export default function ItinerarySection({
                               className="h-full w-full object-cover"
                               fallback={
                                 <div className="flex h-full w-full items-center justify-center bg-white/10 text-white">
-                                  <Icon className="h-5 w-5" />
+                                  <Icon className="h-4 w-4" />
                                 </div>
                               }
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center bg-white/10 text-white">
-                              <Icon className="h-5 w-5" />
+                              <Icon className="h-4 w-4" />
                             </div>
                           )}
+                          </div>
                         </div>
 
                         {/* Stop Details — name links to the map location */}
@@ -429,12 +373,12 @@ export default function ItinerarySection({
                               onClick={(e) => e.stopPropagation()}
                               title={`${stopName} — view on Google Maps`}
                               aria-label={`View ${stopName} on Google Maps`}
-                              className="tcc-focus block truncate text-[14px] font-bold text-white transition-colors hover:text-[var(--coral)] hover:underline"
+                              className="tcc-focus block truncate text-[13px] font-bold text-white transition-colors hover:text-[var(--coral)] hover:underline"
                             >
                               {stopName}
                             </a>
                           ) : (
-                            <p className="truncate text-[14px] font-bold text-white" title={stopName}>
+                            <p className="truncate text-[13px] font-bold text-white" title={stopName}>
                               {stopName}
                             </p>
                           )}
@@ -445,8 +389,6 @@ export default function ItinerarySection({
                           </p>
                         </div>
                       </div>
-
-                      <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
                     </div>
                   );
                 })
@@ -457,19 +399,13 @@ export default function ItinerarySection({
               )}
 
               {/* User Added Custom Activities for Active Day */}
-              {customActivities
-                .filter((a) => a.day === activeDay)
-                .map((a, idx) => (
+              {dayCustoms.map((a, idx) => (
                   <div
                     key={`custom-${idx}`}
-                    className="flex min-w-0 items-center justify-between gap-3 rounded-[16px] p-2.5"
-                    style={{
-                      background: "rgba(32, 199, 201, 0.08)",
-                      border: "1px solid rgba(32, 199, 201, 0.2)",
-                    }}
+                    className="flex min-w-0 items-center justify-between gap-2.5 rounded-lg border border-transparent px-1.5 py-1.5 transition-colors hover:bg-white/5"
                   >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--teal)]/20 text-[var(--teal)]">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--teal)]/20 text-[var(--teal)]">
                         ✦
                       </span>
                       <div className="min-w-0 flex-1">
@@ -483,24 +419,18 @@ export default function ItinerarySection({
                   </div>
                 ))}
 
-              {/* Last Day Check-out */}
+              {/* Last Day Check-out — final timeline node */}
               {isLastDay && (
-                <div
-                  className="flex min-w-0 items-center justify-between gap-3 rounded-[16px] p-3 transition-colors hover:bg-white/5"
-                  style={{
-                    background: "rgba(255, 255, 255, 0.04)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                  }}
-                >
-                  <div className="flex min-w-0 items-center gap-3">
+                <div className="flex min-w-0 items-center gap-2.5 rounded-lg border border-transparent px-1.5 py-1.5 transition-colors hover:bg-white/5">
+                  <div className="flex min-w-0 items-center gap-2.5">
                     <span
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                       style={{
                         background: "rgba(255, 114, 94, 0.15)",
                         color: "var(--coral)",
                       }}
                     >
-                      <Plane className="h-5 w-5" />
+                      <Plane className="h-4 w-4" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[13px] font-bold text-white">
@@ -513,16 +443,16 @@ export default function ItinerarySection({
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />
                 </div>
               )}
+              </div>
             </div>
           </div>
 
           {/* 3. Interactive Map — full column width below the activities.
               Fixed heights per breakpoint (mobile 320 / tablet 380 /
               desktop 420); the panel ends with the map, no fill leftover.
-              "Expand" opens the large Map tab. */}
+              "Expand" opens the full map view. */}
           <div className="border-t border-white/[0.08] p-5 sm:p-6">
             {/* Map Top Bar */}
             <div className="mb-2 flex items-center justify-between px-1">
@@ -558,7 +488,7 @@ export default function ItinerarySection({
         </div>
       )}
 
-      {/* ── Tab: Full Map View ── */}
+      {/* ── Full Map View ── */}
       {activeTab === "map" && (
         <div className="flex flex-col p-4">
           <div className="flex items-center justify-between">

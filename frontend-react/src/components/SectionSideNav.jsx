@@ -1,19 +1,17 @@
 import { useEffect, useState } from "react";
 import {
-  Activity,
-  Bot,
   Calendar,
   Film,
   Heart,
   Info,
   MapPin,
-  SlidersHorizontal,
   TrendingDown,
   Wallet,
 } from "lucide-react";
 
 /** In-page section rail for the trip results: Overview · Itinerary · Budget
- *  · Insights · AI Guide · Experiences · Tools · Savings · Know · Vlogs.
+ *  · Experiences · Savings · Know · Vlogs. (The AI assistant now
+ *  lives in the floating Ghumi Ghumi AI chat box, so it has no rail entry.)
  *
  *  This is NOT a second primary navbar — the single top navbar (Header) is
  *  untouched. It is a sticky rail (desktop ≥1440px only, where there is room
@@ -38,10 +36,7 @@ const ITEMS = [
   { id: "results", label: "Overview", Icon: MapPin },
   { id: "itinerary", label: "Itinerary", Icon: Calendar },
   { id: "trip-budget-card", label: "Budget", Icon: Wallet },
-  { id: "insights", label: "Insights", Icon: Activity },
-  { id: "assistant", label: "AI Guide", Icon: Bot },
   { id: "places", label: "Experiences", Icon: Heart },
-  { id: "trip-tools", label: "Tools", Icon: SlidersHorizontal },
   { id: "savings", label: "Savings", Icon: TrendingDown },
   { id: "know", label: "Good to Know", Icon: Info },
   { id: "vlogs", label: "Vlogs", Icon: Film },

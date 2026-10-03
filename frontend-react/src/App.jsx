@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { SearchX } from "lucide-react";
 import { go, navigate, useHashRoute } from "./lib/router.js";
 import Header from "./components/Header.jsx";
@@ -7,10 +7,8 @@ import TripForm from "./components/TripForm.jsx";
 import LoadingProgress from "./components/LoadingProgress.jsx";
 import PickCard from "./components/PickCard.jsx";
 import TripBudgetCard from "./components/TripBudgetCard.jsx";
-import TripTools from "./components/TripTools.jsx";
 import StickyBudgetSummary from "./components/StickyBudgetSummary.jsx";
 import SectionSideNav from "./components/SectionSideNav.jsx";
-import TripInsights from "./components/TripInsights.jsx";
 import DestinationsPage from "./components/DestinationsPage.jsx";
 import HowItWorksPage from "./components/HowItWorksPage.jsx";
 import BudgetShowcase from "./components/BudgetShowcase.jsx";
@@ -26,7 +24,7 @@ import ExchangeRateNote from "./components/ExchangeRateNote.jsx";
 import EventsSection from "./components/EventsSection.jsx";
 import PopularPlaces from "./components/PopularPlaces.jsx";
 import SmartOptions from "./components/SmartOptions.jsx";
-import AITripAssistant from "./components/AITripAssistant.jsx";
+import GhumiGhumiAI from "./components/GhumiGhumiAI.jsx";
 import KnowBeforeYouGo from "./components/KnowBeforeYouGo.jsx";
 import DestinationVlogs from "./components/DestinationVlogs.jsx";
 import PrintableTrip from "./components/PrintableTrip.jsx";
@@ -183,14 +181,6 @@ export default function App() {
 
   const showingResults = !!plan || loading || !!error;
 
-  /* Selected itinerary day, shared read-only with the Trip Insights row so
-   * Day Highlights always mirrors the day open in Itinerary + Map.
-   * Resets with every new plan (mirrors the section's own reset). */
-  const [activeDay, setActiveDay] = useState(1);
-  useEffect(() => {
-    setActiveDay(1);
-  }, [plan?.itinerary]);
-
   /* Single reconciled budget state for the whole results dashboard.
    *  The strip, the overview "why this fits" reasons, and the budget gauge
    *  all render from these numbers, so a stale backend `remaining_budget`
@@ -304,8 +294,7 @@ export default function App() {
                     second navbar — the primary Header is untouched). */}
                 <SectionSideNav plan={plan} />
 
-                {/* ── MAIN DASHBOARD + Trip Insights (tight 16–20px rhythm) ── */}
-                <div className="space-y-4 xl:space-y-5">
+                {/* ── MAIN DASHBOARD ── */}
                 <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2 xl:grid-cols-[minmax(250px,0.85fr)_minmax(0,1.8fr)_minmax(250px,0.85fr)] xl:gap-7">
                   {/* Trip Overview — natural height; never stretched */}
                   <div className="md:order-2 xl:order-1">
@@ -326,9 +315,6 @@ export default function App() {
                       selected_hotel_name={plan.selected_hotel_name}
                       onSelectHotel={selectHotel}
                       recomputing={recomputing}
-                      weather={plan.weather}
-                      exchange_rate={plan.exchange_rate}
-                      know={plan.know}
                     />
                   </div>
 
@@ -341,7 +327,6 @@ export default function App() {
                       destination={plan.destination}
                       flight={plan.best_pick.flight}
                       departure_date={plan.departure_date}
-                      onActiveDayChange={setActiveDay}
                     />
                   </div>
 
@@ -360,29 +345,8 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* ── Trip Insights: live day/savings/snapshot strip ── */}
-                <TripInsights
-                  plan={plan}
-                  total={reconciled.total}
-                  cap={reconciled.cap}
-                  over={reconciled.over}
-                  diff={reconciled.diff}
-                  activeDay={activeDay}
-                />
-                </div>
-
-                {/* ── AI Trip Assistant (native to the trip, not a bolted-on chatbot) ── */}
-                <AITripAssistant plan={plan} />
-
-                {/* ── SECONDARY ROW: Popular Experiences + Trip Tools ── */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-stretch xl:gap-7">
-                  <div className="flex min-w-0 lg:col-span-7">
-                    <PopularPlaces places={plan.places} destination={plan.destination} />
-                  </div>
-                  <div className="flex min-w-0 lg:col-span-5">
-                    <TripTools destination={plan.destination} />
-                  </div>
-                </div>
+                {/* ── Popular Experiences (full width) ── */}
+                <PopularPlaces places={plan.places} destination={plan.destination} />
 
                 {/* ── Contextual Deep-Dive Sections ── */}
                 <div className="space-y-8 xl:space-y-10">
@@ -433,6 +397,10 @@ export default function App() {
       {/* Print-only trip sheet — lives outside <main> so @media print can
           hide the whole on-screen dashboard and still render this sheet. */}
       {plan && <PrintableTrip plan={plan} />}
+
+      {/* Ghumi Ghumi AI — floating right-side chat box (with suggestions),
+          mounted once per trip instead of the old full-width section. */}
+      {plan && !loading && <GhumiGhumiAI key={plan.destination} plan={plan} />}
     </div>
   );
 }

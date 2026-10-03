@@ -10,8 +10,6 @@ import {
   Plane,
   Sparkles,
   Star,
-  CreditCard,
-  FileText,
 } from "lucide-react";
 import CategoryPanel from "./CategoryPanel.jsx";
 import SafeImage from "./SafeImage.jsx";
@@ -34,7 +32,7 @@ function fmtRange(d1, d2) {
 
 /** "Your Trip" card — left panel of 3-column dashboard.
  *  Destination image, meta chips, flight+hotel summary, hotel picker.
- *  Props: best_pick, fits_budget, remaining_budget, budget, num_nights, live_search, insight, destination, departure_date, return_date, travelers, itinerary, hotel_options, selected_hotel_name, onSelectHotel, recomputing, weather, exchange_rate, know */
+ *  Props: best_pick, fits_budget, remaining_budget, budget, num_nights, live_search, insight, destination, departure_date, return_date, travelers, itinerary, hotel_options, selected_hotel_name, onSelectHotel, recomputing */
 export default function PickCard({
   best_pick: best,
   fits_budget,
@@ -52,9 +50,6 @@ export default function PickCard({
   selected_hotel_name,
   onSelectHotel,
   recomputing,
-  weather,
-  exchange_rate,
-  know,
 }) {
   const [showOptions, setShowOptions] = useState(false);
   const hotelMapUrl = placeMapUrl(best.hotel);
@@ -65,20 +60,6 @@ export default function PickCard({
   const options = Array.isArray(hotel_options) ? hotel_options : [];
   const effectiveHotel = selected_hotel_name ?? best.hotel.name;
   const isAuto = !selected_hotel_name;
-
-  // Currency from exchange_rate or default
-  const currencyCode = exchange_rate?.currency || "INR";
-  // Visa/entry guidance comes from the real `know` list — never a default.
-  const visaKnow = Array.isArray(know)
-    ? know.find((k) => /visa|entry|id requirement/i.test(String(k?.title || "")))
-    : null;
-  const visaText = visaKnow
-    ? /visa/i.test(visaKnow.title)
-      ? "Visa rules"
-      : "Entry rules"
-    : Array.isArray(know) && know.length
-      ? "See good to know"
-      : null;
 
   // Prefer a bundled cinematic destination photo; fall back to the hotel shot.
   const destMatch = DESTINATIONS.find(
@@ -184,53 +165,6 @@ export default function PickCard({
         <p className="mt-2.5 text-[14px] leading-relaxed text-slate-300">
           {insight || "A curated journey tailored to your preferences, combining prime stays, top sights, and local culture."}
         </p>
-
-        {/* 3 Quick Stat Chips Row */}
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          {/* Weather */}
-          <div
-            className="flex flex-col items-center justify-center rounded-xl p-2.5 text-center"
-            style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.08)" }}
-          >
-            <span className="text-base" role="img" aria-label="Weather">☀</span>
-            <span className="font-display text-[12px] font-bold text-white mt-1">
-              {weather?.temperature
-                ? `${weather.temperature}°${/f/i.test(String(weather.unit || "")) ? "F" : "C"}`
-                : "—"}
-            </span>
-            <span className="text-[10px] text-slate-400 truncate max-w-full">
-              {weather?.condition || "Weather"}
-            </span>
-          </div>
-
-          {/* Currency */}
-          <div
-            className="flex flex-col items-center justify-center rounded-xl p-2.5 text-center"
-            style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.08)" }}
-          >
-            <CreditCard className="h-4 w-4 text-[var(--teal)]" />
-            <span className="font-display text-[12px] font-bold text-white mt-1">
-              {currencyCode}
-            </span>
-            <span className="text-[10px] text-slate-400">
-              Currency
-            </span>
-          </div>
-
-          {/* Visa */}
-          <div
-            className="flex flex-col items-center justify-center rounded-xl p-2.5 text-center"
-            style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.08)" }}
-          >
-            <FileText className="h-4 w-4 text-[var(--coral)]" />
-            <span className="font-display text-[12px] font-bold text-white mt-1 truncate max-w-full">
-              Visa
-            </span>
-            <span className="text-[10px] text-slate-400 truncate max-w-full">
-              {visaText ? (visaText.length > 12 ? visaText.slice(0, 11) + "…" : visaText) : "—"}
-            </span>
-          </div>
-        </div>
 
         {/* Why this trip fits — reasons only (insight lives above) */}
         {reasons.length > 0 && (
