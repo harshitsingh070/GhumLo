@@ -1,4 +1,10 @@
 import goa from "../assets/destinations/goa.jpg";
+import goaPalolem from "../assets/destinations/goa-palolem.jpg";
+import goaBogmalo from "../assets/destinations/goa-bogmalo.jpg";
+import goaCand1 from "../assets/destinations/goa-cand1.jpg";
+import goaCand2 from "../assets/destinations/goa-cand2.jpg";
+import goaFort from "../assets/destinations/sample-goa-fort.jpg";
+import heroGoa from "../assets/destinations/hero-goa.jpg";
 import jaipur from "../assets/destinations/jaipur.jpg";
 import manali from "../assets/destinations/manali.jpg";
 import mumbai from "../assets/destinations/mumbai.jpg";
@@ -63,3 +69,20 @@ export const DESTINATIONS = [
     season: "Best May – Sep",
   },
 ];
+
+/** Extra Goan shots so cards don't repeat one photo. */
+const GOA_POOL = [goa, goaPalolem, goaBogmalo, goaCand1, goaCand2, goaFort, heroGoa];
+
+/** Every bundled photo for a destination. Other cities only have one shot. */
+export function photoPoolFor(destination) {
+  const name = String(destination || "").toLowerCase();
+  const match = DESTINATIONS.find((d) => name.includes(d.name.toLowerCase()));
+  if (!match) return DESTINATIONS.map((d) => d.img);
+  return match.name === "Goa" ? GOA_POOL : [match.img];
+}
+
+/** Photo for a destination, optionally offset by position in a list. */
+export function photoFor(destination, index = 0) {
+  const pool = photoPoolFor(destination);
+  return pool[index % pool.length];
+}

@@ -1,6 +1,8 @@
 /** Print-only full trip sheet: all days listed sequentially.
  *  Screen readers/seeing users see the tabbed itinerary; this div is
  *  display:none on screen and display:block in @media print only. */
+import { formatStops } from "../lib/format.js";
+
 export default function PrintableTrip({ plan }) {
   if (!plan) return null;
   const days = Array.isArray(plan.itinerary) ? plan.itinerary : [];
@@ -18,7 +20,7 @@ export default function PrintableTrip({ plan }) {
         {plan.fits_budget ? "within budget" : "over budget"})
       </p>
       <p>
-        Flight: {flight.airline} ({flight.duration}, {flight.stops} stop(s)) — {fmt(flight.price)}.
+        Flight: {flight.airline} ({flight.duration}, {formatStops(flight.stops) || "stops n/a"}) — {fmt(flight.price)}.
         Hotel: {hotel.name} ({hotel.rating}★, {fmt(hotel.price_per_night)}/night ×{" "}
         {plan.num_nights}) — {fmt(hotel.total_price)}.
       </p>

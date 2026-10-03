@@ -26,7 +26,7 @@ const STEPS = [
   },
 ];
 
-/** Three-step product story with numbers + icons on soft contrast cards. */
+/** Three-step product story with numbers + icons on dark glass cards. */
 export default function HowItWorks() {
   return (
     <section id="how" aria-label="How GhoomLo works" className="scroll-mt-24">
@@ -38,20 +38,39 @@ export default function HowItWorks() {
       <div className="mt-8 grid gap-5 md:grid-cols-3">
         {STEPS.map((s, i) => (
           <Reveal key={s.n} delay={i * 70}>
-            <article className="tcc-focus h-full rounded-[18px] border border-line bg-white p-7 shadow-card transition-all hover:-translate-y-1 hover:shadow-card-hover dark:border-white/10 dark:bg-ink">
-            <div className="flex items-start justify-between">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sand text-ink dark:bg-white/10 dark:text-white">
-                <s.icon className="h-6 w-6" />
-              </span>
-              <span className="font-display text-4xl font-extrabold text-line dark:text-white/15" aria-hidden="true">
-                {s.n}
-              </span>
-            </div>
-            <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-clay">{s.eyebrow}</p>
-            <h3 className="font-display mt-1.5 text-xl font-bold tracking-tight text-ink dark:text-white">
-              {s.title}
-            </h3>
-            <p className="mt-2 text-[15px] leading-relaxed text-smoke dark:text-white/65">{s.text}</p>
+            <article
+              className="glass-card h-full p-7 transition-all hover:-translate-y-1.5"
+              style={{
+                background: "rgba(9, 38, 48, 0.85)",
+                border: "1px solid rgba(255, 255, 255, 0.10)",
+              }}
+            >
+              <div className="flex items-start justify-between">
+                <span
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl"
+                  style={{ background: "rgba(32, 199, 201, 0.15)", color: "var(--teal)" }}
+                >
+                  <s.icon className="h-6 w-6" />
+                </span>
+                <span
+                  className="font-display text-4xl font-extrabold text-white/20"
+                  aria-hidden="true"
+                >
+                  {s.n}
+                </span>
+              </div>
+              <p
+                className="mt-5 text-[11px] font-bold uppercase tracking-[0.16em]"
+                style={{ color: "var(--coral)" }}
+              >
+                {s.eyebrow}
+              </p>
+              <h3 className="font-display mt-1.5 text-xl font-bold tracking-tight text-white">
+                {s.title}
+              </h3>
+              <p className="mt-2 text-[14px] leading-relaxed text-slate-300">
+                {s.text}
+              </p>
             </article>
           </Reveal>
         ))}

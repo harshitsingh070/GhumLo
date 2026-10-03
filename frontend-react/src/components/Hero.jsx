@@ -1,89 +1,176 @@
-import { ArrowRight, Check } from "lucide-react";
+import { Sparkles, Plane, Wallet, MapPin } from "lucide-react";
 import heroGoa from "../assets/destinations/hero-goa.jpg";
+import { DESTINATIONS } from "../lib/destinations.js";
+import TripPreviewCard from "./TripPreviewCard.jsx";
 
-/** Hero: two-column travel statement + destination photography.
- *  Left: badge, display headline, description, orange CTA + secondary.
- *  Right: Goa image (24px radius) with a floating budget summary card. */
-export default function Hero() {
+const FEATURES = [
+  { icon: Plane, title: "Real-time prices", sub: "Flights, hotels & more" },
+  { icon: Wallet, title: "Budget friendly", sub: "Trips within your budget" },
+  { icon: Sparkles, title: "AI powered", sub: "Smart itineraries instantly" },
+];
+
+/** Resolve a bundled cinematic photo for the current destination.
+ *  Falls back to the hero shot so a live trip never shows a blank frame. */
+function heroImageFor(destination) {
+  if (!destination) return heroGoa;
+  const name = String(destination).toLowerCase();
+  const match = DESTINATIONS.find((d) => name.includes(d.name.toLowerCase()));
+  return match ? match.img : heroGoa;
+}
+
+/** GhoomLo Hero — cinematic destination photo with the value proposition
+ *  overlaid on the left and the live trip preview floating on the right.
+ *  The trip builder overlaps this section from below. */
+export default function Hero({ plan, onViewPlan }) {
+  const destination = plan?.destination || "Goa";
+  const img = heroImageFor(plan?.destination);
+  const known = DESTINATIONS.find((d) =>
+    String(destination).toLowerCase().includes(d.name.toLowerCase())
+  );
+
   return (
-    <section id="home" className="scroll-mt-20 bg-cream dark:bg-ink">
-      <div className="tcc-container grid items-center gap-10 pb-16 pt-10 sm:pt-12 lg:grid-cols-2 lg:gap-14 lg:pb-20 lg:pt-16">
-        {/* ── Left ── */}
-        <div className="animate-fade-rise">
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-smoke dark:border-white/15 dark:bg-white/5 dark:text-white/70">
-            <span className="h-1.5 w-1.5 rounded-full bg-clay" aria-hidden="true" />
-            Live flights · Real hotels · Smart itineraries
-          </p>
-          <h1 className="font-display text-[34px] font-extrabold leading-[1.05] tracking-[-0.02em] text-ink sm:text-5xl lg:text-[60px] lg:tracking-[-0.03em] dark:text-white">
-            Plan better.
-            <span className="block">Travel further.</span>
-            <span className="block text-clay">without overspending.</span>
-          </h1>
-          <p className="mt-5 max-w-lg text-base leading-[1.6] text-smoke sm:text-lg dark:text-white/70">
-            Find flights, stays and experiences that fit your budget. Compare real
-            travel options and get a complete trip plan in one place.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <a
-              href="#plan"
-              className="tcc-focus inline-flex h-[50px] items-center justify-center gap-2 rounded-xl bg-clay px-7 text-base font-semibold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-clay-dark hover:shadow"
-            >
-              Plan my trip
-              <ArrowRight className="h-4 w-4" />
-            </a>
-            <a
-              href="#how"
-              className="tcc-focus inline-flex h-[50px] items-center justify-center rounded-xl border border-line bg-white px-7 text-base font-semibold text-ink transition-colors hover:bg-sand dark:border-white/15 dark:bg-transparent dark:text-white dark:hover:bg-white/10"
-            >
-              How it works
-            </a>
-          </div>
-        </div>
+    <section
+      id="home"
+      className="relative overflow-hidden scroll-mt-[92px]"
+      style={{ minHeight: "640px" }}
+    >
+      {/* Background image */}
+      <img
+        src={img}
+        alt={known ? known.alt : "Goa beach with palm trees"}
+        className="absolute inset-0 h-full w-full object-cover"
+        loading="eager"
+        style={{ objectPosition: "center 42%", filter: "brightness(1.16) saturate(1.12)" }}
+      />
 
-        {/* ── Right: photography + floating budget card ── */}
-        <div className="animate-scale-in relative">
-          <img
-            src={heroGoa}
-            alt="Palm-fringed Goa beach at golden hour"
-            className="aspect-square w-full rounded-[24px] object-cover shadow-pop sm:aspect-[4/3.4]"
-            loading="eager"
-          />
-          <div
-            className="relative z-10 ml-4 mr-auto -mt-28 max-w-[250px] rounded-2xl border border-line bg-white/95 p-5 shadow-pop backdrop-blur-sm sm:absolute sm:-bottom-6 sm:left-6 sm:mx-0 sm:mt-0 sm:w-[320px] sm:max-w-none dark:border-white/10 dark:bg-ink/95"
-            aria-label="Sample Goa trip budget summary"
+      {/* Gradient overlay — darkest on the left so copy stays legible */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to right, rgba(4,20,27,0.90) 0%, rgba(4,20,27,0.60) 44%, rgba(4,20,27,0.16) 100%)," +
+            "linear-gradient(to top, rgba(6,27,36,0.94) 0%, rgba(6,27,36,0.30) 22%, transparent 55%)",
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Destination script wordmark — idle state only.
+          Once a plan exists the live trip preview owns the right-hand corner.
+          No weather chip here: idle weather would be fake data with no API response. */}
+      {!plan && (
+        <div
+          className="pointer-events-none absolute right-8 top-[150px] hidden text-right lg:block"
+          aria-hidden="true"
+        >
+          <p
+            className="font-display text-[54px] font-extrabold italic leading-none tracking-tight"
+            style={{
+              color: "rgba(255,255,255,0.92)",
+              textShadow: "0 6px 30px rgba(0,0,0,0.5)",
+            }}
           >
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-smoke dark:text-white/60">
-              Goa · 3 nights
+            {destination}
+          </p>
+          <p className="mt-1 text-[15px] font-semibold tracking-wide" style={{ color: "rgba(255,255,255,0.62)" }}>
+            {known ? known.tag : "India"}
+          </p>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="tcc-container relative z-10 flex min-h-[640px] items-center pb-44 pt-[112px]">
+        <div className="grid w-full items-start gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="max-w-[720px] animate-fade-rise">
+            {/* Eyebrow */}
+            <p
+              className="mb-5 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em]"
+              style={{
+                background: "rgba(4,20,27,0.5)",
+                border: "1px solid rgba(255,255,255,0.24)",
+                color: "var(--text-primary)",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+              }}
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--coral)" }} aria-hidden="true" />
+              Smart travel planning
             </p>
-            <p className="font-display mt-1 text-[28px] font-extrabold tracking-tight text-ink dark:text-white">
-              ₹34,440 <span className="text-sm font-semibold text-smoke dark:text-white/60">total</span>
+
+            {/* Headline */}
+            <h1
+              className="font-display font-extrabold leading-[1.0] tracking-[-0.035em]"
+              style={{ fontSize: "clamp(44px, 5.2vw, 76px)", color: "var(--text-primary)" }}
+            >
+              Plan unforgettable
+              <br />
+              trips with{" "}
+              <span style={{ color: "var(--coral)" }}>GhoomLo.</span>
+            </h1>
+
+            {/* Sub */}
+            <p
+              className="mt-6 max-w-xl text-[17px] leading-relaxed"
+              style={{ color: "rgba(255,255,255,0.82)" }}
+            >
+              Find flights, stays and experiences that fit your budget.
+              Compare real options and get a complete trip plan in one place.
             </p>
-            <dl className="mt-3 space-y-1.5 text-sm">
-              <div className="flex items-center justify-between">
-                <dt className="text-smoke dark:text-white/60">✈&nbsp; Flight</dt>
-                <dd className="font-semibold text-ink dark:text-white">₹28,532</dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt className="text-smoke dark:text-white/60">🏨&nbsp; Hotel</dt>
-                <dd className="font-semibold text-ink dark:text-white">₹5,908</dd>
-              </div>
-            </dl>
-            <div className="mt-3 border-t border-line pt-3 dark:border-white/10">
-              <p className="flex items-center gap-1.5 text-sm font-semibold text-pine dark:text-emerald-300">
-                <Check className="h-4 w-4" /> Within budget
-              </p>
-              <div
-                className="mt-2 h-2 overflow-hidden rounded-full bg-sand dark:bg-white/10"
-                role="img"
-                aria-label="Trip uses 57 percent of a 60,000 rupee budget"
-              >
-                <div className="h-full w-[57%] rounded-full bg-pine" />
-              </div>
-              <p className="mt-1.5 text-xs text-smoke dark:text-white/60">57% of ₹60,000 budget</p>
+
+            {/* Feature pills */}
+            <div className="mt-7 flex flex-wrap gap-2.5">
+              {FEATURES.map(({ icon: Icon, title, sub }) => (
+                <div
+                  key={title}
+                  className="flex items-center gap-2.5 rounded-[14px] px-3 py-2.5"
+                  style={{
+                    background: "rgba(255,255,255,0.10)",
+                    border: "1px solid rgba(255,255,255,0.16)",
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
+                  }}
+                >
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded-[10px]"
+                    style={{ background: "rgba(255,114,94,0.20)", color: "var(--coral)" }}
+                    aria-hidden="true"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-[12px] font-bold" style={{ color: "var(--text-primary)" }}>{title}</p>
+                    <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.65)" }}>{sub}</p>
+                  </div>
+                </div>
+              ))}
             </div>
+            {/* Mobile trip summary — same live data as the desktop floating card.
+                TripPreviewCard returns null until a plan exists, so this adds
+                zero layout shift when idle and reuses StickyBudgetSummary-grade
+                totals on small screens without duplicating logic. */}
+            {plan?.best_pick && (
+              <div className="mt-6 lg:hidden">
+                <TripPreviewCard plan={plan} onViewPlan={onViewPlan} />
+              </div>
+            )}
+          </div>
+
+          {/* Live trip preview — floats over the photo once a plan exists (desktop). */}
+          <div className="hidden justify-end pt-6 lg:flex">
+            <TripPreviewCard plan={plan} onViewPlan={onViewPlan} />
           </div>
         </div>
       </div>
+
+      {/* Soft fade into the page background so the trip builder can overlap */}
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-32"
+        style={{ background: "linear-gradient(to top, var(--bg-primary), transparent)" }}
+        aria-hidden="true"
+      />
+
+      <span className="sr-only">
+        <MapPin aria-hidden="true" /> Popular destinations: Goa, Jaipur, Manali, Mumbai, Delhi, London
+      </span>
     </section>
   );
 }

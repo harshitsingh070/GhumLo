@@ -56,6 +56,16 @@ function cleanPlaceName(raw, destination) {
   return s || "Unnamed stop";
 }
 
+/** Exact-match placeholder names providers sometimes return — never pinned raw. */
+const JUNK_PLACE_NAMES = new Set(["somewhere", "unknown", "unnamed", "unnamed stop", "tbd", "test"]);
+
+/** Map label: cleaned name, or a category fallback for placeholders. */
+function mapLabelFor(raw, destination, category, idx) {
+  const cleaned = cleanPlaceName(raw, destination);
+  if (!JUNK_PLACE_NAMES.has(cleaned.toLowerCase())) return cleaned;
+  return `${category === "restaurants" ? "Restaurant" : "Attraction"} ${idx + 1}`;
+}
+
 /** Minimal HTML-escape for popup/tooltip strings (names come from SerpApi). */
 const esc = (s) =>
   String(s ?? "")
@@ -88,19 +98,45 @@ const esc = (s) =>
  *  rating, lat, lng}]}], activeDay (number, reuses ItinerarySection tab state),
  *  destination (string, optional — used only to strip redundant ", Goa"-style
  *  suffixes from map labels), onSelectDay (optional: called when a legend
- *  day is clicked, so the legend doubles as day navigation).
+ *  day is clicked, so the legend doubles as day navigation), selectedStop
+ *  (place name currently highlighted in the itinerary list) and
+ *  onSelectStop (called when a marker is clicked, so the map highlights the
+ *  matching row). The two stay in sync in both directions.
  *  Never throws: init/update wrapped in try/catch, coord-less entries skipped,
  *  total failure renders a fallback line instead of breaking the results view.
  */
-export default function ItineraryMap({ hotel, itinerary, activeDay, destination, onSelectDay }) {
+export default function ItineraryMap({
+  hotel,
+  itinerary,
+  activeDay,
+  destination,
+  onSelectDay,
+  selectedStop,
+  onSelectStop,
+  // mapHeightClass: overrides the default Leaflet canvas heights for embeds
+  // (the dashboard preview uses 320/380/420px). Map logic, tiles, markers
+  // and controls are untouched.
+  mapHeightClass = null,
+}) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const layersRef = useRef(null);
   const lastBoundsRef = useRef(null);
+  const markersRef = useRef(new Map());
   const [mapError, setMapError] = useState(false);
+  // Tile CDN blocked/offline shows a gray canvas with no explanation —
+  // surface an honest note instead (markers/routes still work).
+  const [tilesDown, setTilesDown] = useState(false);
   // Local view toggle only — tab state still lives in ItinerarySection.
   // true = whole trip (all days), false = selected day in isolation.
   const [showAll, setShowAll] = useState(true);
+
+  // Latest click callback, kept in a ref so the marker effect never re-runs
+  // just because the parent re-created its handler.
+  const onSelectStopRef = useRef(onSelectStop);
+  useEffect(() => {
+    onSelectStopRef.current = onSelectStop;
+  });
 
   const days = Array.isArray(itinerary) ? itinerary : [];
   const active = days.find((d) => Number(d.day) === Number(activeDay)) ?? days[0];
@@ -130,10 +166,20 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
     if (!containerRef.current || mapRef.current) return;
     try {
       const map = L.map(containerRef.current, { scrollWheelZoom: false, preferCanvas: true }).setView([15.5, 73.8], 11);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      const tiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
+      });
+      let tileErrors = 0;
+      tiles.on("tileerror", () => {
+        tileErrors += 1;
+        if (tileErrors >= 6) setTilesDown(true);
+      });
+      tiles.on("tileload", () => {
+        tileErrors = 0;
+        setTilesDown(false);
+      });
+      tiles.addTo(map);
       layersRef.current = L.layerGroup().addTo(map);
       mapRef.current = map;
       // Let tiles paint at the real container size after first layout.
@@ -160,6 +206,47 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Keep the canvas in sync with the container: the dashboard stretches the
+  // itinerary column to match its neighbours, and tab switches change the
+  // height too. Leaflet sizes itself once, so react to every box change.
+  useEffect(() => {
+    const el = containerRef.current;
+    const map = mapRef.current;
+    if (!el || !map || typeof ResizeObserver === "undefined") return;
+    let frame = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        try {
+          map.invalidateSize();
+        } catch {
+          /* ignore — cosmetic only */
+        }
+      });
+    });
+    ro.observe(el);
+    return () => {
+      cancelAnimationFrame(frame);
+      ro.disconnect();
+    };
+  }, []);
+
+  // Selection sync (list → map): picking an activity pans to its marker and
+  // opens the popup. Runs after the data effect has rebuilt the marker set.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !selectedStop) return;
+    const marker = markersRef.current.get(String(selectedStop));
+    if (!marker) return;
+    try {
+      const ll = marker.getLatLng();
+      if (!map.getBounds().pad(-0.15).contains(ll)) map.panTo(ll, { animate: true });
+      marker.openPopup();
+    } catch {
+      /* ignore — selection is a convenience, never fatal */
+    }
+  }, [selectedStop, itinerary, activeDay, showAll]);
+
   // Data effect: clear all markers/polylines, then re-add fresh from props.
   // Runs on mount (after the instance exists) and whenever itinerary,
   // activeDay, hotel, or the local Whole-trip/Selected-day toggle changes —
@@ -170,6 +257,7 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
     if (!map || !layers) return;
     try {
       layers.clearLayers();
+      markersRef.current = new Map();
       const bounds = [];
       // Whole-trip view shows every day; Selected-day view isolates the
       // active tab. Hotel is always shown as the trip anchor.
@@ -208,42 +296,49 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
         const stops = (Array.isArray(d.places) ? d.places : []).filter(hasCoords);
         stops.forEach((p, i) => {
           // Numbered badge on EVERY stop (visit order within the day at a
-          // glance); active day gets a bigger badge + permanent name pill
-          // (number lives on the badge, so the pill shows just the name).
-          // Pills alternate above/below so clustered stops don't overlap.
+          // glance). Permanent name pills are reserved for focus contexts —
+          // the selected stop, or the whole active day when isolated via
+          // "Selected day" — so clustered whole-trip markers can't bury each
+          // other under overlapping pills (hover still names every badge).
+          // Pills alternate above/below so kept labels don't overlap.
           // Inactive days: badge + name-on-hover only.
           const above = i % 2 === 0;
           const size = isActive ? 28 : 22;
+          const isSel = selectedStop != null && String(selectedStop) === String(p.name);
+          const showLabel = isActive && (!showAll || isSel);
           // Display name: cleaned for the map (suffix stripped, casing
-          // fixed); the day list below keeps the raw SerpApi name.
-          const label = esc(cleanPlaceName(p.name, destination));
-          layers.addLayer(
-            L.marker([p.lat, p.lng], {
-              icon: L.divIcon({
-                className: "stop-badge-wrap",
-                html: `<div class="${isActive ? "stop-badge stop-badge-active" : "stop-badge"}" style="background:${color}">${i + 1}</div>`,
-                iconSize: [size, size],
-                iconAnchor: [size / 2, size / 2],
-              }),
-              zIndexOffset: isActive ? 400 : 0,
-            })
-              .bindPopup(
-                `<strong>${i + 1}. ${label}</strong><br/>Day ${esc(d.day)} · ${esc(p.category || "")}` +
-                  (p.rating != null && p.rating !== "" ? `<br/>Rating: ${esc(p.rating)}` : "")
-              )
-              .bindTooltip(label, {
-                permanent: isActive,
-                direction: above ? "top" : "bottom",
-                offset: L.point(0, above ? -(size / 2 + 2) : size / 2 + 2),
-                className: isActive ? "stop-label stop-active" : "stop-label",
-                interactive: false,
-              })
-          );
+          // fixed, placeholders swapped for a category fallback).
+          const label = esc(mapLabelFor(p.name, destination, p.category, i));
+          const marker = L.marker([p.lat, p.lng], {
+            icon: L.divIcon({
+              className: "stop-badge-wrap",
+              html: `<div class="${isActive ? "stop-badge stop-badge-active" : "stop-badge"}" style="background:${color}">${i + 1}</div>`,
+              iconSize: [size, size],
+              iconAnchor: [size / 2, size / 2],
+            }),
+            zIndexOffset: isActive ? 400 : 0,
+          })
+            .bindPopup(
+              `<strong>${i + 1}. ${label}</strong><br/>Day ${esc(d.day)} · ${esc(p.category || "")}` +
+                (p.rating != null && p.rating !== "" ? `<br/>Rating: ${esc(p.rating)}` : "")
+            )
+            .bindTooltip(label, {
+              permanent: showLabel,
+              direction: above ? "top" : "bottom",
+              offset: L.point(0, above ? -(size / 2 + 2) : size / 2 + 2),
+              className: showLabel ? "stop-label stop-active" : "stop-label",
+              interactive: false,
+            });
+          marker.on("click", () => onSelectStopRef.current?.(p.name));
+          layers.addLayer(marker);
+          markersRef.current.set(String(p.name), marker);
           bounds.push([p.lat, p.lng]);
         });
-        // One polyline per consecutive pair so each leg gets its own centered
-        // distance label at the segment midpoint — labels for the active day
-        // only; other days keep a faint path with no chips.
+        // One polyline per consecutive pair. Distance chips render only for
+        // the active day in "Selected day" view: in whole-trip view every
+        // day's markers crowd the canvas and centered chips bury markers
+        // and name pills under themselves (tooltip pane sits above markers).
+        // The day's total still shows in the status line and day header.
         // Coord-less stops were already filtered out of `stops`.
         for (let i = 0; i + 1 < stops.length; i++) {
           const a = stops[i];
@@ -255,7 +350,7 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
             ],
             { color, weight: isActive ? 3 : 2, opacity: isActive ? 0.9 : 0.35 }
           );
-          if (isActive) {
+          if (isActive && !showAll) {
             leg.bindTooltip(fmtKm(haversineKm(a.lat, a.lng, b.lat, b.lng)), {
               permanent: true,
               direction: "center",
@@ -280,7 +375,7 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
       setMapError(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itinerary, activeDay, hotel, destination, showAll]);
+  }, [itinerary, activeDay, hotel, destination, showAll, selectedStop]);
 
   if (mapError) {
     return <p className="text-sm text-slate-500">Map unavailable — see itinerary list below.</p>;
@@ -291,12 +386,12 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
       {/* Status + view controls: plain-language summary on the left,
           Whole-trip/Selected-day toggle and Reset view on the right. */}
       <div className="mb-2 flex max-w-full flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-medium text-slate-600 dark:text-slate-300" aria-live="polite">
+        <p className="text-xs font-medium text-slate-400" aria-live="polite">
           {summary}
         </p>
         <div className="flex items-center gap-1.5">
           <div
-            className="inline-flex rounded-full bg-slate-100 p-0.5 text-xs font-medium dark:bg-slate-700"
+            className="inline-flex rounded-full border border-white/10 bg-white/[0.06] p-0.5 text-xs font-medium"
             role="group"
             aria-label="Map view"
           >
@@ -304,10 +399,10 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
               type="button"
               onClick={() => setShowAll(false)}
               aria-pressed={!showAll}
-              className={`rounded-full px-2.5 py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+              className={`rounded-full px-2.5 py-1 transition-colors ${
                 !showAll
-                  ? "bg-white text-slate-900 shadow dark:bg-slate-600 dark:text-white"
-                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  ? "bg-[var(--coral)] text-white shadow-sm"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               Selected day
@@ -316,10 +411,10 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
               type="button"
               onClick={() => setShowAll(true)}
               aria-pressed={showAll}
-              className={`rounded-full px-2.5 py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+              className={`rounded-full px-2.5 py-1 transition-colors ${
                 showAll
-                  ? "bg-white text-slate-900 shadow dark:bg-slate-600 dark:text-white"
-                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  ? "bg-[var(--coral)] text-white shadow-sm"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               Whole trip
@@ -329,7 +424,7 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
             type="button"
             onClick={resetView}
             title="Zoom back out to all stops"
-            className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1 text-xs font-medium text-slate-300 transition-colors hover:border-white/25 hover:bg-white/10 hover:text-white"
           >
             Reset view
           </button>
@@ -337,25 +432,26 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
       </div>
       {/* relative z-0: keeps Leaflet's internal panes (z-index ~1000) inside
           this stacking context so they can't overlay the sticky budget bar.
-          Tiles stay light in both themes (decision: no dark-tile swap — see
-          report); only the frame adapts. */}
-      <div className="mb-2 flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/80">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Trip map</p>
-          <p className="text-xs text-slate-700 dark:text-slate-200">Hotel anchor · colored routes · numbered stops</p>
-        </div>
-        <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 shadow-sm dark:bg-slate-700 dark:text-slate-200">{showAll ? "All days" : `Day ${active?.day || 1}`}</span>
-      </div>
+          Tiles stay light in both themes (decision: no dark-tile swap);
+          only the frame adapts. */}
       <div
         ref={containerRef}
-        className="relative z-0 h-[360px] w-full max-w-full overflow-hidden rounded-xl border border-slate-200 shadow-sm dark:border-slate-700 sm:h-[480px]"
+        className={`relative z-0 w-full max-w-full overflow-hidden rounded-xl border border-white/[0.12] shadow-[0_14px_36px_rgba(0,0,0,0.35)] ${
+          mapHeightClass || "h-[360px] sm:h-[480px]"
+        }`}
         role="img"
         aria-label="Map of clustered itinerary stops"
       />
+      {tilesDown && !mapError && (
+        <p className="mt-1.5 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-400" role="status">
+          Map tiles couldn&apos;t load — the tile network may be blocked. Markers, routes and
+          distances still work; the stop list has every detail.
+        </p>
+      )}
       {/* Plain HTML/Tailwind legend (not a Leaflet control): hotel key +
           one swatch per day, matching marker colors. Day swatches are buttons
           that jump to that day's tab — the legend doubles as navigation. */}
-      <div className="mt-2 flex max-w-full flex-wrap items-center gap-x-1 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+      <div className="mt-2 flex max-w-full flex-wrap items-center gap-x-1 gap-y-1 text-xs text-slate-400">
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5">
           <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-600 text-[10px] font-bold text-white shadow ring-2 ring-white">
             H
@@ -371,8 +467,8 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
               onClick={() => onSelectDay?.(d.day)}
               aria-pressed={selected}
               title={`Show Day ${d.day} stops`}
-              className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-slate-700 ${
-                selected ? "bg-slate-100 font-semibold text-slate-900 ring-1 ring-slate-300 dark:bg-slate-700 dark:text-white dark:ring-slate-500" : ""
+              className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 transition-colors hover:bg-white/10 ${
+                selected ? "bg-white/10 font-semibold text-white ring-1 ring-white/20" : ""
               }`}
             >
               <span
@@ -384,9 +480,8 @@ export default function ItineraryMap({ hotel, itinerary, activeDay, destination,
           );
         })}
       </div>
-      <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
-        Badge numbers show visit order within each day — hover any badge for its name, click
-        for details. Line labels show straight-line distance between consecutive stops.
+      <p className="mt-1 text-[11px] text-slate-500">
+        Badge numbers show visit order — hover for names, click for details.
       </p>
     </div>
   );

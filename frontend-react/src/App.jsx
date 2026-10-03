@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SearchX } from "lucide-react";
 import { go, navigate, useHashRoute } from "./lib/router.js";
 import Header from "./components/Header.jsx";
@@ -6,10 +6,13 @@ import Hero from "./components/Hero.jsx";
 import TripForm from "./components/TripForm.jsx";
 import LoadingProgress from "./components/LoadingProgress.jsx";
 import PickCard from "./components/PickCard.jsx";
-import BudgetBar from "./components/BudgetBar.jsx";
+import TripBudgetCard from "./components/TripBudgetCard.jsx";
+import TripTools from "./components/TripTools.jsx";
 import StickyBudgetSummary from "./components/StickyBudgetSummary.jsx";
-import HowItWorks from "./components/HowItWorks.jsx";
+import SectionSideNav from "./components/SectionSideNav.jsx";
+import TripInsights from "./components/TripInsights.jsx";
 import DestinationsPage from "./components/DestinationsPage.jsx";
+import HowItWorksPage from "./components/HowItWorksPage.jsx";
 import BudgetShowcase from "./components/BudgetShowcase.jsx";
 import SampleTrip from "./components/SampleTrip.jsx";
 import Benefits from "./components/Benefits.jsx";
@@ -24,10 +27,8 @@ import EventsSection from "./components/EventsSection.jsx";
 import PopularPlaces from "./components/PopularPlaces.jsx";
 import SmartOptions from "./components/SmartOptions.jsx";
 import AITripAssistant from "./components/AITripAssistant.jsx";
-import ResultsNav from "./components/ResultsNav.jsx";
 import KnowBeforeYouGo from "./components/KnowBeforeYouGo.jsx";
 import DestinationVlogs from "./components/DestinationVlogs.jsx";
-import PrintTripButton from "./components/PrintTripButton.jsx";
 import PrintableTrip from "./components/PrintableTrip.jsx";
 
 /** Top-level layout. Holds plan result, loading, and error state.
@@ -157,8 +158,6 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Demo unavailable.");
       if (reqIdRef.current === id) {
-        // Seed last payload so hotel re-pick attempts the live endpoint
-        // (fails gracefully with plan kept when no key is configured).
         lastPayloadRef.current = {
           origin: data.origin,
           destination: data.destination,
@@ -184,129 +183,237 @@ export default function App() {
 
   const showingResults = !!plan || loading || !!error;
 
-  return (
-    <div className="min-h-screen bg-cream font-sans text-ink dark:bg-ink dark:text-white">
-      <Header />
-      {route === "home" && <Hero />}
+  /* Selected itinerary day, shared read-only with the Trip Insights row so
+   * Day Highlights always mirrors the day open in Itinerary + Map.
+   * Resets with every new plan (mirrors the section's own reset). */
+  const [activeDay, setActiveDay] = useState(1);
+  useEffect(() => {
+    setActiveDay(1);
+  }, [plan?.itinerary]);
 
-      <main className="tcc-container space-y-12 pb-20 pt-12 sm:space-y-20 sm:pt-14">
+  /* Single reconciled budget state for the whole results dashboard.
+   *  The strip, the overview "why this fits" reasons, and the budget gauge
+   *  all render from these numbers, so a stale backend `remaining_budget`
+   *  can never make one card disagree with the other two. The displayed
+   *  total and cap are the source of truth: over = total > cap. */
+  const reconciled = (() => {
+    const total = Number(plan?.best_pick?.total_cost) || 0;
+    const cap = Number(plan?.budget) || 0;
+    const over = cap > 0 ? total > cap : !plan?.fits_budget;
+    const diff = cap > 0 ? Math.abs(total - cap) : Math.abs(Number(plan?.remaining_budget) || 0);
+    return { total, cap, over, diff };
+  })();
+
+  return (
+    <div
+      className="min-h-screen font-sans text-slate-100"
+      style={{
+        backgroundColor: "var(--bg-primary)",
+        color: "var(--text-primary)",
+      }}
+    >
+      <Header />
+      {route === "home" && (
+        <Hero
+          plan={plan}
+          onViewPlan={() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth" })}
+        />
+      )}
+
+      <main
+        className={`tcc-container space-y-12 pb-24 sm:space-y-16 ${
+          route === "home" ? "pt-4 sm:pt-6" : "pt-[104px]"
+        }`}
+      >
         {route === "destinations" && <DestinationsPage onPick={pickDestination} />}
+        {route === "how" && <HowItWorksPage />}
 
         {route === "home" && (
           <>
-            {/* ── Planner ── */}
-            <div id="plan" className="scroll-mt-24">
-              <TripForm loading={loading} onSubmit={handleSubmit} prefillDestination={prefillDestination} onDemo={handleDemo} demoLoading={demoLoading} />
+            {/* ── Planner (overlaps the hero) ── */}
+            <div id="plan" className="relative z-20 -mt-28 scroll-mt-28 sm:-mt-32">
+              <TripForm
+                loading={loading}
+                onSubmit={handleSubmit}
+                prefillDestination={prefillDestination}
+                onDemo={handleDemo}
+                demoLoading={demoLoading}
+              />
             </div>
 
-        {/* ── Loading ── */}
-        {loading && <LoadingProgress />}
+            {/* ── Loading ── */}
+            {loading && <LoadingProgress />}
 
-        {/* ── Error / empty ── */}
-        {error && !loading && (
-          <section
-              className="animate-fade-rise rounded-[20px] border border-line bg-white p-6 text-center shadow-card sm:p-10 dark:border-white/10 dark:bg-ink"
-            role="alert"
-            aria-label="No trips found"
-          >
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-clay/10 text-clay">
-              <SearchX className="h-7 w-7" />
-            </span>
-            <h2 className="font-display mt-5 text-2xl font-extrabold tracking-tight text-ink dark:text-white">
-              {lastPayloadRef.current?.budget
-                ? `No trips found within ₹${Number(lastPayloadRef.current.budget).toLocaleString("en-IN")}`
-                : "We couldn't build that trip"}
-            </h2>
-            <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-smoke dark:text-white/65">
-              {error}
-            </p>
-            <ul className="mx-auto mt-4 max-w-md space-y-1.5 text-left text-[15px] text-smoke dark:text-white/65">
-              <li>· Try increasing your budget</li>
-              <li>· Try changing your dates</li>
-              <li>· Try a nearby destination</li>
-            </ul>
-            <a
-              href="#plan"
-              onClick={(e) => {
-                e.preventDefault();
-                go("home", "plan");
-              }}
-              className="tcc-focus mt-6 inline-flex h-[48px] items-center rounded-xl bg-clay px-7 text-[15px] font-semibold text-white transition-all hover:-translate-y-px hover:bg-clay-dark hover:shadow"
-            >
-              Adjust search
-            </a>
-          </section>
-        )}
-
-        {/* ── Results ── */}
-        {plan && !loading && (
-          <div className="space-y-6">
-            <StickyBudgetSummary
-              total_cost={plan.best_pick.total_cost}
-              budget={plan.budget}
-              fits_budget={plan.fits_budget}
-            />
-            <ResultsNav />
-            <div className="no-print flex flex-wrap gap-2">
-              <PrintTripButton />
-              {plan.demo && (
-                <span className="inline-flex items-center rounded-full bg-sand px-3 py-1.5 text-xs font-bold text-ink/70 dark:bg-white/10 dark:text-white/70">
-                  Demo data · no API key used
+            {/* ── Error / empty ── */}
+            {error && !loading && (
+              <section
+                className="animate-fade-rise glass-panel rounded-[24px] p-8 text-center text-white"
+                style={{
+                  background: "rgba(9, 38, 48, 0.92)",
+                  border: "1px solid rgba(255, 114, 94, 0.3)",
+                }}
+                role="alert"
+                aria-label="No trips found"
+              >
+                <span
+                  className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl"
+                  style={{ background: "rgba(255, 114, 94, 0.15)", color: "var(--coral)" }}
+                >
+                  <SearchX className="h-7 w-7" />
                 </span>
-              )}
-            </div>
-            <PickCard
-              best_pick={plan.best_pick}
-              fits_budget={plan.fits_budget}
-              remaining_budget={plan.remaining_budget}
-              budget={plan.budget}
-              num_nights={plan.num_nights}
-              live_search={plan.live_search}
-              insight={plan.insight}
-              destination={plan.destination}
-              departure_date={plan.departure_date}
-              return_date={plan.return_date}
-              travelers={plan.travelers}
-              itinerary={plan.itinerary}
-              hotel_options={plan.hotel_options}
-              selected_hotel_name={plan.selected_hotel_name}
-              onSelectHotel={selectHotel}
-              recomputing={recomputing}
-            />
-            <AITripAssistant plan={plan} />
-            <BudgetBar
-              flight_price={plan.best_pick.flight.price}
-              hotel_total={plan.best_pick.hotel.total_price}
-              total_cost={plan.best_pick.total_cost}
-              budget={plan.budget}
-              fits_budget={plan.fits_budget}
-            />
-            <SmartOptions plan={plan} onSelectAlternative={selectAlternative} recomputing={recomputing} />
-            {/* Optional extras — each component renders null when its field
-                is absent (domestic trip / fetch failure), so the core flow
-                never depends on them. */}
-            <ExchangeRateNote exchange_rate={plan.exchange_rate} budget={plan.budget} />
-            <SavingsSuggestions suggestions={plan.suggestions} />
-            <WeatherSnapshot weather={plan.weather} destination={plan.destination} />
-            <PopularPlaces places={plan.places} destination={plan.destination} />
-            <ItinerarySection
-              itinerary={plan.itinerary}
-              num_nights={plan.num_nights}
-              counts={plan.counts}
-              hotel={plan.best_pick.hotel}
-              destination={plan.destination}
-            />
-            <EventsSection events={plan.events} destination={plan.destination} />
-            <KnowBeforeYouGo know={plan.know} destination={plan.destination} />
-            <DestinationVlogs videos={plan.videos} destination={plan.destination} />
-            <PrintableTrip plan={plan} />
-          </div>
-        )}
+                <h2 className="font-display mt-5 text-2xl font-extrabold tracking-tight text-white">
+                  {lastPayloadRef.current?.budget
+                    ? `No trips found within ₹${Number(lastPayloadRef.current.budget).toLocaleString("en-IN")}`
+                    : "We couldn't build that trip"}
+                </h2>
+                <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-slate-300">
+                  {error}
+                </p>
+                <ul className="mx-auto mt-4 max-w-md space-y-1.5 text-left text-[14px] text-slate-300">
+                  <li>· Try increasing your budget</li>
+                  <li>· Try changing your travel dates</li>
+                  <li>· Try a nearby alternate airport or destination</li>
+                </ul>
+                <a
+                  href="#plan"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    go("home", "plan");
+                  }}
+                  className="btn-primary mt-6 inline-flex h-[46px] items-center rounded-xl px-7 text-[14px] font-bold"
+                >
+                  Adjust search
+                </a>
+              </section>
+            )}
 
-            {/* ── Landing story (hidden while results/loading/error show) ── */}
+            {/* ── Results Dashboard ── */}
+            {plan && !loading && (
+              <div className="space-y-8 xl:space-y-10 animate-fade-rise">
+                {/* Compact trip status (identity + budget state + print).
+                    Budget numbers flow from the single reconciled state above
+                    so the strip, overview reasons, and gauge can never disagree. */}
+                <StickyBudgetSummary
+                  plan={plan}
+                  total_cost={reconciled.total}
+                  budget={reconciled.cap}
+                  fits_budget={!reconciled.over}
+                />
+
+                {/* In-page section rail (desktop ≥1440px icon dock; not a
+                    second navbar — the primary Header is untouched). */}
+                <SectionSideNav plan={plan} />
+
+                {/* ── MAIN DASHBOARD + Trip Insights (tight 16–20px rhythm) ── */}
+                <div className="space-y-4 xl:space-y-5">
+                <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2 xl:grid-cols-[minmax(250px,0.85fr)_minmax(0,1.8fr)_minmax(250px,0.85fr)] xl:gap-7">
+                  {/* Trip Overview — natural height; never stretched */}
+                  <div className="md:order-2 xl:order-1">
+                    <PickCard
+                      best_pick={plan.best_pick}
+                      fits_budget={!reconciled.over}
+                      remaining_budget={reconciled.over ? plan.remaining_budget : reconciled.diff}
+                      budget={reconciled.cap}
+                      num_nights={plan.num_nights}
+                      live_search={plan.live_search}
+                      insight={plan.insight}
+                      destination={plan.destination}
+                      departure_date={plan.departure_date}
+                      return_date={plan.return_date}
+                      travelers={plan.travelers}
+                      itinerary={plan.itinerary}
+                      hotel_options={plan.hotel_options}
+                      selected_hotel_name={plan.selected_hotel_name}
+                      onSelectHotel={selectHotel}
+                      recomputing={recomputing}
+                      weather={plan.weather}
+                      exchange_rate={plan.exchange_rate}
+                      know={plan.know}
+                    />
+                  </div>
+
+                  {/* Unified Itinerary + Map — full row on tablet for max width */}
+                  <div className="md:order-1 md:col-span-2 xl:order-2 xl:col-span-1">
+                    <ItinerarySection
+                      itinerary={plan.itinerary}
+                      num_nights={plan.num_nights}
+                      hotel={plan.best_pick.hotel}
+                      destination={plan.destination}
+                      flight={plan.best_pick.flight}
+                      departure_date={plan.departure_date}
+                      onActiveDayChange={setActiveDay}
+                    />
+                  </div>
+
+                  {/* Trip Budget Gauge — natural height, content top-aligned */}
+                  <div className="md:order-3 xl:order-3">
+                    <TripBudgetCard
+                      flight_price={plan.best_pick.flight.price}
+                      hotel_total={plan.best_pick.hotel.total_price}
+                      total_cost={reconciled.total}
+                      budget={reconciled.cap}
+                      fits_budget={!reconciled.over}
+                      flight_airline={plan.best_pick.flight.airline}
+                      hotel_nights={plan.num_nights}
+                      onViewFullPlan={() => document.getElementById("itinerary")?.scrollIntoView({ behavior: "smooth" })}
+                    />
+                  </div>
+                </div>
+
+                {/* ── Trip Insights: live day/savings/snapshot strip ── */}
+                <TripInsights
+                  plan={plan}
+                  total={reconciled.total}
+                  cap={reconciled.cap}
+                  over={reconciled.over}
+                  diff={reconciled.diff}
+                  activeDay={activeDay}
+                />
+                </div>
+
+                {/* ── AI Trip Assistant (native to the trip, not a bolted-on chatbot) ── */}
+                <AITripAssistant plan={plan} />
+
+                {/* ── SECONDARY ROW: Popular Experiences + Trip Tools ── */}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-stretch xl:gap-7">
+                  <div className="flex min-w-0 lg:col-span-7">
+                    <PopularPlaces places={plan.places} destination={plan.destination} />
+                  </div>
+                  <div className="flex min-w-0 lg:col-span-5">
+                    <TripTools destination={plan.destination} />
+                  </div>
+                </div>
+
+                {/* ── Contextual Deep-Dive Sections ── */}
+                <div className="space-y-8 xl:space-y-10">
+                  {/* Cost Optimization */}
+                  <SavingsSuggestions suggestions={plan.suggestions} />
+
+                  {/* Alternative travel styles + what-if budget */}
+                  <SmartOptions plan={plan} onSelectAlternative={selectAlternative} recomputing={recomputing} />
+
+                  {/* Weather + currency (compact pair) */}
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:gap-6">
+                    <WeatherSnapshot weather={plan.weather} destination={plan.destination} />
+                    <ExchangeRateNote exchange_rate={plan.exchange_rate} budget={plan.budget} />
+                  </div>
+
+                  {/* Good to Know + Local events (compact pair) */}
+                  <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:gap-6">
+                    <KnowBeforeYouGo know={plan.know} destination={plan.destination} />
+                    <EventsSection events={plan.events} destination={plan.destination} />
+                  </div>
+
+                  {/* Destination YouTube Vlogs */}
+                  <DestinationVlogs videos={plan.videos} destination={plan.destination} />
+                </div>
+              </div>
+            )}
+
+            {/* ── Landing story (hidden while results/loading/error show).
+                Popular Destinations and How It Works live on their own pages. */}
             {!showingResults && (
               <>
-                <HowItWorks />
                 <BudgetShowcase />
                 <SampleTrip />
                 <Benefits />
@@ -322,6 +429,10 @@ export default function App() {
       </main>
 
       <Footer />
+
+      {/* Print-only trip sheet — lives outside <main> so @media print can
+          hide the whole on-screen dashboard and still render this sheet. */}
+      {plan && <PrintableTrip plan={plan} />}
     </div>
   );
 }

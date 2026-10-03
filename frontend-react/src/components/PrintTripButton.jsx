@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Printer } from "lucide-react";
 
 /** 1-click day-wise export: opens the browser print dialog.
@@ -9,11 +8,17 @@ export default function PrintTripButton() {
     <button
       type="button"
       onClick={() => window.print()}
-      className="tcc-focus inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-white px-4 text-sm font-semibold text-ink hover:bg-sand dark:border-white/15 dark:bg-transparent dark:text-white dark:hover:bg-white/10"
+      className="tcc-focus inline-flex h-9 items-center gap-2 rounded-[11px] px-3.5 text-[13px] font-semibold transition-colors hover:bg-white/10"
+      style={{
+        background: "rgba(255,255,255,0.07)",
+        border: "1px solid rgba(255,255,255,0.13)",
+        color: "var(--text-secondary)",
+      }}
       title="Print or save this trip as PDF"
     >
       <Printer className="h-4 w-4" aria-hidden="true" />
-      Print / Save PDF
+      <span className="hidden md:inline">Print / Save PDF</span>
+      <span className="md:hidden">Print</span>
     </button>
   );
 }

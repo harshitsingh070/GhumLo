@@ -6,8 +6,8 @@ import {
   MapPin,
   Plane,
   PlayCircle,
-  Search,
   Users,
+  ChevronRight,
 } from "lucide-react";
 import NaturalLanguageInput from "./NaturalLanguageInput.jsx";
 
@@ -22,13 +22,12 @@ const DEFAULTS = {
   force_refresh: false,
 };
 
-/** "Build your trip" — the main product interaction.
- *  Same defaults, validation and submit payload as before; only the
- *  presentation is new. Technical controls live under Advanced options.
- *  Props: loading, onSubmit(payload), prefillDestination. */
+/** Trip Builder — slim horizontal glass bar matching reference design.
+ *  All form logic/validation/props unchanged. */
 export default function TripForm({ loading, onSubmit, prefillDestination, onDemo, demoLoading }) {
   const [form, setForm] = useState(DEFAULTS);
   const [dateError, setDateError] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
     if (prefillDestination) setForm((f) => ({ ...f, destination: prefillDestination }));
@@ -45,8 +44,7 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
       travelers: fields.travelers ?? f.travelers,
       budget: fields.budget ?? f.budget,
       travel_mode: ["saver", "balanced", "comfort"].includes(fields.travel_mode)
-        ? fields.travel_mode
-        : f.travel_mode,
+        ? fields.travel_mode : f.travel_mode,
     }));
     setDateError("");
   };
@@ -79,253 +77,319 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
     });
   };
 
-  const labelCls = "mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-smoke";
-  const inputCls =
-    "tcc-focus h-[60px] w-full rounded-xl border border-line bg-cream px-4 text-[16px] font-medium text-ink placeholder:text-smoke/60 focus:border-clay focus:bg-white dark:border-white/15 dark:bg-white/5 dark:text-white dark:focus:bg-white/10";
-  const iconCls = "pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-smoke";
+  const labelCls =
+    "text-[11px] font-bold uppercase tracking-[0.14em] whitespace-nowrap";
+
+  const dividerCls =
+    "w-px self-stretch my-3 hidden lg:block";
+
+  /* Real visible inputs (transparent, borderless) — the old invisible
+   * overlay-input trick broke typing on several browsers and mobile
+   * keyboards, since users typed into an opacity-0 field. */
+  const textInputCls =
+    "w-full min-w-0 bg-transparent text-[15px] font-semibold outline-none placeholder:text-[var(--text-muted)]";
+
+  const dateInputCls =
+    "w-full min-w-0 flex-1 bg-transparent text-[13px] font-semibold outline-none [color-scheme:dark]";
+
+  const STYLE_OPTIONS = [
+    ["saver",    "Saver",    "Lowest total"],
+    ["balanced", "Balanced", "Value + comfort"],
+    ["comfort",  "Comfort",  "Better ratings"],
+  ];
 
   return (
-    <section
-      aria-label="Build your trip"
-      className="rounded-[20px] border border-line bg-white p-6 shadow-card sm:p-8 dark:border-white/10 dark:bg-ink"
-    >
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="font-display text-2xl font-extrabold tracking-tight text-ink sm:text-[28px] dark:text-white">
-            Build your trip
-          </h2>
-          <p className="mt-1 text-base text-smoke dark:text-white/65">
-            Tell us where and when. We&apos;ll find the best options for your budget.
-          </p>
+    <section aria-label="Build your trip" id="trip-builder" className="scroll-mt-28">
+      {/* Single wide glass panel — NL helper, fields, then style/options row.
+          Layered glass: translucent body, lit border, inset top highlight +
+          deep soft shadow so it floats above the hero. */}
+      <div
+        className="overflow-hidden rounded-[24px]"
+        style={{
+          background: "rgba(8, 32, 42, 0.86)",
+          border: "1px solid rgba(255,255,255,0.16)",
+          backdropFilter: "blur(22px)",
+          WebkitBackdropFilter: "blur(22px)",
+          boxShadow:
+            "0 28px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)",
+        }}
+      >
+        {/* Natural-language helper */}
+        <div
+          className="px-5 pb-4 pt-5"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          <NaturalLanguageInput onFill={applyNlFields} />
         </div>
-        <span className="rounded-full bg-sand px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.1em] text-ink/70 dark:bg-white/10 dark:text-white/70">
-          Flight + hotel + plan
-        </span>
-      </div>
 
-      {/* <div className="mb-6 grid grid-cols-3 gap-2 border-y border-line py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-smoke dark:border-white/10 dark:text-white/45 sm:text-xs">
-        <span className="flex items-center gap-2 text-ink dark:text-white"><b className="flex h-6 w-6 items-center justify-center rounded-full bg-clay text-white">1</b> Route</span>
-        <span className="flex items-center gap-2"><b className="flex h-6 w-6 items-center justify-center rounded-full bg-sand text-ink dark:bg-white/10 dark:text-white">2</b> Details</span>
-        <span className="flex items-center gap-2"><b className="flex h-6 w-6 items-center justify-center rounded-full bg-sand text-ink dark:bg-white/10 dark:text-white">3</b> Style</span>
-      </div> */}
-
-      <form onSubmit={submit} id="trip-form">
-        <NaturalLanguageInput onFill={applyNlFields} />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_auto_1fr_1.3fr_0.8fr_0.9fr]">
+        <form onSubmit={submit} id="trip-form">
+          {/* ── Row 1: main horizontal field bar ── */}
+          <div className="flex flex-col lg:flex-row lg:items-stretch">
           {/* From */}
-          <div>
-            <label htmlFor="trip-origin" className={labelCls}>
-              From
-            </label>
-            <div className="relative">
-              <Plane className={iconCls} aria-hidden="true" />
-              <input
-                id="trip-origin"
-                name="origin"
-                value={form.origin}
-                onChange={set("origin")}
-                required
-                maxLength={20}
-                placeholder="Delhi"
-                autoComplete="off"
-                className={`${inputCls} pl-11`}
-              />
-            </div>
-          </div>
+          <label className="flex min-w-0 flex-col justify-center gap-1.5 px-5 py-4 lg:flex-1" htmlFor="trip-origin">
+            <span className={labelCls} style={{ color: "var(--text-muted)" }}>
+              <Plane className="mb-0.5 mr-1 inline h-3 w-3" />From
+            </span>
+            <input
+              id="trip-origin"
+              type="text"
+              className={`${textInputCls} tcc-focus rounded-md`}
+              style={{ color: "var(--text-primary)" }}
+              value={form.origin}
+              onChange={set("origin")}
+              required
+              maxLength={30}
+              placeholder="Delhi"
+              autoComplete="off"
+              aria-label="Origin city or airport"
+            />
+          </label>
 
-          {/* Swap */}
-          <div className="hidden items-end justify-center pb-1 xl:flex">
-            <button
-              type="button"
-              onClick={swapOriginDest}
-              title="Swap origin and destination"
-              aria-label="Swap origin and destination"
-              className="tcc-focus flex h-[60px] w-[52px] items-center justify-center rounded-xl border border-line text-smoke transition-colors hover:border-clay hover:text-clay dark:border-white/15 dark:hover:border-clay"
-            >
-              <ArrowLeftRight className="h-5 w-5" />
-            </button>
-          </div>
+          {/* Swap button (desktop) */}
+          <button
+            type="button"
+            onClick={swapOriginDest}
+            title="Swap origin and destination"
+            aria-label="Swap origin and destination"
+            className="tcc-focus hidden items-center justify-center self-center lg:flex"
+            style={{
+              width: 32, height: 32, borderRadius: "50%",
+              background: "rgba(255,255,255,0.07)",
+              border: "1px solid rgba(255,255,255,0.14)",
+              color: "var(--text-muted)",
+              flexShrink: 0,
+            }}
+          >
+            <ArrowLeftRight className="h-3.5 w-3.5" />
+          </button>
+
+          <div className={dividerCls} style={{ background: "rgba(255,255,255,0.08)" }} aria-hidden="true" />
 
           {/* To */}
-          <div>
-            <label htmlFor="trip-destination" className={labelCls}>
-              To
-            </label>
-            <div className="relative">
-              <MapPin className={iconCls} aria-hidden="true" />
+          <label className="flex min-w-0 flex-col justify-center gap-1.5 px-5 py-4 lg:flex-1" htmlFor="trip-destination">
+            <span className={labelCls} style={{ color: "var(--text-muted)" }}>
+              <MapPin className="mb-0.5 mr-1 inline h-3 w-3" />To
+            </span>
+            <input
+              id="trip-destination"
+              type="text"
+              className={`${textInputCls} tcc-focus rounded-md`}
+              style={{ color: "var(--text-primary)" }}
+              value={form.destination}
+              onChange={set("destination")}
+              required
+              maxLength={30}
+              placeholder="Goa"
+              autoComplete="off"
+              aria-label="Destination"
+            />
+          </label>
+
+          <div className={dividerCls} style={{ background: "rgba(255,255,255,0.08)" }} aria-hidden="true" />
+
+          {/* Dates — real visible date inputs (native picker + keyboard) */}
+          <div className="flex min-w-0 flex-col justify-center gap-1.5 px-5 py-4 lg:flex-[1.5]">
+            <span className={labelCls} style={{ color: "var(--text-muted)" }}>
+              <CalendarDays className="mb-0.5 mr-1 inline h-3 w-3" />Dates
+            </span>
+            <div className="flex min-w-0 items-center gap-2">
               <input
-                id="trip-destination"
-                name="destination"
-                value={form.destination}
-                onChange={set("destination")}
+                id="trip-departure"
+                type="date"
+                value={form.departure_date}
+                onChange={(e) => { set("departure_date")(e); setDateError(""); }}
                 required
-                placeholder="Goa"
-                autoComplete="off"
-                className={`${inputCls} pl-11`}
+                aria-label="Departure date"
+                className={`${dateInputCls} tcc-focus rounded-md`}
+                style={{ color: "var(--text-primary)" }}
+              />
+              <span aria-hidden="true" style={{ color: "var(--text-muted)" }}>–</span>
+              <input
+                id="trip-return"
+                type="date"
+                value={form.return_date}
+                onChange={(e) => { set("return_date")(e); setDateError(""); }}
+                min={form.departure_date}
+                required
+                aria-label="Return date"
+                className={`${dateInputCls} tcc-focus rounded-md`}
+                style={{ color: "var(--text-primary)" }}
               />
             </div>
           </div>
 
-          {/* Dates */}
-          <div className="md:col-span-2 xl:col-span-1">
-            <span id="trip-dates-label" className={labelCls}>
-              Dates
-            </span>
-            <div className="relative" role="group" aria-labelledby="trip-dates-label">
-              <CalendarDays className={iconCls} aria-hidden="true" />
-              <div className="flex flex-col justify-center gap-1 rounded-xl border border-line bg-cream px-3 py-2 pl-11 focus-within:border-clay focus-within:bg-white sm:h-[60px] sm:flex-row sm:items-center sm:py-0 dark:border-white/15 dark:bg-white/5">
-                <input
-                  id="trip-departure"
-                  type="date"
-                  value={form.departure_date}
-                  onChange={(e) => {
-                    set("departure_date")(e);
-                    setDateError("");
-                  }}
-                  required
-                  aria-label="Departure date"
-                  className="tcc-focus min-h-[40px] w-full bg-transparent text-[16px] font-medium text-ink focus:outline-none sm:min-h-0 sm:text-sm dark:text-white"
-                />
-                <span className="hidden shrink-0 text-smoke sm:inline" aria-hidden="true">
-                  –
-                </span>
-                <input
-                  id="trip-return"
-                  type="date"
-                  value={form.return_date}
-                  onChange={(e) => {
-                    set("return_date")(e);
-                    setDateError("");
-                  }}
-                  min={form.departure_date}
-                  required
-                  aria-label="Return date"
-                  className="tcc-focus min-h-[40px] w-full bg-transparent text-[16px] font-medium text-ink focus:outline-none sm:min-h-0 sm:text-sm dark:text-white"
-                />
-              </div>
-            </div>
-          </div>
+          <div className={dividerCls} style={{ background: "rgba(255,255,255,0.08)" }} aria-hidden="true" />
 
           {/* Travelers */}
-          <div>
-            <label htmlFor="trip-travelers" className={labelCls}>
-              Travelers
-            </label>
-            <div className="relative">
-              <Users className={iconCls} aria-hidden="true" />
-              <input
-                id="trip-travelers"
-                type="number"
-                value={form.travelers}
-                onChange={set("travelers")}
-                min={1}
-                max={9}
-                required
-                className={`${inputCls} pl-11`}
-              />
-            </div>
-          </div>
+          <label className="flex min-w-0 flex-col justify-center gap-1.5 px-5 py-4 lg:w-32" htmlFor="trip-travelers">
+            <span className={labelCls} style={{ color: "var(--text-muted)" }}>
+              <Users className="mb-0.5 mr-1 inline h-3 w-3" />Travelers
+            </span>
+            <input
+              id="trip-travelers"
+              type="number"
+              value={form.travelers}
+              onChange={set("travelers")}
+              min={1} max={9} required
+              aria-label="Number of travelers"
+              className={`${textInputCls} tcc-focus rounded-md`}
+              style={{ color: "var(--text-primary)" }}
+            />
+          </label>
+
+          <div className={dividerCls} style={{ background: "rgba(255,255,255,0.08)" }} aria-hidden="true" />
 
           {/* Budget */}
-          <div>
-            <label htmlFor="trip-budget" className={labelCls}>
-              Budget
-            </label>
-            <div className="relative">
-              <IndianRupee className={iconCls} aria-hidden="true" />
+          <label className="flex min-w-0 flex-col justify-center gap-1.5 px-5 py-4 lg:w-36" htmlFor="trip-budget">
+            <span className={labelCls} style={{ color: "var(--text-muted)" }}>
+              <IndianRupee className="mb-0.5 mr-1 inline h-3 w-3" />Budget
+            </span>
+            <span className="flex min-w-0 items-center gap-1">
+              <span aria-hidden="true" className="text-[15px] font-semibold" style={{ color: "var(--text-muted)" }}>₹</span>
               <input
                 id="trip-budget"
                 type="number"
                 value={form.budget}
                 onChange={set("budget")}
-                min={1000}
-                step={1000}
-                required
-                className={`${inputCls} pl-11`}
+                min={1000} step={1000} required
+                aria-label="Budget in rupees"
+                className={`${textInputCls} tcc-focus rounded-md`}
+                style={{ color: "var(--text-primary)" }}
               />
-            </div>
-          </div>
-        </div>
+            </span>
+          </label>
 
-        {dateError && (
-          <p className="mt-3 text-sm font-medium text-red-600" role="alert">
-            {dateError}
-          </p>
-        )}
-
-        <fieldset className="mt-6">
-          <legend className={labelCls}>Travel style</legend>
-          <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Travel style">
-            {[
-              ["saver", "Saver", "Lowest total"],
-              ["balanced", "Balanced", "Value + comfort"],
-              ["comfort", "Comfort", "Better ratings"],
-            ].map(([value, title, description]) => (
-              <label key={value} className={`tcc-focus cursor-pointer rounded-xl border px-4 py-3 transition-all ${form.travel_mode === value ? "border-clay bg-clay/5 shadow-sm" : "border-line bg-cream hover:border-clay/50 dark:border-white/15 dark:bg-white/5"}`}>
-                <input className="sr-only" type="radio" name="travel_mode" value={value} checked={form.travel_mode === value} onChange={set("travel_mode")} />
-                <span className="block text-sm font-bold text-ink dark:text-white">{title}</span>
-                <span className="mt-0.5 block text-xs text-smoke dark:text-white/55">{description}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        {/* CTA row */}
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+          {/* Find My Trip CTA */}
           <button
             id="trip-submit"
             type="submit"
             disabled={loading}
-            className="tcc-focus inline-flex h-[50px] w-full items-center justify-center gap-2 rounded-xl bg-clay px-8 text-base font-semibold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-clay-dark hover:shadow disabled:cursor-wait disabled:opacity-60 sm:w-auto"
+            className="tcc-focus btn-primary m-4 h-auto min-h-[52px] rounded-[12px] px-7 text-[15px] lg:m-0 lg:rounded-none lg:rounded-r-[23px]"
           >
             {loading ? (
               <>
-                <span
-                  className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
-                  aria-hidden="true"
-                />
+                <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" aria-hidden="true" />
                 Searching…
               </>
             ) : (
               <>
-                <Search className="h-[18px] w-[18px]" />
-                Find my trip →
+                Find my trip
+                <ChevronRight className="h-4 w-4" />
               </>
             )}
           </button>
-          <button
-            type="button"
-            onClick={swapOriginDest}
-            className="tcc-focus inline-flex h-[50px] items-center justify-center gap-1.5 rounded-xl border border-line px-5 text-sm font-semibold text-smoke transition-colors hover:bg-sand hover:text-ink xl:hidden dark:border-white/15 dark:text-white/70 dark:hover:bg-white/10"
+          </div>
+
+          {dateError && (
+            <p
+              className="px-5 pb-3 pt-3 text-sm font-semibold"
+              role="alert"
+              style={{ color: "var(--coral)" }}
+            >
+              {dateError}
+            </p>
+          )}
+
+          {/* ── Row 2: travel style & options ── */}
+          <div
+            className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5 px-5 py-3.5"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
           >
-            <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
-            Swap route
-          </button>
-          {onDemo && (
+            <span
+              className="text-[11px] font-bold uppercase tracking-[0.16em]"
+              style={{ color: "var(--text-muted)" }}
+            >
+              Travel style
+            </span>
+
+            {/* Quick style pills */}
+            <div className="flex flex-wrap items-center gap-2">
+              {STYLE_OPTIONS.map(([value, title, desc]) => (
+                <label
+                  key={value}
+                  title={desc}
+                  className="cursor-pointer rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-all"
+                  style={{
+                    background: form.travel_mode === value ? "var(--coral)" : "rgba(255,255,255,0.06)",
+                    border: `1px solid ${form.travel_mode === value ? "var(--coral)" : "rgba(255,255,255,0.13)"}`,
+                    color: form.travel_mode === value ? "#fff" : "var(--text-secondary)",
+                  }}
+                >
+                  <input
+                    className="sr-only"
+                    type="radio"
+                    name="travel_mode"
+                    value={value}
+                    checked={form.travel_mode === value}
+                    onChange={set("travel_mode")}
+                  />
+                  {title}
+                </label>
+              ))}
+            </div>
+
+            <span
+              className="hidden h-5 w-px lg:block"
+              style={{ background: "rgba(255,255,255,0.12)" }}
+              aria-hidden="true"
+            />
+
             <button
               type="button"
-              onClick={onDemo}
-              disabled={loading || demoLoading}
-              title="Load a saved Goa trip — no API key needed"
-              className="tcc-focus inline-flex h-[50px] items-center justify-center gap-1.5 rounded-xl border border-dashed border-clay/50 px-5 text-sm font-semibold text-clay transition-colors hover:bg-clay/10 disabled:opacity-50"
+              onClick={() => setShowAdvanced((v) => !v)}
+              aria-expanded={showAdvanced}
+              className="tcc-focus text-[12px] font-semibold transition-colors"
+              style={{ color: showAdvanced ? "var(--coral)" : "var(--text-muted)" }}
             >
-              <PlayCircle className="h-4 w-4" aria-hidden="true" />
-              {demoLoading ? "Loading demo…" : "Try demo trip (no key needed)"}
+              {showAdvanced ? "▲ Hide options" : "▼ More options"}
             </button>
-          )}
-        </div>
 
-        {/* Fresh-results toggle */}
-        <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-smoke dark:text-white/60">
-          <input
-            type="checkbox"
-            checked={form.force_refresh}
-            onChange={set("force_refresh")}
-            className="h-4 w-4 rounded accent-clay"
-          />
-          Always fetch fresh results (slower, uses more live searches)
-        </label>
-      </form>
+            {onDemo && (
+              <button
+                type="button"
+                onClick={onDemo}
+                disabled={loading || demoLoading}
+                title="Load a saved Goa trip — no API key needed"
+                className="tcc-focus ml-auto inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-semibold transition-all disabled:opacity-50"
+                style={{
+                  border: "1px dashed rgba(255,114,94,0.55)",
+                  color: "var(--coral)",
+                  background: "transparent",
+                }}
+              >
+                <PlayCircle className="h-3.5 w-3.5" />
+                {demoLoading ? "Loading…" : "Try demo"}
+              </button>
+            )}
+          </div>
+
+          {showAdvanced && (
+            <div
+              className="animate-fade-rise flex flex-wrap items-center gap-4 px-5 py-3.5"
+              style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
+            >
+              <label className="flex cursor-pointer items-center gap-2 text-[13px]" style={{ color: "var(--text-secondary)" }}>
+                <input
+                  type="checkbox"
+                  checked={form.force_refresh}
+                  onChange={set("force_refresh")}
+                  className="h-4 w-4 rounded"
+                  style={{ accentColor: "var(--coral)" }}
+                />
+                Always fetch fresh results (slower, uses more live searches)
+              </label>
+              <button
+                type="button"
+                onClick={swapOriginDest}
+                className="tcc-focus btn-secondary h-9 gap-1.5 rounded-xl px-4 text-[13px]"
+              >
+                <ArrowLeftRight className="h-3.5 w-3.5" />
+                Swap route
+              </button>
+            </div>
+          )}
+        </form>
+      </div>
     </section>
   );
 }

@@ -1,9 +1,7 @@
 import { useState } from "react";
 import {
-  AlertTriangle,
   ArrowRight,
   Check,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Circle,
@@ -12,34 +10,31 @@ import {
   Plane,
   Sparkles,
   Star,
+  CreditCard,
+  FileText,
 } from "lucide-react";
 import CategoryPanel from "./CategoryPanel.jsx";
 import SafeImage from "./SafeImage.jsx";
-import { buildMapUrl, inr } from "../lib/format.js";
+import { buildMapUrl, formatStops, inr, placeMapUrl } from "../lib/format.js";
 import { buildReasons } from "../lib/reasons.js";
+import { DESTINATIONS } from "../lib/destinations.js";
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-/** "10 Oct" from "2026-10-10" (display-only; falls back to raw on bad input). */
 function fmtDay(iso) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
   if (!m) return String(iso || "");
   return `${Number(m[3])} ${MONTHS[Number(m[2]) - 1] || ""}`;
 }
 
-/** "10 Oct – 13 Oct 2026" style range (display-only). */
 function fmtRange(d1, d2) {
   const y = String(d2 || "").slice(0, 4);
   return `${fmtDay(d1)} – ${fmtDay(d2)}${y ? ` ${y}` : ""}`;
 }
 
-/** Best-match trip result: summary header, total + budget share, "why" panel,
- *  flight/hotel cards, hotel picker. Same data flow and callbacks as before —
- *  only the visual language is new.
- *  Props: best_pick, fits_budget, remaining_budget, budget, num_nights,
- *  live_search, insight, destination, departure_date, return_date,
- *  travelers, itinerary, hotel_options, selected_hotel_name (echo, null =
- *  auto), onSelectHotel(name), recomputing. */
+/** "Your Trip" card — left panel of 3-column dashboard.
+ *  Destination image, meta chips, flight+hotel summary, hotel picker.
+ *  Props: best_pick, fits_budget, remaining_budget, budget, num_nights, live_search, insight, destination, departure_date, return_date, travelers, itinerary, hotel_options, selected_hotel_name, onSelectHotel, recomputing, weather, exchange_rate, know */
 export default function PickCard({
   best_pick: best,
   fits_budget,
@@ -57,111 +52,200 @@ export default function PickCard({
   selected_hotel_name,
   onSelectHotel,
   recomputing,
+  weather,
+  exchange_rate,
+  know,
 }) {
-  const over = !fits_budget;
   const [showOptions, setShowOptions] = useState(false);
-  const hotelMapUrl = buildMapUrl(best.hotel.lat, best.hotel.lng, best.hotel.name);
+  const hotelMapUrl = placeMapUrl(best.hotel);
+  const destinationMapUrl = buildMapUrl(null, null, destination);
   const reasons = buildReasons({ best_pick: best, fits_budget, remaining_budget, budget, itinerary });
   const nights = Number(num_nights) || 0;
   const people = Number(travelers) || 0;
   const options = Array.isArray(hotel_options) ? hotel_options : [];
-  // Server-confirmed effective hotel: explicit echo, else the auto best pick.
   const effectiveHotel = selected_hotel_name ?? best.hotel.name;
   const isAuto = !selected_hotel_name;
-  const pct = budget > 0 ? Math.min(100, Math.round((best.total_cost / budget) * 100)) : 0;
+
+  // Currency from exchange_rate or default
+  const currencyCode = exchange_rate?.currency || "INR";
+  // Visa/entry guidance comes from the real `know` list — never a default.
+  const visaKnow = Array.isArray(know)
+    ? know.find((k) => /visa|entry|id requirement/i.test(String(k?.title || "")))
+    : null;
+  const visaText = visaKnow
+    ? /visa/i.test(visaKnow.title)
+      ? "Visa rules"
+      : "Entry rules"
+    : Array.isArray(know) && know.length
+      ? "See good to know"
+      : null;
+
+  // Prefer a bundled cinematic destination photo; fall back to the hotel shot.
+  const destMatch = DESTINATIONS.find(
+    (d) => destination && String(destination).toLowerCase().includes(d.name.toLowerCase())
+  );
+  const destImg = destMatch?.img || best.hotel.image || null;
+  const destAlt = destMatch?.alt || `${destination} destination`;
 
   return (
     <section
       id="results"
       aria-label="Your trip result"
-      className="animate-fade-rise scroll-mt-24 overflow-hidden rounded-[20px] border border-line bg-white shadow-card dark:border-white/10 dark:bg-ink"
+      className="animate-fade-rise glass-panel flex scroll-mt-24 flex-col overflow-hidden rounded-[24px]"
+      style={{
+        background: "rgba(9, 38, 48, 0.88)",
+        border: "1px solid rgba(255, 255, 255, 0.12)",
+      }}
     >
-      {/* ── Trip summary header ── */}
-      <div className="bg-ink px-6 py-6 text-white sm:px-8 dark:bg-white/5">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/55">Your trip</p>
-        <h2 className="font-display mt-1.5 text-2xl font-extrabold tracking-tight sm:text-[28px]">
-          {destination || "Your trip"}
+      {/* ── Card Header ── */}
+      <div className="flex items-center justify-between gap-2 px-5 pt-5 pb-3">
+        <h2 className="font-display min-w-0 truncate text-lg font-bold tracking-tight text-white">
+          Your Trip to {destination || "Destination"}
         </h2>
-        <p className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/70">
-          <span>{fmtRange(departure_date, return_date)}</span>
-          {people ? <span>{people} traveler{people === 1 ? "" : "s"}</span> : null}
-          <span>Budget {inr(budget)}</span>
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span
-            className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${
-              over ? "bg-clay text-white" : "bg-pine text-white"
-            }`}
-          >
-            {over ? "Over budget" : "Within budget"}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/85">
-            <Circle className={`h-2 w-2 ${live_search ? "fill-emerald-300 text-emerald-300" : "text-white/50"}`} />
-            {live_search ? "Live prices" : "Saved results"}
-          </span>
-        </div>
       </div>
 
-      <div className="p-6 sm:p-8">
-        {/* ── Best match total ── */}
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-smoke dark:text-white/55">
-              Best match · Flight + Hotel
-            </p>
-            <p className="font-display mt-1 text-4xl font-extrabold tracking-tight text-ink sm:text-[44px] dark:text-white">
-              {inr(best.total_cost)}{" "}
-              <span className="text-base font-semibold text-smoke dark:text-white/60">total</span>
-            </p>
-          </div>
-          <div className="text-right">
-            <p className={`font-display text-2xl font-extrabold ${over ? "text-clay" : "text-pine"}`}>
-              {pct}%
-            </p>
-            <p className="text-xs text-smoke dark:text-white/55">of budget</p>
-          </div>
-        </div>
-        <div
-          className="mt-3 h-2.5 overflow-hidden rounded-full bg-sand dark:bg-white/10"
-          role="img"
-          aria-label={`Trip total is ${pct} percent of budget`}
-        >
-          <div
-            className={`h-full rounded-full ${over ? "bg-clay" : "bg-pine"}`}
-            style={{ width: `${pct}%` }}
+      {/* ── Destination image ── */}
+      <div className="relative mx-4 h-44 overflow-hidden rounded-[16px]">
+        {destImg ? (
+          <SafeImage
+            src={destImg}
+            alt={destAlt}
+            className="h-full w-full object-cover"
+            fallback={<CategoryPanel category="hotel" className="h-full w-full" />}
           />
-        </div>
-        {over ? (
-          <p className="mt-3 flex items-start gap-2 text-[15px] text-ink/80 dark:text-white/75">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-clay" />
-            <span>
-              This exceeds your budget by <strong>{inr(best.over_by)}</strong> — try raising the
-              budget, fewer travelers, or different dates.
-            </span>
-          </p>
         ) : (
-          <p className="mt-3 flex items-center gap-2 text-[15px] text-ink/80 dark:text-white/75">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-pine" />
-            <span>
-              Budget remaining: <strong>{inr(remaining_budget)}</strong>
-            </span>
-          </p>
+          <CategoryPanel category="hotel" className="h-full w-full" />
         )}
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(to top, rgba(6,27,36,0.85) 0%, rgba(6,27,36,0.2) 60%, transparent 100%)" }}
+        />
 
-        {/* ── Why this trip ── */}
-        {(!!insight || reasons.length > 0) && (
-          <div className="mb-6 mt-6 rounded-2xl bg-sand px-5 py-4 dark:bg-white/5">
-            <h3 className="text-sm font-bold text-ink dark:text-white">Why we picked this trip</h3>
-            {!!insight && (
-              <p className="mb-2 mt-1.5 text-[15px] font-medium text-ink/85 dark:text-white/80">
-                <Sparkles className="mr-1.5 inline h-4 w-4 text-clay" />
-                {insight}
-              </p>
+        {/* Floating pill badges on image — right-padded so they can never
+            slide under the Live/Cached badge; truncated instead of overlapping. */}
+        <div className="absolute left-3 top-3 right-16 flex flex-wrap gap-1.5">
+          <span
+            className="inline-flex max-w-full items-center gap-1 truncate rounded-full px-2.5 py-1 text-[11px] font-semibold"
+            style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)", color: "#fff" }}
+          >
+            📅 {fmtRange(departure_date, return_date)}
+          </span>
+          {people > 0 && (
+            <span
+              className="inline-flex max-w-full items-center gap-1 truncate rounded-full px-2.5 py-1 text-[11px] font-semibold"
+              style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)", color: "#fff" }}
+            >
+              👤 {people} Traveler{people !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+
+        {/* Live badge */}
+        <span
+          className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+          style={{ background: "rgba(0,0,0,0.65)", color: "#fff" }}
+        >
+          <Circle className={`h-1.5 w-1.5 ${live_search ? "fill-emerald-400 text-emerald-400" : "fill-white/50 text-white/50"}`} />
+          {live_search ? "Live" : "Cached"}
+        </span>
+      </div>
+
+      {/* ── Trip Content — natural height; nothing scrolls or clips. */}
+      <div className="flex flex-col p-5 sm:p-6">
+        {/* Destination name and star rating */}
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-display min-w-0 truncate text-2xl font-extrabold tracking-tight text-white">
+            {destinationMapUrl ? (
+              <a
+                href={destinationMapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`${destination} — view on map`}
+                aria-label={`View ${destination} on map`}
+                className="tcc-focus transition-colors hover:text-[var(--coral)] hover:underline"
+              >
+                {destination || "Trip Destination"}
+              </a>
+            ) : (
+              destination || "Trip Destination"
             )}
-            <ul className="space-y-1">
-              {reasons.map((r) => (
-                <li key={r.key} className="flex items-start gap-2 text-sm text-ink/80 dark:text-white/75">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-pine" />
+          </h3>
+          {best.hotel.rating && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-bold"
+              style={{ background: "rgba(247, 201, 72, 0.15)", color: "var(--gold)" }}
+            >
+              ★ {best.hotel.rating}
+            </span>
+          )}
+        </div>
+
+        {/* Short description */}
+        <p className="mt-2.5 text-[14px] leading-relaxed text-slate-300">
+          {insight || "A curated journey tailored to your preferences, combining prime stays, top sights, and local culture."}
+        </p>
+
+        {/* 3 Quick Stat Chips Row */}
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {/* Weather */}
+          <div
+            className="flex flex-col items-center justify-center rounded-xl p-2.5 text-center"
+            style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.08)" }}
+          >
+            <span className="text-base" role="img" aria-label="Weather">☀</span>
+            <span className="font-display text-[12px] font-bold text-white mt-1">
+              {weather?.temperature
+                ? `${weather.temperature}°${/f/i.test(String(weather.unit || "")) ? "F" : "C"}`
+                : "—"}
+            </span>
+            <span className="text-[10px] text-slate-400 truncate max-w-full">
+              {weather?.condition || "Weather"}
+            </span>
+          </div>
+
+          {/* Currency */}
+          <div
+            className="flex flex-col items-center justify-center rounded-xl p-2.5 text-center"
+            style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.08)" }}
+          >
+            <CreditCard className="h-4 w-4 text-[var(--teal)]" />
+            <span className="font-display text-[12px] font-bold text-white mt-1">
+              {currencyCode}
+            </span>
+            <span className="text-[10px] text-slate-400">
+              Currency
+            </span>
+          </div>
+
+          {/* Visa */}
+          <div
+            className="flex flex-col items-center justify-center rounded-xl p-2.5 text-center"
+            style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.08)" }}
+          >
+            <FileText className="h-4 w-4 text-[var(--coral)]" />
+            <span className="font-display text-[12px] font-bold text-white mt-1 truncate max-w-full">
+              Visa
+            </span>
+            <span className="text-[10px] text-slate-400 truncate max-w-full">
+              {visaText ? (visaText.length > 12 ? visaText.slice(0, 11) + "…" : visaText) : "—"}
+            </span>
+          </div>
+        </div>
+
+        {/* Why this trip fits — reasons only (insight lives above) */}
+        {reasons.length > 0 && (
+          <div
+            className="mt-4 rounded-[14px] p-3"
+            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+          >
+            <p className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+              <Sparkles className="h-3.5 w-3.5" style={{ color: "var(--coral)" }} />
+              Why this trip fits
+            </p>
+            <ul className="mt-2 space-y-1">
+              {reasons.slice(0, 3).map((r) => (
+                <li key={r.key} className="flex items-start gap-1.5 text-[12px]" style={{ color: "var(--text-secondary)" }}>
+                  <Check className="mt-0.5 h-3 w-3 shrink-0" style={{ color: "var(--success)" }} />
                   {r.text}
                 </li>
               ))}
@@ -169,115 +253,120 @@ export default function PickCard({
           </div>
         )}
 
-        {/* ── Flight + hotel cards ── */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="overflow-hidden rounded-2xl border border-line dark:border-white/10">
-            {best.flight.image ? (
-              <div className="flex h-24 items-center justify-center bg-sand px-6 dark:bg-white/5">
-                <SafeImage
-                  src={best.flight.image}
-                  alt={`${best.flight.airline} logo`}
-                  className="max-h-12 max-w-[180px] object-contain"
-                />
-              </div>
-            ) : <CategoryPanel category="flight" className="h-24 w-full" />}
-            <div className="p-5">
-              <p className="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-smoke dark:text-white/55">
-                Flight
-              </p>
-              <p className="mb-1 text-[15px]">
-                <Plane className="mr-1.5 inline h-4 w-4 text-smoke" />
-                <strong className="text-ink dark:text-white">{best.flight.airline}</strong>
-              </p>
-              <p className="mb-1 text-sm text-smoke dark:text-white/60">
-                {best.flight.duration} · {best.flight.stops} stop(s)
-              </p>
-              <p className="mb-3 text-sm text-smoke dark:text-white/60">
-                {fmtRange(departure_date, return_date)}
-                {people ? ` · ${people} traveler${people === 1 ? "" : "s"}` : ""}
-              </p>
-              <div className="flex flex-wrap items-baseline gap-x-2">
-                <p className="font-display text-xl font-extrabold text-ink dark:text-white">
-                  {inr(best.flight.price)}
-                </p>
-                {people > 1 && (
-                  <span className="text-xs font-medium text-smoke dark:text-white/55">
-                    {inr(Math.round(best.flight.price / people))} per person
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="overflow-hidden rounded-2xl border border-line dark:border-white/10">
-            {best.hotel.image ? (
-              <SafeImage
-                src={best.hotel.image}
-                alt={`${best.hotel.name} hotel`}
-                className="h-24 w-full object-cover"
-                fallback={<CategoryPanel category="hotel" className="h-24 w-full" />}
-              />
-            ) : <CategoryPanel category="hotel" className="h-24 w-full" />}
-            <div className="p-5">
-              <p className="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-smoke dark:text-white/55">
-                Hotel · {nights} night{nights === 1 ? "" : "s"}
-              </p>
-              <p className="mb-1 text-[15px]">
-                <Hotel className="mr-1.5 inline h-4 w-4 text-smoke" />
-                {hotelMapUrl ? (
-                  <a
-                    href={hotelMapUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="View hotel on map"
-                    aria-label={`View ${best.hotel.name} on map`}
-                    className="tcc-focus font-bold text-ink underline-offset-2 hover:text-clay hover:underline dark:text-white"
-                  >
-                    {best.hotel.name}
-                    <MapPinned className="ml-1 inline h-3.5 w-3.5 text-smoke" />
-                  </a>
-                ) : (
-                  <strong className="text-ink dark:text-white">{best.hotel.name}</strong>
-                )}{" "}
-                {best.hotel.rating ? (
-                  <span className="text-sm text-smoke dark:text-white/60">
-                    <Star className="inline h-3.5 w-3.5 fill-amber-400 text-amber-400" /> {best.hotel.rating}
-                  </span>
-                ) : null}
-              </p>
-              <p className="mb-2 text-sm text-smoke dark:text-white/60">
-                {inr(best.hotel.price_per_night)}/night × {nights} night{nights === 1 ? "" : "s"}
-              </p>
-              <p className="font-display text-xl font-extrabold text-ink dark:text-white">
-                {inr(best.hotel.total_price)}
-              </p>
+        {/* Divider */}
+        <div className="my-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }} />
 
-              {options.length > 0 && (
-                <div className="mt-3 border-t border-line pt-3 dark:border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => setShowOptions((s) => !s)}
-                    aria-expanded={showOptions}
-                    className="tcc-focus inline-flex items-center gap-1 text-sm font-semibold text-clay hover:text-clay-dark"
-                  >
-                    {showOptions ? (
-                      <>See fewer options <ChevronUp className="h-4 w-4" /></>
-                    ) : (
-                      <>See more options ({options.length}) <ChevronDown className="h-4 w-4" /></>
-                    )}
-                  </button>
-                </div>
+        {/* ── Flight card ── */}
+        <div
+          className="mb-3 overflow-hidden rounded-[14px]"
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          {best.flight.image ? (
+            <div className="flex h-14 items-center justify-center px-4" style={{ background: "rgba(255,255,255,0.03)" }}>
+              <SafeImage src={best.flight.image} alt={`${best.flight.airline} logo`} className="max-h-8 max-w-[140px] object-contain" />
+            </div>
+          ) : (
+            <div className="flex h-10 items-center gap-2 px-4 pt-3">
+              <Plane className="h-4 w-4 shrink-0" style={{ color: "var(--coral)" }} />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Flight</span>
+            </div>
+          )}
+          <div className="px-4 pb-3 pt-2">
+            <p className="text-[13px] font-bold" style={{ color: "var(--text-primary)" }}>
+              {best.flight.airline}
+            </p>
+            <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+              {best.flight.duration}{best.flight.duration ? " · " : ""}{formatStops(best.flight.stops)}
+            </p>
+            <div className="mt-1.5 flex items-baseline justify-between">
+              <p className="font-display text-lg font-extrabold" style={{ color: "var(--text-primary)" }}>
+                {inr(best.flight.price)}
+              </p>
+              {people > 1 && (
+                <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                  {inr(Math.round(best.flight.price / people))}/person
+                </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* ── More stays: full-width panel so the two cards stay balanced ── */}
+        {/* ── Hotel card ── */}
+        <div
+          className="overflow-hidden rounded-[14px]"
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          {best.hotel.image ? (
+            <SafeImage
+              src={best.hotel.image}
+              alt={`${best.hotel.name}`}
+              className="h-16 w-full object-cover"
+              fallback={<CategoryPanel category="hotel" className="h-16 w-full" />}
+            />
+          ) : (
+            <div className="flex h-10 items-center gap-2 px-4 pt-3">
+              <Hotel className="h-4 w-4 shrink-0" style={{ color: "var(--teal)" }} />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Hotel</span>
+            </div>
+          )}
+          <div className="px-4 pb-3 pt-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                {hotelMapUrl ? (
+                  <a href={hotelMapUrl} target="_blank" rel="noopener noreferrer"
+                    className="tcc-focus block truncate text-[13px] font-bold hover:underline"
+                    style={{ color: "var(--text-primary)" }}>
+                    {best.hotel.name}
+                    <MapPinned className="ml-1 inline h-3 w-3" style={{ color: "var(--text-muted)" }} />
+                  </a>
+                ) : (
+                  <p className="truncate text-[13px] font-bold" style={{ color: "var(--text-primary)" }}>
+                    {best.hotel.name}
+                  </p>
+                )}
+                <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+                  {nights} night{nights !== 1 ? "s" : ""} · {inr(best.hotel.price_per_night)}/night
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="font-display text-lg font-extrabold" style={{ color: "var(--text-primary)" }}>
+                  {inr(best.hotel.total_price)}
+                </p>
+                {best.hotel.rating && (
+                  <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                    <Star className="inline h-3 w-3 fill-amber-400 text-amber-400 mr-0.5" />{best.hotel.rating}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Hotel options toggle */}
+            {options.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowOptions((s) => !s)}
+                aria-expanded={showOptions}
+                className="tcc-focus mt-2 inline-flex items-center gap-1 text-[12px] font-semibold"
+                style={{ color: "var(--coral)" }}
+              >
+                {showOptions ? (
+                  <>Fewer options <ChevronUp className="h-3.5 w-3.5" /></>
+                ) : (
+                  <>More options ({options.length}) <ChevronDown className="h-3.5 w-3.5" /></>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ── Hotel picker ── */}
         {showOptions && options.length > 0 && (
-          <div className="animate-fade-rise rounded-2xl bg-cream p-4 sm:p-5 dark:bg-white/5">
-            <p className="mb-3 text-sm font-semibold text-ink dark:text-white">
-              More stays for these dates — picking one rebuilds the trip around it.
+          <div className="mt-3 animate-fade-rise rounded-[14px] p-3"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <p className="mb-2 text-[12px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+              More stays — picking one rebuilds the trip.
             </p>
-            <ul className="grid gap-2 sm:grid-cols-2">
+            <ul className="space-y-1.5">
               {options.map((h) => {
                 const selected = h.name === effectiveHotel;
                 return (
@@ -287,42 +376,55 @@ export default function PickCard({
                       onClick={() => onSelectHotel?.(h.name)}
                       disabled={recomputing || selected}
                       aria-pressed={selected}
-                      className={`tcc-focus flex w-full items-center justify-between gap-2 rounded-xl border bg-white px-3.5 py-2.5 text-left text-sm transition-colors dark:bg-ink ${
-                        selected
-                          ? "border-clay shadow-sm dark:border-clay"
-                          : "border-line hover:border-ink/25 disabled:opacity-60 dark:border-white/10 dark:hover:border-white/25"
-                      } ${recomputing && !selected ? "cursor-wait" : ""}`}
+                      className="tcc-focus flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-[12px] transition-all"
+                      style={{
+                        border: selected ? "1px solid var(--coral)" : "1px solid rgba(255,255,255,0.08)",
+                        background: selected ? "rgba(255,114,94,0.08)" : "rgba(255,255,255,0.03)",
+                        color: "var(--text-primary)",
+                      }}
                     >
                       <span className="min-w-0">
-                        <span className="block truncate font-semibold text-ink dark:text-white">{h.name}</span>
-                        <span className="block text-xs text-smoke dark:text-white/55">
-                          {h.rating ? `${h.rating}★ · ` : ""}
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <span className="truncate font-semibold">{h.name}</span>
+                          {h.tier && (
+                            <span
+                              className="shrink-0 rounded-full px-1.5 py-px text-[9px] font-bold"
+                              title="Relative price within this destination's fetched hotels"
+                              style={{
+                                background:
+                                  h.tier === "Higher-end"
+                                    ? "rgba(247, 201, 72, 0.14)"
+                                    : h.tier === "Budget"
+                                      ? "rgba(67, 209, 124, 0.14)"
+                                      : "rgba(32, 199, 201, 0.14)",
+                                color:
+                                  h.tier === "Higher-end"
+                                    ? "var(--gold)"
+                                    : h.tier === "Budget"
+                                      ? "var(--success)"
+                                      : "var(--teal)",
+                              }}
+                            >
+                              {h.tier}
+                            </span>
+                          )}
+                        </span>
+                        <span
+                          className="block truncate text-[11px]"
+                          style={{ color: "var(--text-muted)" }}
+                        >
+                          {h.rating ? `★ ${h.rating} · ` : ""}
                           {inr(h.price_per_night)}/night
                         </span>
                       </span>
                       <span className="flex shrink-0 items-center gap-1.5">
-                        {h.tier && (
-                          <span
-                            className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              h.tier === "Budget"
-                                ? "bg-pine/10 text-pine dark:bg-pine/20 dark:text-emerald-300"
-                                : h.tier === "Higher-end"
-                                  ? "bg-clay/10 text-clay-dark dark:bg-clay/15 dark:text-clay"
-                                  : "bg-sand text-ink dark:bg-white/10 dark:text-white/80"
-                            }`}
-                            title={`Relative price within this destination's fetched hotels`}
-                          >
-                            {h.tier}
-                          </span>
-                        )}
                         {selected && (
-                          <span className="rounded-full bg-clay px-2 py-0.5 text-[10px] font-bold text-white">
+                          <span className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                            style={{ background: "var(--coral)", color: "#fff" }}>
                             {isAuto ? "Auto pick" : "Selected"}
                           </span>
                         )}
-                        <strong className="whitespace-nowrap text-ink dark:text-white">
-                          {inr(h.total_price)}
-                        </strong>
+                        <strong className="whitespace-nowrap">{inr(h.total_price)}</strong>
                       </span>
                     </button>
                   </li>
@@ -330,20 +432,22 @@ export default function PickCard({
               })}
             </ul>
             {recomputing && (
-              <p className="mt-2.5 text-xs text-smoke dark:text-white/55" role="status">
-                Updating trip…
-              </p>
+              <p className="mt-2 text-[11px]" role="status" style={{ color: "var(--text-muted)" }}>Updating trip…</p>
             )}
           </div>
         )}
 
-        <a
-          href="#itinerary"
-          className="tcc-focus mt-6 inline-flex h-[48px] items-center gap-2 rounded-xl bg-clay px-6 text-[15px] font-semibold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-clay-dark hover:shadow"
-        >
-          View trip
-          <ArrowRight className="h-4 w-4" />
-        </a>
+        {/* ── Itinerary jump link — secondary on purpose: the budget card
+            already owns the primary "View Full Plan" CTA in this viewport. */}
+        <div className="mt-auto pt-5">
+          <a
+            href="#itinerary"
+            className="tcc-focus btn-secondary flex h-[44px] w-full items-center justify-center gap-2 text-[14px]"
+          >
+            View itinerary
+            <ArrowRight className="h-4 w-4" />
+          </a>
+        </div>
       </div>
     </section>
   );

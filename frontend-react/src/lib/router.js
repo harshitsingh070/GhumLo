@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 /** Tiny hash router — no dependencies, works on both the Vite dev server
  *  (5173) and the FastAPI static hosting (8000), including refresh.
  *
- *  Routes use "#/…" hashes: "#/" home, "#/destinations".
+ *  Routes use "#/…" hashes: "#/" home, "#/destinations", "#/how".
  *  Plain "#anchor" hashes are in-page scroll targets and are ignored by
  *  the router, so existing "#plan" / "#itinerary" links keep working.
  */
@@ -11,11 +11,13 @@ import { useEffect, useState } from "react";
 const PATHS = {
   home: "/",
   destinations: "/destinations",
+  how: "/how",
 };
 
 export function parseRoute() {
   const h = typeof window !== "undefined" ? window.location.hash || "" : "";
   if (h === "#/destinations" || h.startsWith("#/destinations")) return "destinations";
+  if (h === "#/how" || h.startsWith("#/how")) return "how";
   return "home";
 }
 
@@ -44,7 +46,7 @@ export function go(path, scrollId) {
   void target;
 }
 
-/** Current route: "home" | "destinations". Smooth-scrolls to top on
+/** Current route: "home" | "destinations" | "how". Smooth-scrolls to top on
  *  route changes; ignores plain in-page anchors. */
 export function useHashRoute() {
   const [route, setRoute] = useState(parseRoute);

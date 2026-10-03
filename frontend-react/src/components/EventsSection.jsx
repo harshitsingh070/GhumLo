@@ -1,4 +1,5 @@
 import { CalendarDays, ExternalLink } from "lucide-react";
+import { buildMapUrl } from "../lib/format.js";
 
 /** "Local events" list (google_events via backend) — placed near the
  *  itinerary. Honest framing: events Google listed with dates inside the
@@ -10,23 +11,49 @@ export default function EventsSection({ events, destination }) {
 
   return (
     <section
+      id="events"
       aria-label="Local events"
-      className="rounded-[18px] border border-line bg-white p-6 shadow-card sm:p-7 dark:border-white/10 dark:bg-ink"
+      className="glass-panel scroll-mt-28 rounded-[24px] p-6 sm:p-7"
     >
-      <h2 className="font-display text-xl font-extrabold tracking-tight text-ink dark:text-white">
-        Local events in {destination}
-      </h2>
-      <p className="mb-4 mt-1 text-sm text-smoke dark:text-white/55">
-        As listed by Google Events with dates inside your trip window — a sample, not a complete
-        calendar.
-      </p>
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {events.map((e, i) => (
+      <div className="mb-4 flex items-start gap-3">
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px]"
+          style={{ background: "var(--coral-soft)", color: "var(--coral)" }}
+          aria-hidden="true"
+        >
+          <CalendarDays className="h-[18px] w-[18px]" />
+        </span>
+        <div className="min-w-0">
+          <h2
+            className="font-display text-[21px] font-extrabold tracking-tight"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Local events in {destination}
+          </h2>
+          <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-muted)" }}>
+            As listed by Google Events with dates inside your trip window — a sample, not a
+            complete calendar.
+          </p>
+        </div>
+      </div>
+
+      <ul className="grid gap-2.5 sm:grid-cols-2">
+        {events.map((e, i) => {
+          // Venues carry no coords/address — link the venue name to a
+          // "Venue, Destination" map search.
+          const venueMapUrl = e.venue
+            ? buildMapUrl(null, null, [e.venue, destination].filter(Boolean).join(", "))
+            : null;
+          return (
           <li
             key={`${e.link || e.title}-${i}`}
-            className="flex gap-3 rounded-xl border border-line bg-cream p-4 dark:border-white/10 dark:bg-white/5"
+            className="glass-tile flex gap-3 p-3.5"
           >
-            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-clay/10 text-clay">
+            <span
+              className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px]"
+              style={{ background: "rgba(247,201,72,0.15)", color: "var(--gold)" }}
+              aria-hidden="true"
+            >
               <CalendarDays className="h-4 w-4" />
             </span>
             <div className="min-w-0">
@@ -35,28 +62,53 @@ export default function EventsSection({ events, destination }) {
                   href={e.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="tcc-focus font-semibold text-ink underline-offset-2 hover:text-clay hover:underline dark:text-white"
+                  className="tcc-focus font-semibold underline-offset-2 hover:underline"
+                  style={{ color: "var(--text-primary)" }}
                 >
                   {e.title}
-                  <ExternalLink className="ml-1 inline h-3.5 w-3.5 text-smoke" />
+                  <ExternalLink
+                    className="ml-1 inline h-3.5 w-3.5"
+                    style={{ color: "var(--text-muted)" }}
+                  />
                 </a>
               ) : (
-                <p className="font-semibold text-ink dark:text-white">{e.title}</p>
+                <p className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {e.title}
+                </p>
               )}
               {(e.date || e.venue) && (
-                <p className="mt-0.5 text-xs font-medium text-clay">
+                <p className="mt-0.5 text-xs font-medium" style={{ color: "var(--coral)" }}>
                   {e.date}
-                  {e.venue ? ` · ${e.venue}` : ""}
+                  {e.venue && (
+                    <>
+                      {" · "}
+                      {venueMapUrl ? (
+                        <a
+                          href={venueMapUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`${e.venue} — view on map`}
+                          aria-label={`View venue ${e.venue} on map`}
+                          className="tcc-focus underline-offset-2 hover:underline"
+                        >
+                          {e.venue}
+                        </a>
+                      ) : (
+                        e.venue
+                      )}
+                    </>
+                  )}
                 </p>
               )}
               {e.description && (
-                <p className="mt-1 line-clamp-2 text-sm text-smoke dark:text-white/60">
+                <p className="mt-1 line-clamp-2 text-[13px]" style={{ color: "var(--text-secondary)" }}>
                   {e.description}
                 </p>
               )}
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </section>
   );

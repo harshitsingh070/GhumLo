@@ -18,10 +18,9 @@ export default {
         sand: "#E7F1F1",
         ink: "#174A5B",
         smoke: "#5C7880",
-        clay: {
-          DEFAULT: "#FF7F66",
-          dark: "#E96B55",
-        },
+        // Canonical coral lives in CSS vars (--coral).
+        // The old `clay` palette was dead (no text-clay/bg-clay/etc.
+        // usage in src) and has been removed to keep one coral token.
         pine: "#0B7285",
         leaf: "#2A9D8F",
         line: "#D7E5E6",
