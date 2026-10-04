@@ -1,0 +1,6 @@
+﻿target/
+.cache/
+.env
+*.class
+.idea/
+.vscode/

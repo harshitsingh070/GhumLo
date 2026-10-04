@@ -73,6 +73,15 @@ export default function GhumiGhumiAI({ plan }) {
           dates: `${plan.departure_date} to ${plan.return_date}`,
           itinerary: plan.itinerary,
           weather: plan.weather || null,
+          // Grounded price data so "cheapest flight / budget" questions are
+          // answered from this trip's real numbers, never invented.
+          trip_prices: {
+            budget: plan.budget,
+            remaining_budget: plan.remaining_budget,
+            fits_budget: plan.fits_budget,
+            best_pick: plan.best_pick,
+            other_options: plan.other_options,
+          },
           request: trimmed,
         }),
       });
