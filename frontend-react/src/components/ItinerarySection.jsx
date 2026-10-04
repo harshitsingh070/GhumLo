@@ -1,15 +1,6 @@
 import { useEffect, useState } from "react";
-import {
-  Plus,
-  Plane,
-  Hotel,
-  Maximize2,
-} from "lucide-react";
+import { Plus, Maximize2 } from "lucide-react";
 import ItineraryMap from "./ItineraryMap.jsx";
-import SafeImage from "./SafeImage.jsx";
-import { placeMapUrl } from "../lib/format.js";
-import { CATEGORY_META } from "../lib/categories.js";
-import { photoFor } from "../lib/destinations.js";
 
 /** Exact-match placeholder names providers sometimes return — never shown raw. */
 const JUNK_PLACE_NAMES = new Set(["somewhere", "unknown", "unnamed", "unnamed stop", "tbd", "test"]);
@@ -51,10 +42,37 @@ const fmtDate = (iso) => {
   return `${weekdays[d.getDay()]}, ${Number(m[3])} ${MONTHS[Number(m[2]) - 1]}`;
 };
 
+/** Compact pill date: "Sat, 10" for the day chips. */
+const shortDay = (iso) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
+  if (!m) return "";
+  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const d = new Date(`${iso}T12:00:00`);
+  return `${weekdays[d.getDay()]}, ${Number(m[3])}`;
+};
+
+/** Sequence badge palette — cyan → green → yellow → purple → red. */
+const BADGE_COLORS = ["#22D3EE", "#22C55E", "#EAB308", "#A855F7", "#F87171", "#2DD4BF", "#FB9231"];
+
+/** Right-side slot tags for stops. The API sends no per-stop times, so the
+ *  slot is derived from category + visit order: first restaurant → Lunch,
+ *  second → Evening tea, later ones → Dinner; the day's final attraction
+ *  → Sunset view, other attractions → Sightseeing. */
+function stopSlot(place, idx, total, restaurantSeen) {
+  const isRestaurant = String(place?.category || "").toLowerCase().startsWith("restaurant");
+  if (isRestaurant) {
+    if (restaurantSeen === 0) return { label: "Lunch", color: "#FBBF24", emoji: "🍽" };
+    if (restaurantSeen === 1) return { label: "Evening tea", color: "#94A3B8", emoji: "☕" };
+    return { label: "Dinner", color: "#FB9231", emoji: "🍽" };
+  }
+  if (idx === total - 1) return { label: "Sunset view", color: "#FF7A59", emoji: "🌅" };
+  return { label: "Sightseeing", color: "#38BDF8", emoji: "📍" };
+}
+
 /** Unified Itinerary + Map Module — Center column of 3-column dashboard.
  *  Inside:
- *    - Day picker chips (Day 1, Day 2, Day 3...) with dates & + Add activity
- *    - Day's activities (Arrival, Hotel Check-in, Attractions with thumbnails)
+ *    - Day picker pills (Day 1 (Sun, 12)...) with dates
+ *    - Day's route as numbered cards with day-part tags
  *    - Interactive map preview with Expand button for the full map view. */
 export default function ItinerarySection({
   itinerary,
@@ -91,13 +109,92 @@ export default function ItinerarySection({
   const active = itinerary.find((d) => d.day === activeDay) ?? itinerary[0];
   const isFirstDay = active.day === 1;
   const isLastDay = active.day === itinerary.length;
+  const nights =
+    num_nights != null && Number.isFinite(Number(num_nights))
+      ? Number(num_nights)
+      : itinerary.length;
 
-  /* Compact route timeline: every row is a node in visit order, so sequence
-   * numbers run arrival → hotel → stops → custom → depart without gaps. */
+  /* Numbered route cards in visit order: arrival → hotel → stops →
+   * customs → departure, numbered 1..N without gaps. */
   const dayCustoms = customActivities.filter((a) => a.day === activeDay);
-  const leadNodes = (isFirstDay ? 1 : 0) + (isFirstDay && hotel ? 1 : 0);
-  const stopCount = Array.isArray(active.places) ? active.places.length : 0;
-  const nodeCount = leadNodes + stopCount + dayCustoms.length + (isLastDay ? 1 : 0);
+  const stops = Array.isArray(active.places) ? active.places : [];
+  const nodes = [];
+  let n = 0;
+  const badge = () => BADGE_COLORS[(n - 1) % BADGE_COLORS.length];
+  if (isFirstDay) {
+    n += 1;
+    nodes.push({
+      key: "arrive",
+      num: n,
+      color: badge(),
+      title: isAirportCode(destination)
+        ? "Arrive at your destination"
+        : `Arrive in ${destination || "Destination"}`,
+      sub: `${flight?.airline ? `${flight.airline} · ` : ""}Airport area`,
+      tag: "Flight arrival",
+      tagColor: "#2DD4BF",
+      emoji: "✈",
+    });
+  }
+  if (isFirstDay && hotel) {
+    n += 1;
+    nodes.push({
+      key: "hotel",
+      num: n,
+      color: badge(),
+      title: "Check in to Hotel",
+      sub: hotel.name,
+      tag: "Check-in",
+      tagColor: "#D9A441",
+      emoji: "🏨",
+    });
+  }
+  let restaurantSeen = 0;
+  stops.forEach((place, idx) => {
+    const slot = stopSlot(place, idx, stops.length, restaurantSeen);
+    if (String(place?.category || "").toLowerCase().startsWith("restaurant")) restaurantSeen += 1;
+    n += 1;
+    nodes.push({
+      key: `stop-${place.name}-${idx}`,
+      type: "stop",
+      place,
+      num: n,
+      color: badge(),
+      title: displayPlaceName(place, idx),
+      sub: `${categoryLabel(place.category)}${place.rating ? ` • ${place.rating}` : ""}`,
+      tag: slot.label,
+      tagColor: slot.color,
+      emoji: slot.emoji,
+    });
+  });
+  dayCustoms.forEach((a, idx) => {
+    n += 1;
+    nodes.push({
+      key: `custom-${idx}`,
+      num: n,
+      color: badge(),
+      title: a.name,
+      sub: a.time,
+      tag: "Added",
+      tagColor: "#34D399",
+      emoji: "✦",
+    });
+  });
+  if (isLastDay) {
+    n += 1;
+    nodes.push({
+      key: "depart",
+      num: n,
+      color: badge(),
+      title: isAirportCode(destination)
+        ? "Depart from your destination"
+        : `Depart from ${destination || "Destination"}`,
+      sub: "Check out & return flight",
+      tag: "Departure",
+      tagColor: "#2DD4BF",
+      emoji: "✈",
+    });
+  }
 
   const selectDay = (day) => {
     setActiveDay(day);
@@ -122,6 +219,8 @@ export default function ItinerarySection({
     setShowAddModal(false);
   };
 
+  const dayLabel = fmtDate(dayDateISO(active));
+
   return (
     <section
       id="itinerary"
@@ -135,31 +234,26 @@ export default function ItinerarySection({
       {/* Trip scope meta — day/night scope only. Raw fetch `counts` are
           internal API stats, not itinerary content, so they stay out of this
           header (they remain available in the plan response for debugging). */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-white/[0.06] px-4 py-2">
+      <div className="border-b border-white/[0.06] px-4 py-2.5">
         <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>
-          Day-by-day itinerary · {itinerary.length} day{itinerary.length === 1 ? "" : "s"}
+          Day-by-day itinerary • {itinerary.length} day{itinerary.length === 1 ? "" : "s"},{" "}
+          {nights} night{Number(nights) === 1 ? "" : "s"}
         </span>
-        {num_nights != null && (
-          <span className="text-[11px] text-slate-500">
-            {num_nights} night{Number(num_nights) === 1 ? "" : "s"}
-          </span>
-        )}
       </div>
 
       {/* ── Itinerary (Days → Activities → Map, stacked) ── */}
       {activeTab === "itinerary" && (
         <div className="flex flex-col">
-          {/* 1. Day selector — horizontal chip row on all breakpoints, so the
-              activities list and the map each get the full column width. */}
+          {/* 1. Day selector — compact pills with weekday + date. */}
           <div
             className="flex items-center gap-2 overflow-x-auto border-b border-white/[0.08] p-3"
             style={{ scrollbarWidth: "none" }}
             role="tablist"
             aria-label="Itinerary days"
           >
-              {itinerary.map((d) => {
+            {itinerary.map((d) => {
               const isActive = d.day === active.day;
-              const dateParts = fmtDate(dayDateISO(d)).split(",").filter(Boolean);
+              const sd = shortDay(dayDateISO(d));
               return (
                 <button
                   key={d.day}
@@ -167,283 +261,143 @@ export default function ItinerarySection({
                   role="tab"
                   aria-selected={isActive}
                   onClick={() => selectDay(d.day)}
-                  className="tcc-focus flex shrink-0 items-center gap-2.5 rounded-full p-1.5 pr-4 text-left transition-all"
-                  style={{
-                    background: isActive ? "var(--coral)" : "transparent",
-                    border: isActive
-                      ? "1px solid var(--coral)"
-                      : "1px solid transparent",
-                  }}
+                  className="tcc-focus shrink-0 rounded-[10px] px-3 py-2 text-[12px] font-bold transition-all"
+                  style={
+                    isActive
+                      ? { background: "var(--coral)", color: "#fff" }
+                      : {
+                          background: "rgba(255, 255, 255, 0.05)",
+                          border: "1px solid rgba(255, 255, 255, 0.08)",
+                          color: "var(--text-secondary)",
+                        }
+                  }
                 >
-                  {/* Number Badge — white on the filled active pill */}
-                  <span
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-black transition-all"
-                    style={{
-                      background: isActive ? "#fff" : "rgba(255, 255, 255, 0.08)",
-                      color: isActive ? "var(--coral)" : "var(--text-muted)",
-                      border: isActive ? "none" : "1px solid rgba(255, 255, 255, 0.12)",
-                    }}
-                  >
-                    {d.day}
-                  </span>
-                  {/* Label & Date */}
-                  <span className="hidden sm:block">
-                    <span
-                      className="block text-[12px] font-bold leading-tight"
-                      style={{ color: isActive ? "#fff" : "var(--text-primary)" }}
-                    >
-                      Day {d.day}
-                    </span>
-                    {dateParts.length > 0 && (
-                      <span
-                        className="block text-[10px]"
-                        style={{ color: isActive ? "rgba(255,255,255,0.85)" : "var(--text-muted)" }}
-                      >
-                        {dateParts[0]}, {dateParts[1]?.trim().split(" ")[0]}
-                      </span>
-                    )}
-                  </span>
+                  Day {d.day}{sd ? ` (${sd})` : ""}
                 </button>
               );
             })}
-
-            {/* + Add Activity — pinned at the row end on every breakpoint */}
-            <button
-              type="button"
-              onClick={() => setShowAddModal(true)}
-              className="tcc-focus ml-auto flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-dashed border-white/20 px-3 py-2 text-[11px] font-semibold text-slate-400 hover:border-[var(--coral)] hover:text-[var(--coral)]"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add activity
-            </button>
           </div>
 
-          {/* 2. Day Activities List — compact connected route timeline */}
+          {/* 2. Day Activities List — badges on a vertical line, cards right. */}
           <div className="min-w-0 p-4 sm:p-5">
-            {/* Header info */}
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--coral)]">
-                  {fmtDate(dayDateISO(active))
-                    ? `Day ${active.day} · ${fmtDate(dayDateISO(active))}`
-                    : `Day ${active.day}`}
-                </span>
+            {/* Day scope line */}
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="text-[11px] font-bold tracking-wider">
+                <span className="uppercase" style={{ color: "var(--coral)" }}>Day {active.day}</span>
+                {dayLabel && <span className="uppercase text-slate-500"> • {dayLabel}</span>}
                 {active.distance_km && (
-                  <p className="text-[11px] text-slate-400">
-                    ~{Number(active.distance_km)} km total route
-                  </p>
+                  <span className="text-slate-500"> • ~{Number(active.distance_km)} km total route</span>
                 )}
-              </div>
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                className="tcc-focus flex shrink-0 items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-[var(--coral)]"
+              >
+                <Plus className="h-3 w-3" />
+                Add
+              </button>
             </div>
 
-            {/* Boxless route nodes — markers joined by a vertical connector,
-                no card chrome, just dots in sequence. */}
             <div className="relative">
-              {nodeCount > 1 && (
+              {nodes.length > 1 && (
                 <span
                   aria-hidden="true"
-                  className="absolute bottom-[25px] left-[25px] top-[25px] w-px bg-white/10"
+                  className="absolute bottom-[26px] left-[11px] top-[26px] w-px bg-white/10"
                 />
               )}
-              <div className="relative space-y-1.5">
-              {/* Day 1 Flight Arrival — timeline node 1 */}
-              {isFirstDay && (
-                <div className="flex min-w-0 items-center gap-2.5 rounded-lg border border-transparent px-1.5 py-1.5 transition-colors hover:bg-white/5">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <span
-                      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                      style={{
-                        background: "rgba(255, 114, 94, 0.15)",
-                        color: "var(--coral)",
-                      }}
-                    >
-                      <Plane className="h-4 w-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-bold text-white">
-                        {isAirportCode(destination)
-                          ? "Arrive at your destination"
-                          : `Arrive in ${destination || "Destination"}`}
-                      </p>
-                      <p className="truncate text-[11px] leading-snug text-slate-400">
-                        {flight?.airline ? `${flight.airline} · ` : ""}Airport area
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Day 1 Hotel Check-in — timeline node 2 */}
-              {isFirstDay && hotel && (
-                <div className="flex min-w-0 items-center gap-2.5 rounded-lg border border-transparent px-1.5 py-1.5 transition-colors hover:bg-white/5">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <span
-                      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                      style={{
-                        background: "rgba(32, 199, 201, 0.15)",
-                        color: "var(--teal)",
-                      }}
-                    >
-                      <Hotel className="h-4 w-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-bold text-white">
-                        Check in to Hotel
-                      </p>
-                      {/* No invented check-in time: the API sends no hours,
-                          so only the confirmed hotel name is shown. */}
-                      <p className="truncate text-[11px] leading-snug text-slate-400">
-                        {hotel.name}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Scheduled Stops for Active Day */}
-              {Array.isArray(active.places) && active.places.length > 0 ? (
-                active.places.map((place, idx) => {
-                  const meta = CATEGORY_META[place.category === "restaurants" ? "restaurant" : "attraction"];
-                  const Icon = meta?.icon || Map;
-                  const mapUrl = placeMapUrl(place);
-                  const thumb = place.image || photoFor(destination, idx);
-                  const selected = selectedStop === place.name;
-                  const stopName = displayPlaceName(place, idx);
-                  const toggleSelected = () => setSelectedStop(selected ? null : place.name);
-
-                  return (
-                    <div
-                      key={`${place.name}-${idx}`}
-                      className="flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-white/5"
-                      style={
-                        selected
-                          ? {
-                              background: "rgba(255, 114, 94, 0.12)",
-                              border: "1px solid rgba(255, 114, 94, 0.45)",
-                            }
-                          : { border: "1px solid transparent" }
+              <div className="relative space-y-2">
+              {nodes.length > 0 ? (
+                nodes.map((node) => {
+                  const selected = node.type === "stop" && selectedStop === node.place.name;
+                  const toggleSelected = () =>
+                    setSelectedStop(selected ? null : node.place.name);
+                  const card = (
+                    <>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] font-bold text-white">
+                          {node.title}
+                        </span>
+                        {node.sub && (
+                          <span className="block truncate text-[11px] text-slate-400">
+                            {node.sub}
+                          </span>
+                        )}
+                      </span>
+                      {node.tag && (
+                        <span
+                          className="flex shrink-0 items-center gap-1 text-[10px] font-semibold"
+                          style={{ color: node.tagColor }}
+                        >
+                          <span aria-hidden="true">{node.emoji}</span>
+                          {node.tag}
+                        </span>
+                      )}
+                    </>
+                  );
+                  const style = selected
+                    ? {
+                        background: "rgba(255, 114, 94, 0.12)",
+                        border: "1px solid rgba(255, 114, 94, 0.45)",
                       }
-                    >
-                      {/* Row click highlights + opens its marker on the map.
-                          A div (not a button) wraps the row so the stop name
-                          can be a real link without nested interactives. */}
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={toggleSelected}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            toggleSelected();
-                          }
-                        }}
-                        aria-pressed={selected}
-                        aria-label={`${stopName} — highlight on map`}
-                        className="tcc-focus flex min-w-0 flex-1 items-center gap-2.5 rounded-lg text-left"
+                    : {
+                        background: "rgba(255, 255, 255, 0.04)",
+                        border: "1px solid rgba(255, 255, 255, 0.08)",
+                      };
+                  /* Stop rows highlight their marker on the map — a
+                   * row click toggles it, so the title stays plain text. */
+                  if (node.type === "stop") {
+                    return (
+                      <div key={node.key} className="flex items-center gap-2.5">
+                        <span
+                          className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-white"
+                          style={{ background: node.color }}
+                          aria-hidden="true"
+                        >
+                          {node.num}
+                        </span>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={toggleSelected}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              toggleSelected();
+                            }
+                          }}
+                          aria-pressed={selected}
+                          aria-label={`${node.title} — highlight on map`}
+                          className="tcc-focus flex min-w-0 flex-1 items-center gap-2 rounded-[12px] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.06]"
+                          style={style}
+                        >
+                          {card}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={node.key} className="flex items-center gap-2.5">
+                      <span
+                        className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-white"
+                        style={{ background: node.color }}
+                        aria-hidden="true"
                       >
-                        {/* Thumbnail marker with sequence number */}
-                        <div className="relative h-9 w-9 shrink-0 overflow-visible rounded-lg">
-                          <div className="h-full w-full overflow-hidden rounded-lg">
-                          {thumb ? (
-                            <SafeImage
-                              src={thumb}
-                              alt={stopName}
-                              className="h-full w-full object-cover"
-                              fallback={
-                                <div className="flex h-full w-full items-center justify-center bg-white/10 text-white">
-                                  <Icon className="h-4 w-4" />
-                                </div>
-                              }
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center bg-white/10 text-white">
-                              <Icon className="h-4 w-4" />
-                            </div>
-                          )}
-                          </div>
-                        </div>
-
-                        {/* Stop Details — name links to the map location */}
-                        <div className="min-w-0">
-                          {mapUrl ? (
-                            <a
-                              href={mapUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              title={`${stopName} — view on Google Maps`}
-                              aria-label={`View ${stopName} on Google Maps`}
-                              className="tcc-focus block truncate text-[13px] font-bold text-white transition-colors hover:text-[var(--coral)] hover:underline"
-                            >
-                              {stopName}
-                            </a>
-                          ) : (
-                            <p className="truncate text-[13px] font-bold text-white" title={stopName}>
-                              {stopName}
-                            </p>
-                          )}
-                          <p className="text-[11px] leading-snug text-slate-400">
-                            {categoryLabel(place.category)}
-                            {place.duration ? ` · ${place.duration}` : ""}
-                            {place.rating ? ` · ★ ${place.rating}` : ""}
-                          </p>
-                        </div>
+                        {node.num}
+                      </span>
+                      <div
+                        className="flex min-w-0 flex-1 items-center gap-2 rounded-[12px] px-3 py-2.5"
+                        style={style}
+                      >
+                        {card}
                       </div>
                     </div>
                   );
                 })
               ) : (
                 <p className="py-6 text-center text-xs text-slate-400">
-                  No scheduled places for this day. Click "+ Add activity" to add one!
+                  No scheduled places for this day. Click "+ Add" to add one!
                 </p>
-              )}
-
-              {/* User Added Custom Activities for Active Day */}
-              {dayCustoms.map((a, idx) => (
-                  <div
-                    key={`custom-${idx}`}
-                    className="flex min-w-0 items-center justify-between gap-2.5 rounded-lg border border-transparent px-1.5 py-1.5 transition-colors hover:bg-white/5"
-                  >
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--teal)]/20 text-[var(--teal)]">
-                        ✦
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-bold text-white">{a.name}</p>
-                        <p className="text-[11px] leading-snug text-slate-400">{a.time}</p>
-                      </div>
-                    </div>
-                    <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold bg-[var(--teal)]/20 text-[var(--teal)]">
-                      Added
-                    </span>
-                  </div>
-                ))}
-
-              {/* Last Day Check-out — final timeline node */}
-              {isLastDay && (
-                <div className="flex min-w-0 items-center gap-2.5 rounded-lg border border-transparent px-1.5 py-1.5 transition-colors hover:bg-white/5">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <span
-                      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                      style={{
-                        background: "rgba(255, 114, 94, 0.15)",
-                        color: "var(--coral)",
-                      }}
-                    >
-                      <Plane className="h-4 w-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-bold text-white">
-                        {isAirportCode(destination)
-                          ? "Depart from your destination"
-                          : `Depart from ${destination || "Destination"}`}
-                      </p>
-                      <p className="text-[11px] leading-snug text-slate-400">
-                        Check out & return flight
-                      </p>
-                    </div>
-                  </div>
-                </div>
               )}
               </div>
             </div>

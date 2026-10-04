@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ghoomlo.client.GroqClient;
 import com.ghoomlo.dto.ParseTripReq;
 import com.ghoomlo.service.NlParseService;
+import com.ghoomlo.service.PackingService;
 import jakarta.validation.Valid;
 import java.io.InputStream;
 import java.util.LinkedHashMap;
@@ -21,12 +22,14 @@ public class ParseController {
   private static final Logger log = LoggerFactory.getLogger(ParseController.class);
   private final NlParseService nl;
   private final GroqClient groq;
+  private final PackingService packing;
   private final ObjectMapper mapper = new ObjectMapper();
   private static Map<String, Object> demoCache = null;
 
-  public ParseController(NlParseService nl, GroqClient groq) {
+  public ParseController(NlParseService nl, GroqClient groq, PackingService packing) {
     this.nl = nl;
     this.groq = groq;
+    this.packing = packing;
   }
 
   @PostMapping("/parse-trip")
@@ -59,7 +62,24 @@ public class ParseController {
     if (demoCache != null) return ResponseEntity.ok(demoCache);
     try (InputStream in = getClass().getResourceAsStream("/demo_goa.json")) {
       if (in == null) return ResponseEntity.status(502).body(Map.of("error", "Demo data unavailable"));
-      demoCache = mapper.readValue(in, new TypeReference<Map<String, Object>>() {});
+      Map<String, Object> data = mapper.readValue(in, new TypeReference<Map<String, Object>>() {});
+      // Backfill the packing checklist so the demo shows the same
+      // weather-aware section as live plans (zero searches — demo weather).
+      try {
+        if (!data.containsKey("packing")) {
+          Object w = data.get("weather");
+          @SuppressWarnings("unchecked")
+          Map<String, Object> weather = w instanceof Map ? (Map<String, Object>) w : null;
+          int nights = data.get("num_nights") instanceof Number
+              ? ((Number) data.get("num_nights")).intValue() : 3;
+          int travelers = data.get("travelers") instanceof Number
+              ? ((Number) data.get("travelers")).intValue() : 2;
+          data.put("packing", packing.buildPacking(weather, nights, travelers));
+        }
+      } catch (Exception e) {
+        log.warn("demo packing backfill failed (omitted): {}", e.toString());
+      }
+      demoCache = data;
       return ResponseEntity.ok(demoCache);
     } catch (Exception e) {
       log.error("demo data failed", e);

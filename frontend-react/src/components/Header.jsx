@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Bell, Menu, Search, X } from "lucide-react";
-import { go, useHashRoute } from "../lib/router.js";
+import { navigate, useHashRoute } from "../lib/router.js";
 
 const NAV = [
   { label: "Explore", route: "home", exact: true },
-  { label: "Plan Trip", action: "plan" },
+  { label: "Plan Trip", route: "trip" },
   { label: "Destinations", route: "destinations" },
   { label: "How it works", route: "how" },
 ];
@@ -28,9 +28,9 @@ export default function Header() {
     return false;
   };
 
-  const runAction = (action) => {
+  const goTrip = () => {
     setOpen(false);
-    go("home", action);
+    navigate("trip");
   };
 
   const submitSearch = (e) => {
@@ -42,8 +42,7 @@ export default function Header() {
 
   const handleNav = (item) => {
     setOpen(false);
-    if (item.action) runAction(item.action);
-    else window.location.hash = item.route && item.route !== "home" ? `#/${item.route}` : "#/";
+    window.location.hash = item.route && item.route !== "home" ? `#/${item.route}` : "#/";
   };
 
   return (
@@ -170,7 +169,7 @@ export default function Header() {
             {/* CTA */}
             <button
               type="button"
-              onClick={() => runAction("plan")}
+              onClick={goTrip}
               className="btn-primary hidden h-[38px] px-5 text-[13px] sm:inline-flex"
             >
               Plan a trip <span aria-hidden="true">→</span>
@@ -245,7 +244,7 @@ export default function Header() {
 
             <button
               type="button"
-              onClick={() => runAction("plan")}
+              onClick={goTrip}
               className="btn-primary mt-2 h-[46px] w-full text-base"
             >
               Plan a trip <span aria-hidden="true">→</span>

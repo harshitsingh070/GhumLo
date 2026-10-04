@@ -6,6 +6,7 @@ import com.ghoomlo.service.AirportResolver;
 import com.ghoomlo.service.BudgetService;
 import com.ghoomlo.service.InsightService;
 import com.ghoomlo.service.ItineraryService;
+import com.ghoomlo.service.PackingService;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -27,14 +28,17 @@ public class PlanController {
   private final ItineraryService itinerarySvc;
   private final InsightService insight;
   private final AirportResolver resolver;
+  private final PackingService packing;
 
   public PlanController(SerpApiClient serp, BudgetService budget,
-      ItineraryService itinerarySvc, InsightService insight, AirportResolver resolver) {
+      ItineraryService itinerarySvc, InsightService insight, AirportResolver resolver,
+      PackingService packing) {
     this.serp = serp;
     this.budget = budget;
     this.itinerarySvc = itinerarySvc;
     this.insight = insight;
     this.resolver = resolver;
+    this.packing = packing;
   }
 
   private int numNights(String d1, String d2) {
@@ -104,6 +108,9 @@ public class PlanController {
         o.put("image", h.get("image"));
         o.put("lat", h.get("lat"));
         o.put("lng", h.get("lng"));
+        // Pass through lazy-reviews key (omitted when SerpApi gave none).
+        if (h.get("property_token") != null) o.put("property_token", h.get("property_token"));
+        if (h.get("reviews_count") != null) o.put("reviews_count", h.get("reviews_count"));
         o.put("tier", hotelTier(intOf(h.get("price_per_night"), loPrice), loPrice, span));
         hotelOptions.add(o);
       }
@@ -262,6 +269,13 @@ public class PlanController {
       resp.put("counts", counts);
       resp.put("live_search", anyLive);
       if (weather != null) resp.put("weather", weather);
+      try {
+        // Zero-search rule engine on the live snapshot above (or a
+        // nights-scaled basics fallback when weather is unavailable).
+        resp.put("packing", packing.buildPacking(weather, nights, travelers));
+      } catch (Exception e) {
+        log.warn("packing build failed (omitted): {}", e.toString());
+      }
       if (exchangeRate != null) resp.put("exchange_rate", exchangeRate);
       if (!know.isEmpty()) resp.put("know", know);
       if (!videos.isEmpty()) resp.put("videos", videos);

@@ -181,7 +181,7 @@ export default function DestinationsPage({ onPick }) {
       </div>
       )}
 
-      <CtaSection onPlan={() => go("home", "plan")} />
+      <CtaSection onPlan={() => go("trip")} />
     </div>
   );
 }

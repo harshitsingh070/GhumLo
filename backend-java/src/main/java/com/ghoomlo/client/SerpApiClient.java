@@ -28,6 +28,7 @@ public class SerpApiClient {
   private static final Logger log = LoggerFactory.getLogger(SerpApiClient.class);
   public static final long TTL_WEATHER = 6 * 3600L;
   public static final long TTL_EXCHANGE = 12 * 3600L;
+  public static final long TTL_REVIEWS = 24 * 3600L;
   private static final long BACKOFF_SECONDS = 6 * 3600L;
 
   private final WebClient serpApiWebClient;
@@ -306,6 +307,17 @@ public class SerpApiClient {
         hotel.put("rating", rating);
         hotel.put("price_per_night", nightly);
         hotel.put("total_price", total);
+        // Lazy-reviews key: propagated so the frontend can call
+        // POST /api/hotels/reviews on expand (1 search, cached 24h).
+        // Never fetched inside /api/plan — quota-safe by design.
+        Object propertyToken = h.get("property_token");
+        if (propertyToken != null && !String.valueOf(propertyToken).isBlank()) {
+          hotel.put("property_token", String.valueOf(propertyToken).strip());
+        }
+        Object reviewsCount = h.get("reviews");
+        if (reviewsCount instanceof Number n) {
+          hotel.put("reviews_count", n.intValue());
+        }
         Object am = h.get("amenities");
         hotel.put("amenities", am instanceof List ? ((List<?>) am).subList(0, Math.min(6, ((List<?>) am).size())) : List.of());
         hotel.put("lat", Double.isNaN(ll[0]) ? null : ll[0]);
@@ -360,6 +372,18 @@ public class SerpApiClient {
         place.put("name", String.valueOf(nameObj));
         place.put("rating", rating);
         place.put("category", category);
+        // Lazy-reviews keys: propagated so the frontend can call
+        // POST /api/places/reviews on expand (1 search, cached 24h).
+        // Never fetched inside /api/plan — quota-safe by design.
+        if (p.get("place_id") != null && !String.valueOf(p.get("place_id")).isBlank()) {
+          place.put("place_id", String.valueOf(p.get("place_id")).strip());
+        }
+        if (p.get("data_id") != null && !String.valueOf(p.get("data_id")).isBlank()) {
+          place.put("data_id", String.valueOf(p.get("data_id")).strip());
+        }
+        if (p.get("reviews") instanceof Number rn) {
+          place.put("reviews_count", rn.intValue());
+        }
         Object addr = p.get("address") != null ? p.get("address") : p.get("description");
         place.put("address", addr == null ? "" : String.valueOf(addr));
         place.put("lat", Double.isNaN(ll[0]) ? null : ll[0]);
@@ -700,5 +724,128 @@ public class SerpApiClient {
       log.warn("videos lookup failed (omitted): {}: {}", e.getClass().getSimpleName(), e.getMessage());
       return null;
     }
+  }
+
+  // ---------- lazy reviews (on-expand only, NEVER in /api/plan) ----------
+  // Each call = exactly 1 SerpApi search. 24h file cache + 6h negative
+  // backoff keep repeated expands quota-free.
+
+  public Map<String, Object> fetchHotelReviewsRaw(String propertyToken, boolean forceRefresh) {
+    String token = propertyToken == null ? "" : propertyToken.strip();
+    if (token.isEmpty()) throw new IllegalArgumentException("property_token is required");
+    Map<String, Object> params = new LinkedHashMap<>();
+    params.put("engine", "google_hotels_reviews");
+    params.put("property_token", token);
+    params.put("hl", "en");
+    if (optInBackoff("hotel_reviews", params)) {
+      throw new RuntimeException("hotel reviews in failure backoff — skipping live call");
+    }
+    try {
+      Map<String, Object> raw = search(params, "hotel_reviews", forceRefresh, TTL_REVIEWS);
+      optMarkOk("hotel_reviews", params);
+      return raw;
+    } catch (Exception e) {
+      optMarkFailed("hotel_reviews", params);
+      throw new RuntimeException(e.getMessage(), e);
+    }
+  }
+
+  public Map<String, Object> fetchPlaceReviewsRaw(String placeId, String dataId, boolean forceRefresh) {
+    String pid = placeId == null ? "" : placeId.strip();
+    String did = dataId == null ? "" : dataId.strip();
+    String resolved = !pid.isEmpty() ? pid : did;
+    if (resolved.isEmpty()) throw new IllegalArgumentException("place_id (or data_id) is required");
+    Map<String, Object> params = new LinkedHashMap<>();
+    params.put("engine", "google_maps_reviews");
+    // SerpApi accepts the ChIJ place_id here; when only a data_id came back
+    // from google_maps local_results we forward it as place_id — Google
+    // resolves both forms for reviews.
+    params.put("place_id", resolved);
+    params.put("hl", "en");
+    if (optInBackoff("place_reviews", params)) {
+      throw new RuntimeException("place reviews in failure backoff — skipping live call");
+    }
+    try {
+      Map<String, Object> raw = search(params, "place_reviews", forceRefresh, TTL_REVIEWS);
+      optMarkOk("place_reviews", params);
+      return raw;
+    } catch (Exception e) {
+      optMarkFailed("place_reviews", params);
+      throw new RuntimeException(e.getMessage(), e);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private List<Map<String, Object>> parseReviewList(Map<String, Object> raw, int cap) {
+    List<Map<String, Object>> out = new ArrayList<>();
+    if (raw == null || !(raw.get("reviews") instanceof List)) return out;
+    for (Object o : (List<?>) raw.get("reviews")) {
+      if (out.size() >= cap) break;
+      if (!(o instanceof Map)) continue;
+      try {
+        Map<String, Object> r = (Map<String, Object>) o;
+        // author: hotels shape {author_name} vs maps shape {user: {name}}
+        String author = "Guest";
+        if (r.get("author_name") != null && !String.valueOf(r.get("author_name")).isBlank()) {
+          author = String.valueOf(r.get("author_name")).strip();
+        } else if (r.get("user") instanceof Map um && um.get("name") != null
+            && !String.valueOf(um.get("name")).isBlank()) {
+          author = String.valueOf(um.get("name")).strip();
+        } else if (r.get("username") != null && !String.valueOf(r.get("username")).isBlank()) {
+          author = String.valueOf(r.get("username")).strip();
+        }
+        Double rating = null;
+        if (r.get("rating") != null) {
+          try { rating = Double.parseDouble(String.valueOf(r.get("rating")).split(" ")[0]); }
+          catch (Exception ignored) {}
+        }
+        String date = "";
+        for (String k : List.of("date", "time", "published_date")) {
+          if (r.get(k) != null && !String.valueOf(r.get(k)).isBlank()) {
+            date = String.valueOf(r.get(k)).strip();
+            break;
+          }
+        }
+        String text = "";
+        for (String k : List.of("text", "snippet", "description", "review_text", "content")) {
+          if (r.get(k) != null && !String.valueOf(r.get(k)).isBlank()) {
+            text = String.valueOf(r.get(k)).strip();
+            break;
+          }
+        }
+        if (text.length() > 300) text = text.substring(0, 299).strip() + "…";
+        String link = "";
+        if (r.get("author_link") != null) link = String.valueOf(r.get("author_link"));
+        else if (r.get("user") instanceof Map um2 && um2.get("link") != null) {
+          link = String.valueOf(um2.get("link"));
+        } else if (r.get("link") != null) link = String.valueOf(r.get("link"));
+        Map<String, Object> e = new LinkedHashMap<>();
+        e.put("author", author);
+        e.put("rating", rating);
+        e.put("date", date);
+        e.put("text", text);
+        e.put("link", link == null ? "" : link.strip());
+        out.add(e);
+      } catch (Exception e) {
+        log.warn("skip malformed review entry: {}", e.toString());
+      }
+    }
+    return out;
+  }
+
+  public List<Map<String, Object>> parseHotelReviews(Map<String, Object> raw, int cap) {
+    return parseReviewList(raw, cap <= 0 ? 5 : cap);
+  }
+
+  public List<Map<String, Object>> parseHotelReviews(Map<String, Object> raw) {
+    return parseReviewList(raw, 5);
+  }
+
+  public List<Map<String, Object>> parsePlaceReviews(Map<String, Object> raw, int cap) {
+    return parseReviewList(raw, cap <= 0 ? 5 : cap);
+  }
+
+  public List<Map<String, Object>> parsePlaceReviews(Map<String, Object> raw) {
+    return parseReviewList(raw, 5);
   }
 }

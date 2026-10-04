@@ -37,7 +37,7 @@ export default function CtaSection({ onPlan }) {
           </button>
         ) : (
           <a
-            href="#plan"
+            href="#/trip"
             className="btn-primary mt-8 inline-flex h-[52px] items-center gap-2 rounded-xl px-8 text-base font-bold shadow-lg"
           >
             Plan my trip

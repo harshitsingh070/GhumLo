@@ -12,12 +12,14 @@ const PATHS = {
   home: "/",
   destinations: "/destinations",
   how: "/how",
+  trip: "/trip",
 };
 
 export function parseRoute() {
   const h = typeof window !== "undefined" ? window.location.hash || "" : "";
   if (h === "#/destinations" || h.startsWith("#/destinations")) return "destinations";
   if (h === "#/how" || h.startsWith("#/how")) return "how";
+  if (h === "#/trip" || h.startsWith("#/trip")) return "trip";
   return "home";
 }
 
@@ -46,7 +48,7 @@ export function go(path, scrollId) {
   void target;
 }
 
-/** Current route: "home" | "destinations" | "how". Smooth-scrolls to top on
+/** Current route: "home" | "destinations" | "how" | "trip". Smooth-scrolls to top on
  *  route changes; ignores plain in-page anchors. */
 export function useHashRoute() {
   const [route, setRoute] = useState(parseRoute);

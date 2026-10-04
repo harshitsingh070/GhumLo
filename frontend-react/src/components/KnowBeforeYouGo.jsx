@@ -1,4 +1,4 @@
-import { BookOpenCheck, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { BookOpenCheck, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 /** KnowBeforeYouGo — Section 23
@@ -13,25 +13,25 @@ export default function KnowBeforeYouGo({ know, destination }) {
     <section
       id="know"
       aria-label="Know before you go"
-      className="glass-panel scroll-mt-24 rounded-[24px] p-6 sm:p-7 text-white"
+      className="glass-panel scroll-mt-24 rounded-[16px] p-5 text-white"
       style={{
         background: "rgba(9, 38, 48, 0.88)",
         border: "1px solid rgba(255, 255, 255, 0.12)",
       }}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5">
           <span
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-            style={{ background: "rgba(183, 148, 244, 0.15)", color: "#B794F4" }}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px]"
+            style={{ background: "rgba(96, 165, 250, 0.15)", color: "#60A5FA" }}
           >
-            <BookOpenCheck className="h-5 w-5" aria-hidden="true" />
+            <BookOpenCheck className="h-4 w-4" aria-hidden="true" />
           </span>
-          <div>
-            <h2 className="font-display text-xl font-bold tracking-tight text-white">
-              Good to Know · {destination || "Destination"}
+          <div className="min-w-0">
+            <h2 className="font-display text-[15px] font-bold tracking-tight text-white">
+              Good to Know - {destination || "Destination"}
             </h2>
-            <p className="text-xs text-slate-300">
+            <p className="mt-0.5 text-[11px] text-slate-400">
               Entry regulations, safety guidelines & local pointers.
             </p>
           </div>
@@ -41,46 +41,37 @@ export default function KnowBeforeYouGo({ know, destination }) {
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="flex items-center gap-1 text-xs font-semibold text-[var(--coral)] hover:underline"
+            className="flex shrink-0 items-center gap-1 pt-0.5 text-[11px] font-semibold text-[var(--coral)] hover:underline"
           >
             {expanded ? (
-              <>Show less <ChevronUp className="h-3.5 w-3.5" /></>
+              <>Show less <ChevronUp className="h-3 w-3" /></>
             ) : (
-              <>View all ({know.length}) <ChevronDown className="h-3.5 w-3.5" /></>
+              <>View all ({know.length}) <ChevronDown className="h-3 w-3" /></>
             )}
           </button>
         )}
       </div>
 
-      <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="mt-3 divide-y divide-white/[0.07]">
         {visibleItems.map((k, i) => (
-          <div
-            key={i}
-            className="flex flex-col justify-between rounded-[16px] p-4 transition-all hover:bg-white/5"
-            style={{
-              background: "rgba(255, 255, 255, 0.04)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-            }}
-          >
-            <div>
-              <a
-                href={k.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="tcc-focus inline-flex items-start gap-1 text-[13px] font-bold text-white hover:text-[var(--coral)]"
-              >
-                <span className="line-clamp-2">{k.title}</span>
-                <ExternalLink className="mt-0.5 h-3 w-3 shrink-0 text-slate-400" aria-hidden="true" />
-              </a>
-              {k.snippet && (
-                <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-slate-300">
-                  {k.snippet}
-                </p>
-              )}
-            </div>
-          </div>
+          <li key={i} className="py-2.5 first:pt-1 last:pb-0">
+            <a
+              href={k.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tcc-focus block truncate text-[12.5px] font-semibold text-white hover:text-[var(--coral)]"
+              title={k.title}
+            >
+              {k.title}
+            </a>
+            {k.snippet && (
+              <p className="mt-0.5 truncate text-[11.5px] leading-relaxed text-slate-400" title={k.snippet}>
+                {k.snippet}
+              </p>
+            )}
+          </li>
         ))}
-      </div>
+      </ul>
     </section>
   );
 }

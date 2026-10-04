@@ -75,7 +75,7 @@ export default function BudgetShowcase() {
               </p>
             </div>
             <a
-              href="#plan"
+              href="#/trip"
               className="btn-primary w-fit px-6 py-3 text-[13px] font-bold"
             >
               Plan your trip →

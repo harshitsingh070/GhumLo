@@ -88,7 +88,7 @@ export default function SampleTrip() {
                 ))}
               </ul>
               <a
-                href="#plan"
+                href="#/trip"
                 className="btn-primary mt-6 flex h-[46px] w-full items-center justify-center gap-2 text-[14px]"
               >
                 Plan your own trip

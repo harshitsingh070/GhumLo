@@ -26,7 +26,7 @@ export default function HowItWorksPage() {
 
       <HowItWorks />
 
-      <CtaSection onPlan={() => go("home", "plan")} />
+      <CtaSection onPlan={() => go("trip")} />
     </div>
   );
 }

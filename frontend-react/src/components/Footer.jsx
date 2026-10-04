@@ -1,7 +1,7 @@
 import { go } from "../lib/router.js";
 
 const LINKS = [
-  { label: "Plan a trip", action: () => go("home", "plan") },
+  { label: "Plan a trip", action: () => go("trip") },
   { label: "Destinations", href: "#/destinations" },
   { label: "How it works", href: "#/how" },
   { label: "About", action: () => go("home", "about") },
