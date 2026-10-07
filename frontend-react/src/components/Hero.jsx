@@ -37,9 +37,8 @@ export default function Hero({ plan, onViewPlan }) {
         style={{ objectPosition: "center 38%" }}
       />
 
-      {/* Light readability wash — sheer veil over the whole photo so it
-          shows through edge-to-edge (left included), denser on the left
-          where the copy sits */}
+      {/* Soft readability veil — gentle blur-like wash on the left where
+          the copy sits, opening to the crisp photo on the right */}
       <div
         className="absolute inset-0"
         style={{
@@ -70,10 +69,7 @@ export default function Hero({ plan, onViewPlan }) {
             {/* Headline */}
             <h1
               className="t-hero font-display"
-              style={{
-                color: "#0B2237",
-                textShadow: "0 0 28px rgba(247,249,252,0.95), 0 1px 0 rgba(255,255,255,0.7)",
-              }}
+              style={{ color: "#0B2237" }}
             >
               Plan unforgettable
               <br />
@@ -84,7 +80,7 @@ export default function Hero({ plan, onViewPlan }) {
             {/* Sub — supporting line, lighter weight + smaller than headline */}
             <p
               className="t-body mt-5 max-w-xl"
-              style={{ color: "#3E5463", textShadow: "0 1px 12px rgba(247,249,252,0.9)" }}
+              style={{ color: "#22384E" }}
             >
               Find flights, stays and experiences that fit your budget.
               Compare real options and get a complete trip plan in one place.
@@ -97,7 +93,7 @@ export default function Hero({ plan, onViewPlan }) {
                   key={title}
                   className="flex shrink-0 items-center gap-2.5 rounded-[14px] px-3 py-2.5 transition-all hover:-translate-y-0.5"
                   style={{
-                    background: "rgba(255,255,255,0.94)",
+                    background: "#FFFFFF",
                     border: "1px solid #E5E7EB",
                     boxShadow: "0 4px 20px rgba(15, 23, 42, 0.08)",
                   }}
@@ -123,7 +119,7 @@ export default function Hero({ plan, onViewPlan }) {
               <span
                 className="t-meta inline-flex items-center gap-1.5 rounded-full px-4 py-2"
                 style={{
-                  background: "rgba(255,255,255,0.92)",
+                  background: "#FFFFFF",
                   border: "1px solid #E5E7EB",
                   color: "#0B2237",
                   boxShadow: "0 4px 20px rgba(15, 23, 42, 0.08)",

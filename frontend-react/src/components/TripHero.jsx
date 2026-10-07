@@ -59,8 +59,8 @@ export default function TripHero({ plan, onViewPlan }) {
         style={{ objectPosition: "center 38%" }}
       />
 
-      {/* Sheer light wash — photo visible edge-to-edge, denser on the left
-          where the copy sits */}
+      {/* Soft readability veil — gentle blur-like wash on the left where
+          the copy sits, opening to the crisp photo on the right */}
       <div
         className="absolute inset-0"
         style={{
@@ -86,17 +86,14 @@ export default function TripHero({ plan, onViewPlan }) {
 
             <h1
               className="t-hero font-display"
-              style={{
-                color: "#0B2237",
-                textShadow: "0 0 28px rgba(247,249,252,0.95), 0 1px 0 rgba(255,255,255,0.7)",
-              }}
+              style={{ color: "#0B2237" }}
             >
               Your {destination}
               <br />
               trip <span style={{ color: "#F25542" }}>plan.</span>
             </h1>
 
-            <p className="t-body mt-4 max-w-xl" style={{ color: "#3E5463", textShadow: "0 1px 12px rgba(247,249,252,0.9)" }}>
+            <p className="t-body mt-4 max-w-xl" style={{ color: "#22384E" }}>
               {plan
                 ? "Flights, stay and day-by-day details — all below on this page."
                 : "Build your route on the Explore page — the full plan appears here."}
