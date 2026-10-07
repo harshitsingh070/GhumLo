@@ -1,28 +1,28 @@
 /** Reusable section heading: eyebrow + display title + subtitle.
- *  Props: eyebrow, title, subtitle, align ("left"|"center"), dark (bool).
- *  The app is always dark — `dark` is kept for API compatibility. */
+ *  Light-only theme: navy title, gray subtitle, coral eyebrow.
+ *  Type scale: 24px/700 section title, 14px/400 subtitle, 11px/600 eyebrow. */
 import Reveal from "./Reveal.jsx";
 
-export default function SectionHeading({ eyebrow, title, subtitle, align = "left", dark = true }) {
+export default function SectionHeading({ eyebrow, title, subtitle, align = "left" }) {
   const alignCls = align === "center" ? "text-center mx-auto items-center" : "text-left items-start";
   return (
     <Reveal>
-      <div className={`flex max-w-2xl flex-col gap-3 ${alignCls}`}>
+      <div className={`flex max-w-2xl flex-col gap-2 ${alignCls}`}>
       {eyebrow && (
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--coral)]">
+        <p className="t-badge uppercase" style={{ color: "#FF6B57" }}>
           {eyebrow}
         </p>
       )}
       <h2
-        className="font-display text-[26px] font-extrabold leading-[1.12] tracking-[-0.025em] sm:text-[32px]"
-        style={{ color: dark ? "var(--text-primary)" : undefined }}
+        className="t-section"
+        style={{ color: "#102A43" }}
       >
         {title}
       </h2>
       {subtitle && (
         <p
-          className="text-[15px] leading-relaxed sm:text-base"
-          style={{ color: dark ? "var(--text-secondary)" : undefined }}
+          className="t-body"
+          style={{ color: "#52606D" }}
         >
           {subtitle}
         </p>

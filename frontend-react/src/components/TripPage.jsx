@@ -1,9 +1,9 @@
-import { SearchX } from "lucide-react";
 import { go } from "../lib/router.js";
 import LoadingProgress from "./LoadingProgress.jsx";
+import ErrorState from "./ErrorState.jsx";
+import { InlineThinking } from "./Loader.jsx";
 import PickCard from "./PickCard.jsx";
 import StickyBudgetSummary from "./StickyBudgetSummary.jsx";
-import SectionSideNav from "./SectionSideNav.jsx";
 import ItinerarySection from "./ItinerarySection.jsx";
 import WeatherSnapshot from "./WeatherSnapshot.jsx";
 import PackingList from "./PackingList.jsx";
@@ -39,59 +39,39 @@ export default function TripPage({
 
       {/* Error */}
       {error && !loading && (
-        <section
-          className="animate-fade-rise glass-panel rounded-[24px] p-8 text-center text-white"
-          style={{
-            background: "rgba(9, 38, 48, 0.92)",
-            border: "1px solid rgba(255, 114, 94, 0.3)",
-          }}
-          role="alert"
-          aria-label="No trips found"
-        >
-          <span
-            className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl"
-            style={{ background: "rgba(255, 114, 94, 0.15)", color: "var(--coral)" }}
-          >
-            <SearchX className="h-7 w-7" />
-          </span>
-          <h2 className="font-display mt-5 text-2xl font-extrabold tracking-tight text-white">
-            {lastBudget
+        <ErrorState
+          icon="search"
+          title={
+            lastBudget
               ? `No trips found within ₹${Number(lastBudget).toLocaleString("en-IN")}`
-              : "We couldn't build that trip"}
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-slate-300">
-            {error}
-          </p>
-          <ul className="mx-auto mt-4 max-w-md space-y-1.5 text-left text-[14px] text-slate-300">
-            <li>· Try increasing your budget</li>
-            <li>· Try changing your travel dates</li>
-            <li>· Try a nearby alternate airport or destination</li>
-          </ul>
-          <button
-            type="button"
-            onClick={() => go("home", "plan")}
-            className="btn-primary mt-6 inline-flex h-[46px] items-center rounded-xl px-7 text-[14px] font-bold"
-          >
-            Adjust search
-          </button>
-        </section>
+              : "We couldn't build that trip"
+          }
+          message={error}
+          suggestions={[
+            "Try increasing your budget",
+            "Try changing your travel dates",
+            "Try a nearby alternate airport or destination",
+          ]}
+          actionLabel="Adjust search"
+          onAction={() => go("home", "plan")}
+        />
       )}
 
       {/* Empty state — first visit, no search yet */}
       {!plan && !loading && !error && (
         <section
-          className="glass-panel rounded-[24px] p-8 text-center text-white"
+          className="rounded-[24px] bg-white p-8 text-center"
           style={{
-            background: "rgba(9, 38, 48, 0.88)",
-            border: "1px solid rgba(255, 255, 255, 0.12)",
+            border: "1px solid #E5E7EB",
+            boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
           }}
         >
-          <p className="text-[14px] text-slate-300">
+          <p className="t-body text-[#52606D]">
             No trip yet — build one on the{" "}
             <button
               type="button"
               onClick={() => go("home", "plan")}
-              className="font-bold text-white underline underline-offset-2 hover:text-[var(--coral)]"
+              className="font-bold text-[#FF6B57] underline underline-offset-2 hover:text-[#F25542]"
             >
               Explore page
             </button>{" "}
@@ -103,14 +83,25 @@ export default function TripPage({
       {/* Results Dashboard — all trip details on this page */}
       {plan && !loading && (
         <div id="results" className="space-y-8 xl:space-y-10 animate-fade-rise scroll-mt-28">
+          {/* Recompute progress — hotel/style swap running, old plan kept */}
+          {recomputing && (
+            <div
+              className="flex items-center gap-3 rounded-[16px] bg-white px-5 py-3.5"
+              style={{
+                border: "1px solid #E5E7EB",
+                boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
+              }}
+              aria-live="polite"
+            >
+              <InlineThinking label="Updating your trip with fresh prices…" />
+            </div>
+          )}
           <StickyBudgetSummary
             plan={plan}
             total_cost={total}
             budget={cap}
             fits_budget={!over}
           />
-
-          <SectionSideNav plan={plan} />
 
           {/* MAIN DASHBOARD */}
           <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2 xl:grid-cols-[minmax(280px,0.9fr)_minmax(0,1.8fr)] xl:gap-7">
@@ -154,14 +145,16 @@ export default function TripPage({
 
             <SmartOptions plan={plan} onSelectAlternative={onSelectAlternative} recomputing={recomputing} />
 
-            {/* Weather + Know (left stack) + Guides (right) */}
+            {/* Weather + Packing (left stack) + Guides + Good to know (right) */}
             <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2 xl:gap-6">
               <div className="space-y-5">
                 <WeatherSnapshot weather={plan.weather} destination={plan.destination} />
                 <PackingList packing={plan.packing} weather={plan.weather} num_nights={plan.num_nights} destination={plan.destination} />
+              </div>
+              <div className="space-y-5">
+                <DestinationVlogs videos={plan.videos} destination={plan.destination} />
                 <KnowBeforeYouGo know={plan.know} destination={plan.destination} />
               </div>
-              <DestinationVlogs videos={plan.videos} destination={plan.destination} />
             </div>
 
             <ExchangeRateNote exchange_rate={plan.exchange_rate} budget={plan.budget} />

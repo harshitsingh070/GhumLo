@@ -9,10 +9,9 @@ const NAV = [
   { label: "How it works", route: "how" },
 ];
 
-/** GhoomLo — the single primary navbar.
- *  Floats over the hero as a rounded frosted-glass bar (fixed, never a
- *  second bar). Logo · nav · search · bell · avatar · coral CTA.
- *  Collapses to a drawer below 1024px. */
+/** GhoomLo — light primary navbar.
+ *  White bar with subtle border/shadow. Logo · nav · search · bell ·
+ *  avatar · coral CTA. Collapses to a drawer below 1024px. */
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -47,19 +46,17 @@ export default function Header() {
 
   return (
     <header
-      className="fixed inset-x-0 top-0 z-[2000] px-3 pt-3 sm:px-5 sm:pt-4"
+      className="no-print fixed inset-x-0 top-0 z-[2000] px-3 pt-3 sm:px-5 sm:pt-4"
       style={{ pointerEvents: "none" }}
     >
-      <div className="tcc-container !px-0">
+      <div className="tcc-container !px-0" style={{ maxWidth: 1320 }}>
         <div
           className="flex h-[62px] items-center gap-4 rounded-[18px] px-4 sm:px-5"
           style={{
             pointerEvents: "auto",
-            background: "rgba(4, 24, 32, 0.72)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            boxShadow: "0 18px 45px rgba(0,0,0,0.32)",
+            background: "#FFFFFF",
+            border: "1px solid #E5E7EB",
+            boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
           }}
         >
           {/* ── Logo ── */}
@@ -77,8 +74,8 @@ export default function Header() {
               loading="eager"
             />
             <span
-              className="font-display hidden text-[17px] font-extrabold tracking-tight min-[360px]:inline"
-              style={{ color: "var(--text-primary)" }}
+              className="font-display hidden t-card-lg min-[360px]:inline"
+              style={{ color: "#102A43", fontWeight: 700 }}
             >
               GhoomLo
             </span>
@@ -94,20 +91,24 @@ export default function Header() {
                   type="button"
                   onClick={() => handleNav(item)}
                   aria-current={active ? "page" : undefined}
-                  className="tcc-focus relative rounded-[10px] px-3.5 py-2 text-[14px] font-medium transition-colors xl:px-4"
-                  style={{ color: active ? "var(--coral)" : "var(--text-secondary)" }}
+                  className="tcc-focus relative rounded-[10px] px-3.5 py-2 t-nav transition-colors xl:px-4"
+                  style={{
+                    color: active ? "#FF6B57" : "#3E5463",
+                    background: active ? "#FFF1EE" : "transparent",
+                    fontWeight: active ? 700 : 600,
+                  }}
                   onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.color = "var(--text-primary)";
+                    if (!active) e.currentTarget.style.color = "#102A43";
                   }}
                   onMouseLeave={(e) => {
-                    if (!active) e.currentTarget.style.color = "var(--text-secondary)";
+                    if (!active) e.currentTarget.style.color = "#52606D";
                   }}
                 >
                   {item.label}
                   {active && (
                     <span
                       className="absolute inset-x-3.5 -bottom-0.5 h-0.5 rounded-full"
-                      style={{ background: "var(--coral)" }}
+                      style={{ background: "#FF6B57" }}
                       aria-hidden="true"
                     />
                   )}
@@ -121,14 +122,14 @@ export default function Header() {
             {/* Search pill (desktop) */}
             <form
               onSubmit={submitSearch}
-              className="hidden items-center gap-2 rounded-full px-3.5 py-2 transition-colors focus-within:border-[rgba(255,114,94,0.6)] lg:flex"
+              className="hidden items-center gap-2 rounded-full px-3.5 py-2 transition-colors lg:flex"
               style={{
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.12)",
+                background: "#F1F5F9",
+                border: "1px solid #E5E7EB",
               }}
               role="search"
             >
-              <Search className="h-4 w-4 shrink-0" style={{ color: "var(--text-muted)" }} aria-hidden="true" />
+              <Search className="h-4 w-4 shrink-0" style={{ color: "#829AB1" }} aria-hidden="true" />
               <label htmlFor="nav-search" className="sr-only">
                 Search destinations, hotels, experiences
               </label>
@@ -138,8 +139,8 @@ export default function Header() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search destinations..."
-                className="w-44 bg-transparent text-[13px] outline-none placeholder:text-[var(--text-muted)] xl:w-60"
-                style={{ color: "var(--text-primary)" }}
+                className="w-44 bg-transparent t-input outline-none xl:w-60"
+                style={{ color: "#102A43" }}
               />
             </form>
 
@@ -147,11 +148,11 @@ export default function Header() {
             <button
               type="button"
               aria-label="Notifications"
-              className="hidden h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-white/10 lg:flex"
+              className="hidden h-9 w-9 items-center justify-center rounded-full transition-colors lg:flex"
               style={{
-                background: "rgba(255,255,255,0.07)",
-                border: "1px solid rgba(255,255,255,0.11)",
-                color: "var(--text-secondary)",
+                background: "#F1F5F9",
+                border: "1px solid #E5E7EB",
+                color: "#52606D",
               }}
             >
               <Bell className="h-4 w-4" />
@@ -160,7 +161,7 @@ export default function Header() {
             {/* Avatar */}
             <div
               className="hidden h-8 w-8 items-center justify-center overflow-hidden rounded-full lg:flex"
-              style={{ background: "var(--coral)", color: "#fff", fontSize: 13, fontWeight: 700 }}
+              style={{ background: "#FF6B57", color: "#fff", fontSize: 13, fontWeight: 700 }}
               aria-hidden="true"
             >
               G
@@ -170,7 +171,7 @@ export default function Header() {
             <button
               type="button"
               onClick={goTrip}
-              className="btn-primary hidden h-[38px] px-5 text-[13px] sm:inline-flex"
+              className="btn-primary hidden h-[38px] px-5 t-btn sm:inline-flex"
             >
               Plan a trip <span aria-hidden="true">→</span>
             </button>
@@ -183,9 +184,9 @@ export default function Header() {
               aria-label={open ? "Close menu" : "Open menu"}
               className="tcc-focus flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors lg:hidden"
               style={{
-                border: "1px solid rgba(255,255,255,0.14)",
-                color: "var(--text-secondary)",
-                background: "rgba(255,255,255,0.05)",
+                border: "1px solid #E5E7EB",
+                color: "#52606D",
+                background: "#F1F5F9",
               }}
             >
               {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -199,18 +200,16 @@ export default function Header() {
             className="animate-fade-rise mt-2 overflow-hidden rounded-[18px] px-3 pb-4 pt-2 lg:hidden"
             style={{
               pointerEvents: "auto",
-              background: "rgba(4, 24, 32, 0.96)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              boxShadow: "0 18px 45px rgba(0,0,0,0.4)",
+              background: "#FFFFFF",
+              border: "1px solid #E5E7EB",
+              boxShadow: "0 12px 28px -12px rgb(23 32 51 / 0.14)",
             }}
             aria-label="Mobile navigation"
           >
             <form onSubmit={submitSearch} className="mb-2 flex items-center gap-2 rounded-full px-3.5 py-2.5"
-              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}
+              style={{ background: "#F1F5F9", border: "1px solid #E5E7EB" }}
               role="search">
-              <Search className="h-4 w-4 shrink-0" style={{ color: "var(--text-muted)" }} aria-hidden="true" />
+              <Search className="h-4 w-4 shrink-0" style={{ color: "#829AB1" }} aria-hidden="true" />
               <label htmlFor="nav-search-m" className="sr-only">Search destinations</label>
               <input
                 id="nav-search-m"
@@ -218,8 +217,8 @@ export default function Header() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search destinations, hotels..."
-                className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
-                style={{ color: "var(--text-primary)" }}
+                className="w-full bg-transparent t-input outline-none"
+                style={{ color: "#102A43" }}
               />
             </form>
 
@@ -230,14 +229,15 @@ export default function Header() {
                   key={item.label}
                   type="button"
                   onClick={() => handleNav(item)}
-                  className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-base font-medium"
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left t-nav"
                   style={{
-                    color: active ? "var(--coral)" : "var(--text-secondary)",
-                    background: active ? "rgba(255,114,94,0.08)" : "transparent",
+                    color: active ? "#FF6B57" : "#3E5463",
+                    background: active ? "#FFF1EE" : "transparent",
+                    fontWeight: active ? 700 : 600,
                   }}
                 >
                   {item.label}
-                  {active && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--coral)" }} />}
+                  {active && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#FF6B57" }} />}
                 </button>
               );
             })}
@@ -245,7 +245,7 @@ export default function Header() {
             <button
               type="button"
               onClick={goTrip}
-              className="btn-primary mt-2 h-[46px] w-full text-base"
+              className="btn-primary mt-2 h-[46px] w-full t-btn"
             >
               Plan a trip <span aria-hidden="true">→</span>
             </button>

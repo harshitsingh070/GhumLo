@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
 import { navigate, useHashRoute } from "./lib/router.js";
+import { apiRequest, friendlyError } from "./lib/api.js";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import Header from "./components/Header.jsx";
 import Hero from "./components/Hero.jsx";
 import DestinationsPage from "./components/DestinationsPage.jsx";
@@ -30,6 +32,10 @@ export default function App() {
   // Monotonic request id: a stale recompute resolving after a fresh form
   // submit must not overwrite the newer plan.
   const reqIdRef = useRef(0);
+  // Abort handle for the in-flight /api/plan call: starting a newer search
+  // cancels the older one so duplicate clicks can never run two live
+  // searches against each other (double quota burn + racing results).
+  const planAbortRef = useRef(null);
   // Destination-card prefill: sets the Explore form's destination field,
   // jumps to the Explore page, and scrolls the form into view.
   const [prefillDestination, setPrefillDestination] = useState("");
@@ -48,15 +54,23 @@ export default function App() {
     }
   };
 
-  const postPlan = async (payload) => {
-    const res = await fetch("/api/plan", {
+  const postPlan = async (payload, signal) => {
+    // Live plan search can fan out to many provider calls — allow 3 min.
+    return apiRequest("/api/plan", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: payload,
+      timeoutMs: 180000,
+      signal,
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Something went wrong.");
-    return data;
+  };
+
+  /** Start a plan request with supersede semantics: any previous in-flight
+   *  plan call is aborted first, so exactly one search is ever live. */
+  const startPlanRequest = (payload) => {
+    planAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    planAbortRef.current = ctrl;
+    return postPlan(payload, ctrl.signal);
   };
 
   const handleSubmit = async (payload) => {
@@ -72,7 +86,7 @@ export default function App() {
       // previous hotel choice resets by construction — the new response
       // carries selected_hotel_name: null and the picker highlights the
       // new auto pick.
-      const data = await postPlan(payload);
+      const data = await startPlanRequest(payload);
       if (reqIdRef.current === id) {
         setPlan(data);
         if (route !== "trip") navigate("trip");
@@ -82,8 +96,8 @@ export default function App() {
         );
       }
     } catch (err) {
-      if (reqIdRef.current === id) {
-        setError(err.message);
+      if (reqIdRef.current === id && !err?.aborted) {
+        setError(friendlyError(err));
         // Errors render on the trip page, so still redirect there.
         if (route !== "trip") navigate("trip");
       }
@@ -104,7 +118,7 @@ export default function App() {
       // Same trip params + chosen hotel. Flights/hotels hit the trip's
       // existing cache; places are searched near the new hotel's anchor
       // (cached when previously searched, else 2 live searches).
-      const data = await postPlan({
+      const data = await startPlanRequest({
         ...base,
         travel_mode: plan?.travel_mode ?? base.travel_mode,
         selected_hotel_name: name,
@@ -119,8 +133,9 @@ export default function App() {
       }
     } catch (err) {
       // Keep the previous plan on screen — a failed swap must not nuke
-      // working results; surface the message above them.
-      if (reqIdRef.current === id) setError(err.message);
+      // working results; surface the message above them. Aborted
+      // (superseded) requests stay silent.
+      if (reqIdRef.current === id && !err?.aborted) setError(friendlyError(err));
     } finally {
       if (reqIdRef.current === id) setRecomputing(false);
     }
@@ -133,13 +148,13 @@ export default function App() {
     setRecomputing(true);
     setError("");
     try {
-      const data = await postPlan({ ...base, travel_mode: option.mode, selected_hotel_name: null });
+      const data = await startPlanRequest({ ...base, travel_mode: option.mode, selected_hotel_name: null });
       if (reqIdRef.current === id) {
         lastPayloadRef.current = { ...base, travel_mode: data.travel_mode ?? option.mode, selected_hotel_name: null };
         setPlan(data);
       }
     } catch (err) {
-      if (reqIdRef.current === id) setError(err.message);
+      if (reqIdRef.current === id && !err?.aborted) setError(friendlyError(err));
     } finally {
       if (reqIdRef.current === id) setRecomputing(false);
     }
@@ -152,9 +167,7 @@ export default function App() {
     setError("");
     setPlan(null);
     try {
-      const res = await fetch("/api/demo");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Demo unavailable.");
+      const data = await apiRequest("/api/demo", { timeoutMs: 30000 });
       if (reqIdRef.current === id) {
         lastPayloadRef.current = {
           origin: data.origin,
@@ -175,7 +188,7 @@ export default function App() {
       }
     } catch (err) {
       if (reqIdRef.current === id) {
-        setError(err.message);
+        setError(friendlyError(err, "Demo unavailable."));
         if (route !== "trip") navigate("trip");
       }
     } finally {
@@ -184,11 +197,12 @@ export default function App() {
   };
 
   return (
+    <ErrorBoundary>
     <div
-      className="min-h-screen font-sans text-slate-100"
+      className="min-h-screen font-sans"
       style={{
-        backgroundColor: "var(--bg-primary)",
-        color: "var(--text-primary)",
+        backgroundColor: "#F7F9FC",
+        color: "#102A43",
       }}
     >
       <Header />
@@ -263,5 +277,6 @@ export default function App() {
           mounted once per trip instead of the old full-width section. */}
       {plan && !loading && <GhumiGhumiAI key={plan.destination} plan={plan} />}
     </div>
+    </ErrorBoundary>
   );
 }

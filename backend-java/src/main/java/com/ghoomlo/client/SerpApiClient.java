@@ -84,6 +84,27 @@ public class SerpApiClient {
     failUntil.remove(optKey(cacheName, params));
   }
 
+  /** True for transport-level blips worth retrying (reset/closed connections,
+   *  timeouts) — never for API-level errors (bad key, quota, bad params),
+   *  which would just fail identically on retry. */
+  private static boolean isTransientTransportError(Throwable e) {
+    for (Throwable t = e; t != null; t = t.getCause()) {
+      String cls = t.getClass().getName();
+      if (cls.contains("WebClientRequestException")) return true;
+      if (t instanceof java.net.SocketException
+          || t instanceof java.net.SocketTimeoutException
+          || t instanceof java.net.ConnectException
+          || t instanceof java.nio.channels.ClosedChannelException
+          || t instanceof java.util.concurrent.TimeoutException
+          || t instanceof io.netty.handler.timeout.ReadTimeoutException
+          || t instanceof reactor.netty.channel.AbortedException
+          || t instanceof reactor.netty.http.client.PrematureCloseException) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @SuppressWarnings("unchecked")
   private Map<String, Object> search(Map<String, Object> params, String cacheName,
       boolean skipCache, Long ttlSeconds) {
@@ -101,16 +122,51 @@ public class SerpApiClient {
     log.info("[live API] {} params={}", cacheName, params);
     Map<String, Object> withKey = new LinkedHashMap<>(params);
     withKey.put("api_key", apiKey());
-    String json;
-    try {
-      json = serpApiWebClient.get().uri(uri -> {
-        var b = uri.path("/search.json");
-        withKey.forEach((k, v) -> b.queryParam(k, String.valueOf(v)));
-        return b.build();
-      }).retrieve().bodyToMono(String.class).block(Duration.ofSeconds(timeoutSeconds()));
-    } catch (Exception e) {
-      log.error("SerpApi {} failed: {}: {}", cacheName, e.getClass().getSimpleName(), e.getMessage());
-      throw new RuntimeException(e);
+    // SerpApi sits behind an edge that intermittently resets connections
+    // (stale pooled keep-alive, network blips). Transport failures get
+    // 3 attempts with growing backoff; a final failure falls back to any
+    // cached snapshot so one blip can't 502 the whole trip.
+    String json = null;
+    Exception lastError = null;
+    for (int attempt = 1; attempt <= 3; attempt++) {
+      try {
+        json = serpApiWebClient.get().uri(uri -> {
+          var b = uri.path("/search.json");
+          withKey.forEach((k, v) -> b.queryParam(k, String.valueOf(v)));
+          return b.build();
+        }).retrieve().bodyToMono(String.class).block(Duration.ofSeconds(timeoutSeconds()));
+        lastError = null;
+        break;
+      } catch (Exception e) {
+        if (!isTransientTransportError(e)) {
+          log.error("SerpApi {} failed: {}: {}", cacheName, e.getClass().getSimpleName(), e.getMessage());
+          throw new RuntimeException(e);
+        }
+        lastError = e;
+        if (attempt < 3) {
+          log.warn("SerpApi {} transient failure (attempt {}/3): {} — retrying",
+              cacheName, attempt, e.getMessage());
+          try {
+            Thread.sleep(800L * attempt);
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+          }
+        }
+      }
+    }
+    if (lastError != null) {
+      Map<String, Object> stale = cache.getStale(cacheName, params);
+      if (stale != null) {
+        log.warn("SerpApi {} unreachable after retries — serving stale snapshot", cacheName);
+        Map<String, Object> out = new LinkedHashMap<>(stale);
+        out.put("_from_cache", true);
+        out.put("_stale", true);
+        return out;
+      }
+      log.error("SerpApi {} failed: {}: {}", cacheName,
+          lastError.getClass().getSimpleName(), lastError.getMessage());
+      throw new RuntimeException(lastError);
     }
     Map<String, Object> results;
     try {

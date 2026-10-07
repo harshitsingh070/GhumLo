@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeftRight,
   CalendarDays,
@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import NaturalLanguageInput from "./NaturalLanguageInput.jsx";
+import { ButtonSpinner } from "./Loader.jsx";
 
 const DEFAULTS = {
   origin: "DEL",
@@ -22,12 +23,19 @@ const DEFAULTS = {
   force_refresh: false,
 };
 
-/** Trip Builder — slim horizontal glass bar matching reference design.
+/** Trip Builder — light card with NL helper, fields, style/options row.
  *  All form logic/validation/props unchanged. */
 export default function TripForm({ loading, onSubmit, prefillDestination, onDemo, demoLoading }) {
   const [form, setForm] = useState(DEFAULTS);
   const [dateError, setDateError] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  // Sync guard: `loading` only disables the button after a re-render, so
+  // two clicks in the same tick would fire two searches. This ref blocks
+  // the second one immediately.
+  const submittingRef = useRef(false);
+
+  useEffect(() => {
+    if (!loading) submittingRef.current = false;
+  }, [loading]);
 
   useEffect(() => {
     if (prefillDestination) setForm((f) => ({ ...f, destination: prefillDestination }));
@@ -60,11 +68,13 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
 
   const submit = (e) => {
     e.preventDefault();
+    if (loading || submittingRef.current) return;
     if (form.return_date <= form.departure_date) {
       setDateError("Choose a return date after your departure date.");
       return;
     }
     setDateError("");
+    submittingRef.current = true;
     onSubmit({
       origin: form.origin.trim(),
       destination: form.destination.trim(),
@@ -73,24 +83,21 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
       travelers: Number(form.travelers),
       budget: Number(form.budget),
       travel_mode: form.travel_mode,
-      force_refresh: Boolean(form.force_refresh),
+      force_refresh: true,
     });
   };
 
   const labelCls =
-    "text-[11px] font-bold uppercase tracking-[0.14em] whitespace-nowrap";
+    "t-label uppercase whitespace-nowrap";
 
   const dividerCls =
     "w-px self-stretch my-3 hidden lg:block";
 
-  /* Real visible inputs (transparent, borderless) — the old invisible
-   * overlay-input trick broke typing on several browsers and mobile
-   * keyboards, since users typed into an opacity-0 field. */
   const textInputCls =
-    "w-full min-w-0 bg-transparent text-[15px] font-semibold outline-none placeholder:text-[var(--text-muted)]";
+    "w-full min-w-0 bg-transparent t-input outline-none placeholder:text-[#829AB1]";
 
   const dateInputCls =
-    "w-full min-w-0 flex-1 bg-transparent text-[13px] font-semibold outline-none [color-scheme:dark]";
+    "w-full min-w-0 flex-1 bg-transparent t-input outline-none [color-scheme:light]";
 
   const STYLE_OPTIONS = [
     ["saver",    "Saver",    "Lowest total"],
@@ -100,24 +107,18 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
 
   return (
     <section aria-label="Build your trip" id="trip-builder" className="scroll-mt-28">
-      {/* Single wide glass panel — NL helper, fields, then style/options row.
-          Layered glass: translucent body, lit border, inset top highlight +
-          deep soft shadow so it floats above the hero. */}
       <div
-        className="overflow-hidden rounded-[24px]"
+        className="overflow-hidden rounded-[20px]"
         style={{
-          background: "rgba(8, 32, 42, 0.86)",
-          border: "1px solid rgba(255,255,255,0.16)",
-          backdropFilter: "blur(22px)",
-          WebkitBackdropFilter: "blur(22px)",
-          boxShadow:
-            "0 28px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)",
+          background: "#FFFFFF",
+          border: "1px solid #E5E7EB",
+          boxShadow: "0 12px 32px -12px rgba(16, 42, 67, 0.18)",
         }}
       >
         {/* Natural-language helper */}
         <div
           className="px-5 pb-4 pt-5"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
+          style={{ borderBottom: "1px solid #EEF2F6" }}
         >
           <NaturalLanguageInput onFill={applyNlFields} />
         </div>
@@ -127,14 +128,14 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
           <div className="flex flex-col lg:flex-row lg:items-stretch">
           {/* From */}
           <label className="flex min-w-0 flex-col justify-center gap-1.5 px-5 py-4 lg:flex-1" htmlFor="trip-origin">
-            <span className={labelCls} style={{ color: "var(--text-muted)" }}>
+            <span className={labelCls} style={{ color: "#829AB1" }}>
               <Plane className="mb-0.5 mr-1 inline h-3 w-3" />From
             </span>
             <input
               id="trip-origin"
               type="text"
               className={`${textInputCls} tcc-focus rounded-md`}
-              style={{ color: "var(--text-primary)" }}
+              style={{ color: "#102A43" }}
               value={form.origin}
               onChange={set("origin")}
               required
@@ -151,30 +152,30 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
             onClick={swapOriginDest}
             title="Swap origin and destination"
             aria-label="Swap origin and destination"
-            className="tcc-focus hidden items-center justify-center self-center lg:flex"
+            className="tcc-focus hidden items-center justify-center self-center transition-colors lg:flex"
             style={{
               width: 32, height: 32, borderRadius: "50%",
-              background: "rgba(255,255,255,0.07)",
-              border: "1px solid rgba(255,255,255,0.14)",
-              color: "var(--text-muted)",
+              background: "#F1F5F9",
+              border: "1px solid #E5E7EB",
+              color: "#52606D",
               flexShrink: 0,
             }}
           >
             <ArrowLeftRight className="h-3.5 w-3.5" />
           </button>
 
-          <div className={dividerCls} style={{ background: "rgba(255,255,255,0.08)" }} aria-hidden="true" />
+          <div className={dividerCls} style={{ background: "#EEF2F6" }} aria-hidden="true" />
 
           {/* To */}
           <label className="flex min-w-0 flex-col justify-center gap-1.5 px-5 py-4 lg:flex-1" htmlFor="trip-destination">
-            <span className={labelCls} style={{ color: "var(--text-muted)" }}>
+            <span className={labelCls} style={{ color: "#829AB1" }}>
               <MapPin className="mb-0.5 mr-1 inline h-3 w-3" />To
             </span>
             <input
               id="trip-destination"
               type="text"
               className={`${textInputCls} tcc-focus rounded-md`}
-              style={{ color: "var(--text-primary)" }}
+              style={{ color: "#102A43" }}
               value={form.destination}
               onChange={set("destination")}
               required
@@ -185,11 +186,11 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
             />
           </label>
 
-          <div className={dividerCls} style={{ background: "rgba(255,255,255,0.08)" }} aria-hidden="true" />
+          <div className={dividerCls} style={{ background: "#EEF2F6" }} aria-hidden="true" />
 
-          {/* Dates — real visible date inputs (native picker + keyboard) */}
+          {/* Dates */}
           <div className="flex min-w-0 flex-col justify-center gap-1.5 px-5 py-4 lg:flex-[1.5]">
-            <span className={labelCls} style={{ color: "var(--text-muted)" }}>
+            <span className={labelCls} style={{ color: "#829AB1" }}>
               <CalendarDays className="mb-0.5 mr-1 inline h-3 w-3" />Dates
             </span>
             <div className="flex min-w-0 items-center gap-2">
@@ -201,9 +202,9 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
                 required
                 aria-label="Departure date"
                 className={`${dateInputCls} tcc-focus rounded-md`}
-                style={{ color: "var(--text-primary)" }}
+                style={{ color: "#102A43" }}
               />
-              <span aria-hidden="true" style={{ color: "var(--text-muted)" }}>–</span>
+              <span aria-hidden="true" style={{ color: "#829AB1" }}>–</span>
               <input
                 id="trip-return"
                 type="date"
@@ -213,16 +214,16 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
                 required
                 aria-label="Return date"
                 className={`${dateInputCls} tcc-focus rounded-md`}
-                style={{ color: "var(--text-primary)" }}
+                style={{ color: "#102A43" }}
               />
             </div>
           </div>
 
-          <div className={dividerCls} style={{ background: "rgba(255,255,255,0.08)" }} aria-hidden="true" />
+          <div className={dividerCls} style={{ background: "#EEF2F6" }} aria-hidden="true" />
 
           {/* Travelers */}
           <label className="flex min-w-0 flex-col justify-center gap-1.5 px-5 py-4 lg:w-32" htmlFor="trip-travelers">
-            <span className={labelCls} style={{ color: "var(--text-muted)" }}>
+            <span className={labelCls} style={{ color: "#829AB1" }}>
               <Users className="mb-0.5 mr-1 inline h-3 w-3" />Travelers
             </span>
             <input
@@ -233,19 +234,19 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
               min={1} max={9} required
               aria-label="Number of travelers"
               className={`${textInputCls} tcc-focus rounded-md`}
-              style={{ color: "var(--text-primary)" }}
+              style={{ color: "#102A43" }}
             />
           </label>
 
-          <div className={dividerCls} style={{ background: "rgba(255,255,255,0.08)" }} aria-hidden="true" />
+          <div className={dividerCls} style={{ background: "#EEF2F6" }} aria-hidden="true" />
 
           {/* Budget */}
           <label className="flex min-w-0 flex-col justify-center gap-1.5 px-5 py-4 lg:w-36" htmlFor="trip-budget">
-            <span className={labelCls} style={{ color: "var(--text-muted)" }}>
+            <span className={labelCls} style={{ color: "#829AB1" }}>
               <IndianRupee className="mb-0.5 mr-1 inline h-3 w-3" />Budget
             </span>
             <span className="flex min-w-0 items-center gap-1">
-              <span aria-hidden="true" className="text-[15px] font-semibold" style={{ color: "var(--text-muted)" }}>₹</span>
+              <span aria-hidden="true" className="t-activity" style={{ color: "#829AB1" }}>₹</span>
               <input
                 id="trip-budget"
                 type="number"
@@ -254,7 +255,7 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
                 min={1000} step={1000} required
                 aria-label="Budget in rupees"
                 className={`${textInputCls} tcc-focus rounded-md`}
-                style={{ color: "var(--text-primary)" }}
+                style={{ color: "#102A43" }}
               />
             </span>
           </label>
@@ -264,11 +265,11 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
             id="trip-submit"
             type="submit"
             disabled={loading}
-            className="tcc-focus btn-primary m-4 h-auto min-h-[52px] rounded-[12px] px-7 text-[15px] lg:m-0 lg:rounded-none lg:rounded-r-[23px]"
+            className="tcc-focus btn-primary m-4 h-auto min-h-[52px] rounded-[12px] px-7 t-btn lg:m-3"
           >
             {loading ? (
               <>
-                <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" aria-hidden="true" />
+                <ButtonSpinner />
                 Searching…
               </>
             ) : (
@@ -282,9 +283,9 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
 
           {dateError && (
             <p
-              className="px-5 pb-3 pt-3 text-sm font-semibold"
+              className="px-5 pb-3 pt-3 t-body-strong"
               role="alert"
-              style={{ color: "var(--coral)" }}
+              style={{ color: "#F25542" }}
             >
               {dateError}
             </p>
@@ -293,11 +294,11 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
           {/* ── Row 2: travel style & options ── */}
           <div
             className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5 px-5 py-3.5"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
+            style={{ borderTop: "1px solid #EEF2F6", background: "#F7F9FC" }}
           >
             <span
-              className="text-[11px] font-bold uppercase tracking-[0.16em]"
-              style={{ color: "var(--text-muted)" }}
+              className="t-badge uppercase"
+              style={{ color: "#829AB1" }}
             >
               Travel style
             </span>
@@ -308,11 +309,11 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
                 <label
                   key={value}
                   title={desc}
-                  className="cursor-pointer rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-all"
+                  className="cursor-pointer rounded-full px-3.5 py-1.5 t-btn-sm transition-all"
                   style={{
-                    background: form.travel_mode === value ? "var(--coral)" : "rgba(255,255,255,0.06)",
-                    border: `1px solid ${form.travel_mode === value ? "var(--coral)" : "rgba(255,255,255,0.13)"}`,
-                    color: form.travel_mode === value ? "#fff" : "var(--text-secondary)",
+                    background: form.travel_mode === value ? "#FF6B57" : "#FFFFFF",
+                    border: `1px solid ${form.travel_mode === value ? "#FF6B57" : "#E5E7EB"}`,
+                    color: form.travel_mode === value ? "#fff" : "#52606D",
                   }}
                 >
                   <input
@@ -330,19 +331,9 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
 
             <span
               className="hidden h-5 w-px lg:block"
-              style={{ background: "rgba(255,255,255,0.12)" }}
+              style={{ background: "#E5E7EB" }}
               aria-hidden="true"
             />
-
-            <button
-              type="button"
-              onClick={() => setShowAdvanced((v) => !v)}
-              aria-expanded={showAdvanced}
-              className="tcc-focus text-[12px] font-semibold transition-colors"
-              style={{ color: showAdvanced ? "var(--coral)" : "var(--text-muted)" }}
-            >
-              {showAdvanced ? "▲ Hide options" : "▼ More options"}
-            </button>
 
             {onDemo && (
               <button
@@ -350,11 +341,11 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
                 onClick={onDemo}
                 disabled={loading || demoLoading}
                 title="Load a saved Goa trip — no API key needed"
-                className="tcc-focus ml-auto inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-semibold transition-all disabled:opacity-50"
+                className="tcc-focus ml-auto inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 t-btn-sm transition-all disabled:opacity-50"
                 style={{
-                  border: "1px dashed rgba(255,114,94,0.55)",
-                  color: "var(--coral)",
-                  background: "transparent",
+                  border: "1px dashed rgba(255,107,87,0.55)",
+                  color: "#FF6B57",
+                  background: "#FFF1EE",
                 }}
               >
                 <PlayCircle className="h-3.5 w-3.5" />
@@ -363,31 +354,6 @@ export default function TripForm({ loading, onSubmit, prefillDestination, onDemo
             )}
           </div>
 
-          {showAdvanced && (
-            <div
-              className="animate-fade-rise flex flex-wrap items-center gap-4 px-5 py-3.5"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
-            >
-              <label className="flex cursor-pointer items-center gap-2 text-[13px]" style={{ color: "var(--text-secondary)" }}>
-                <input
-                  type="checkbox"
-                  checked={form.force_refresh}
-                  onChange={set("force_refresh")}
-                  className="h-4 w-4 rounded"
-                  style={{ accentColor: "var(--coral)" }}
-                />
-                Always fetch fresh results (slower, uses more live searches)
-              </label>
-              <button
-                type="button"
-                onClick={swapOriginDest}
-                className="tcc-focus btn-secondary h-9 gap-1.5 rounded-xl px-4 text-[13px]"
-              >
-                <ArrowLeftRight className="h-3.5 w-3.5" />
-                Swap route
-              </button>
-            </div>
-          )}
         </form>
       </div>
     </section>

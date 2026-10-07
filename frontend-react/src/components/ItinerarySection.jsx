@@ -51,8 +51,8 @@ const shortDay = (iso) => {
   return `${weekdays[d.getDay()]}, ${Number(m[3])}`;
 };
 
-/** Sequence badge palette — cyan → green → yellow → purple → red. */
-const BADGE_COLORS = ["#22D3EE", "#22C55E", "#EAB308", "#A855F7", "#F87171", "#2DD4BF", "#FB9231"];
+/** Sequence badge palette — coral nodes on the light theme. */
+const BADGE_COLORS = ["#FF6B57", "#FF6B57", "#FF6B57", "#FF6B57", "#FF6B57", "#FF6B57", "#FF6B57"];
 
 /** Right-side slot tags for stops. The API sends no per-stop times, so the
  *  slot is derived from category + visit order: first restaurant → Lunch,
@@ -61,12 +61,12 @@ const BADGE_COLORS = ["#22D3EE", "#22C55E", "#EAB308", "#A855F7", "#F87171", "#2
 function stopSlot(place, idx, total, restaurantSeen) {
   const isRestaurant = String(place?.category || "").toLowerCase().startsWith("restaurant");
   if (isRestaurant) {
-    if (restaurantSeen === 0) return { label: "Lunch", color: "#FBBF24", emoji: "🍽" };
-    if (restaurantSeen === 1) return { label: "Evening tea", color: "#94A3B8", emoji: "☕" };
+    if (restaurantSeen === 0) return { label: "Lunch", color: "#F59E0B", emoji: "🍽" };
+    if (restaurantSeen === 1) return { label: "Evening tea", color: "#829AB1", emoji: "☕" };
     return { label: "Dinner", color: "#FB9231", emoji: "🍽" };
   }
-  if (idx === total - 1) return { label: "Sunset view", color: "#FF7A59", emoji: "🌅" };
-  return { label: "Sightseeing", color: "#38BDF8", emoji: "📍" };
+  if (idx === total - 1) return { label: "Sunset view", color: "#FF6B57", emoji: "🌅" };
+  return { label: "Sightseeing", color: "#3B82F6", emoji: "📍" };
 }
 
 /** Unified Itinerary + Map Module — Center column of 3-column dashboard.
@@ -132,7 +132,7 @@ export default function ItinerarySection({
         : `Arrive in ${destination || "Destination"}`,
       sub: `${flight?.airline ? `${flight.airline} · ` : ""}Airport area`,
       tag: "Flight arrival",
-      tagColor: "#2DD4BF",
+      tagColor: "#3B82F6",
       emoji: "✈",
     });
   }
@@ -145,7 +145,7 @@ export default function ItinerarySection({
       title: "Check in to Hotel",
       sub: hotel.name,
       tag: "Check-in",
-      tagColor: "#D9A441",
+      tagColor: "#8B5CF6",
       emoji: "🏨",
     });
   }
@@ -176,7 +176,7 @@ export default function ItinerarySection({
       title: a.name,
       sub: a.time,
       tag: "Added",
-      tagColor: "#34D399",
+      tagColor: "#22C55E",
       emoji: "✦",
     });
   });
@@ -191,7 +191,7 @@ export default function ItinerarySection({
         : `Depart from ${destination || "Destination"}`,
       sub: "Check out & return flight",
       tag: "Departure",
-      tagColor: "#2DD4BF",
+      tagColor: "#3B82F6",
       emoji: "✈",
     });
   }
@@ -227,15 +227,16 @@ export default function ItinerarySection({
       aria-label="Day-by-day itinerary and interactive map"
       className="glass-panel scroll-mt-24 flex flex-col overflow-hidden rounded-[24px]"
       style={{
-        background: "rgba(9, 38, 48, 0.88)",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
+        background: "#FFFFFF",
+        border: "1px solid #E5E7EB",
+        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
       }}
     >
       {/* Trip scope meta — day/night scope only. Raw fetch `counts` are
           internal API stats, not itinerary content, so they stay out of this
           header (they remain available in the plan response for debugging). */}
-      <div className="border-b border-white/[0.06] px-4 py-2.5">
-        <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>
+      <div className="px-4 py-2.5" style={{ borderBottom: "1px solid #EEF2F6" }}>
+        <span className="t-meta" style={{ color: "#102A43" }}>
           Day-by-day itinerary • {itinerary.length} day{itinerary.length === 1 ? "" : "s"},{" "}
           {nights} night{Number(nights) === 1 ? "" : "s"}
         </span>
@@ -246,8 +247,8 @@ export default function ItinerarySection({
         <div className="flex flex-col">
           {/* 1. Day selector — compact pills with weekday + date. */}
           <div
-            className="flex items-center gap-2 overflow-x-auto border-b border-white/[0.08] p-3"
-            style={{ scrollbarWidth: "none" }}
+            className="flex items-center gap-2 overflow-x-auto p-3"
+            style={{ scrollbarWidth: "none", borderBottom: "1px solid #EEF2F6" }}
             role="tablist"
             aria-label="Itinerary days"
           >
@@ -261,14 +262,14 @@ export default function ItinerarySection({
                   role="tab"
                   aria-selected={isActive}
                   onClick={() => selectDay(d.day)}
-                  className="tcc-focus shrink-0 rounded-[10px] px-3 py-2 text-[12px] font-bold transition-all"
+                  className="tcc-focus shrink-0 rounded-[10px] px-3 py-2 t-btn-sm transition-all"
                   style={
                     isActive
-                      ? { background: "var(--coral)", color: "#fff" }
+                      ? { background: "#FF6B57", color: "#FFFFFF", border: "1px solid #FF6B57" }
                       : {
-                          background: "rgba(255, 255, 255, 0.05)",
-                          border: "1px solid rgba(255, 255, 255, 0.08)",
-                          color: "var(--text-secondary)",
+                          background: "#FFFFFF",
+                          border: "1px solid #E5E7EB",
+                          color: "#52606D",
                         }
                   }
                 >
@@ -282,17 +283,20 @@ export default function ItinerarySection({
           <div className="min-w-0 p-4 sm:p-5">
             {/* Day scope line */}
             <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="text-[11px] font-bold tracking-wider">
-                <span className="uppercase" style={{ color: "var(--coral)" }}>Day {active.day}</span>
-                {dayLabel && <span className="uppercase text-slate-500"> • {dayLabel}</span>}
+              <p className="t-day">
+                <span className="uppercase" style={{ color: "#FF6B57" }}>Day {active.day}</span>
+                {dayLabel && <span className="uppercase" style={{ color: "#829AB1" }}> • {dayLabel}</span>}
                 {active.distance_km && (
-                  <span className="text-slate-500"> • ~{Number(active.distance_km)} km total route</span>
+                  <span style={{ color: "#829AB1" }}> • ~{Number(active.distance_km)} km total route</span>
                 )}
               </p>
               <button
                 type="button"
                 onClick={() => setShowAddModal(true)}
-                className="tcc-focus flex shrink-0 items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-[var(--coral)]"
+                className="tcc-focus flex shrink-0 items-center gap-1 t-btn-sm"
+                style={{ color: "#829AB1" }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#FF6B57"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "#829AB1"; }}
               >
                 <Plus className="h-3 w-3" />
                 Add
@@ -303,7 +307,8 @@ export default function ItinerarySection({
               {nodes.length > 1 && (
                 <span
                   aria-hidden="true"
-                  className="absolute bottom-[26px] left-[11px] top-[26px] w-px bg-white/10"
+                  className="absolute bottom-[26px] left-[11px] top-[26px] w-px"
+                  style={{ background: "#E5E7EB" }}
                 />
               )}
               <div className="relative space-y-2">
@@ -315,19 +320,19 @@ export default function ItinerarySection({
                   const card = (
                     <>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] font-bold text-white">
+                        <span className="block truncate t-body-strong" style={{ color: "#102A43" }}>
                           {node.title}
                         </span>
                         {node.sub && (
-                          <span className="block truncate text-[11px] text-slate-400">
+                          <span className="block truncate t-meta-sm" style={{ color: "#829AB1" }}>
                             {node.sub}
                           </span>
                         )}
                       </span>
                       {node.tag && (
                         <span
-                          className="flex shrink-0 items-center gap-1 text-[10px] font-semibold"
-                          style={{ color: node.tagColor }}
+                          className="flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 t-badge-sm"
+                          style={{ color: node.tagColor, background: `${node.tagColor}14`, border: `1px solid ${node.tagColor}30` }}
                         >
                           <span aria-hidden="true">{node.emoji}</span>
                           {node.tag}
@@ -337,12 +342,12 @@ export default function ItinerarySection({
                   );
                   const style = selected
                     ? {
-                        background: "rgba(255, 114, 94, 0.12)",
-                        border: "1px solid rgba(255, 114, 94, 0.45)",
+                        background: "#FFF1EE",
+                        border: "1px solid #FF6B57",
                       }
                     : {
-                        background: "rgba(255, 255, 255, 0.04)",
-                        border: "1px solid rgba(255, 255, 255, 0.08)",
+                        background: "#F7F9FC",
+                        border: "1px solid #E5E7EB",
                       };
                   /* Stop rows highlight their marker on the map — a
                    * row click toggles it, so the title stays plain text. */
@@ -350,8 +355,8 @@ export default function ItinerarySection({
                     return (
                       <div key={node.key} className="flex items-center gap-2.5">
                         <span
-                          className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-white"
-                          style={{ background: node.color }}
+                          className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full t-badge"
+                          style={{ background: "#FF6B57", color: "#FFFFFF" }}
                           aria-hidden="true"
                         >
                           {node.num}
@@ -368,7 +373,7 @@ export default function ItinerarySection({
                           }}
                           aria-pressed={selected}
                           aria-label={`${node.title} — highlight on map`}
-                          className="tcc-focus flex min-w-0 flex-1 items-center gap-2 rounded-[12px] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.06]"
+                          className="tcc-focus flex min-w-0 flex-1 items-center gap-2 rounded-[12px] px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(15,23,42,0.06)]"
                           style={style}
                         >
                           {card}
@@ -379,14 +384,14 @@ export default function ItinerarySection({
                   return (
                     <div key={node.key} className="flex items-center gap-2.5">
                       <span
-                        className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-white"
-                        style={{ background: node.color }}
+                        className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full t-badge"
+                        style={{ background: "#FF6B57", color: "#FFFFFF" }}
                         aria-hidden="true"
                       >
                         {node.num}
                       </span>
                       <div
-                        className="flex min-w-0 flex-1 items-center gap-2 rounded-[12px] px-3 py-2.5"
+                        className="flex min-w-0 flex-1 items-center gap-2 rounded-[12px] px-3 py-2.5 transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(15,23,42,0.06)]"
                         style={style}
                       >
                         {card}
@@ -395,7 +400,7 @@ export default function ItinerarySection({
                   );
                 })
               ) : (
-                <p className="py-6 text-center text-xs text-slate-400">
+                <p className="py-6 text-center t-meta" style={{ color: "#829AB1" }}>
                   No scheduled places for this day. Click "+ Add" to add one!
                 </p>
               )}
@@ -407,16 +412,17 @@ export default function ItinerarySection({
               Fixed heights per breakpoint (mobile 320 / tablet 380 /
               desktop 420); the panel ends with the map, no fill leftover.
               "Expand" opens the full map view. */}
-          <div className="border-t border-white/[0.08] p-5 sm:p-6">
+          <div className="p-5 sm:p-6" style={{ borderTop: "1px solid #EEF2F6" }}>
             {/* Map Top Bar */}
             <div className="mb-2 flex items-center justify-between px-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <span className="t-badge uppercase" style={{ color: "#829AB1" }}>
                 Interactive Map · Day {active.day}
               </span>
               <button
                 type="button"
                 onClick={() => setActiveTab("map")}
-                className="flex items-center gap-1 text-[11px] font-bold text-[var(--coral)] hover:underline"
+                className="flex items-center gap-1 t-btn-sm hover:underline"
+                style={{ color: "#FF6B57" }}
               >
                 <Maximize2 className="h-3 w-3" />
                 Expand
@@ -446,13 +452,14 @@ export default function ItinerarySection({
       {activeTab === "map" && (
         <div className="flex flex-col p-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-display text-base font-bold text-white">
+            <h3 className="font-display t-card" style={{ color: "#102A43" }}>
               Full Trip Route & Places
             </h3>
             <button
               type="button"
               onClick={() => setActiveTab("itinerary")}
-              className="text-xs font-semibold text-[var(--coral)] hover:underline"
+              className="t-btn-sm hover:underline"
+              style={{ color: "#FF6B57" }}
             >
               ← Back to Itinerary view
             </button>
@@ -473,18 +480,21 @@ export default function ItinerarySection({
 
       {/* ── Add Activity Modal ── */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(15,23,42,0.35)" }}
+        >
           <div
-            className="glass-panel w-full max-w-sm rounded-[20px] p-6 text-white"
-            style={{ background: "rgba(9, 38, 48, 0.95)" }}
+            className="glass-panel w-full max-w-sm rounded-[20px] p-6"
+            style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)" }}
           >
-            <h3 className="font-display text-lg font-bold">Add to Day {activeDay}</h3>
-            <p className="mt-1 text-xs text-slate-400">
+            <h3 className="font-display t-card-lg" style={{ color: "#102A43" }}>Add to Day {activeDay}</h3>
+            <p className="mt-1 t-meta" style={{ color: "#829AB1" }}>
               Add a personal activity or stop to your schedule.
             </p>
             <form onSubmit={handleAddActivity} className="mt-4 space-y-3">
               <div>
-                <label className="text-[11px] font-bold uppercase text-slate-400">
+                <label className="t-label uppercase" style={{ color: "#829AB1" }}>
                   Activity Name
                 </label>
                 <input
@@ -493,11 +503,12 @@ export default function ItinerarySection({
                   placeholder="e.g. Scuba Diving at Grand Island"
                   value={newActivityName}
                   onChange={(e) => setNewActivityName(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-[var(--coral)]"
+                  className="mt-1 w-full rounded-xl px-3 py-2 t-input outline-none"
+                  style={{ border: "1px solid #E5E7EB", background: "#F7F9FC", color: "#102A43" }}
                 />
               </div>
               <div>
-                <label className="text-[11px] font-bold uppercase text-slate-400">
+                <label className="t-label uppercase" style={{ color: "#829AB1" }}>
                   Time / Note
                 </label>
                 <input
@@ -505,20 +516,21 @@ export default function ItinerarySection({
                   placeholder="e.g. 11:00 AM · 2 hours"
                   value={newActivityTime}
                   onChange={(e) => setNewActivityTime(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-[var(--coral)]"
+                  className="mt-1 w-full rounded-xl px-3 py-2 t-input outline-none"
+                  style={{ border: "1px solid #E5E7EB", background: "#F7F9FC", color: "#102A43" }}
                 />
               </div>
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="btn-secondary flex-1 py-2 text-xs"
+                  className="btn-secondary flex-1 py-2 t-btn-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn-primary flex-1 py-2 text-xs"
+                  className="btn-primary flex-1 py-2 t-btn-sm"
                 >
                   Add Activity
                 </button>

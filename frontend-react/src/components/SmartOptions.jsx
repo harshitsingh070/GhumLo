@@ -3,6 +3,11 @@ import { Check, Share2, SlidersHorizontal } from "lucide-react";
 import { formatStops, inr } from "../lib/format.js";
 
 const MODE_LABELS = { saver: "Saver", balanced: "Balanced", comfort: "Comfort" };
+const MODE_WHY = {
+  saver: "Cheapest total found",
+  balanced: "Best cost–comfort mix",
+  comfort: "Highest-rated stay",
+};
 
 export default function SmartOptions({ plan, onSelectAlternative, recomputing }) {
   const [whatIfBudget, setWhatIfBudget] = useState(Number(plan?.budget) || 60000);
@@ -13,6 +18,10 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
   const maximumOption = alternativeTotals.length ? Math.max(...alternativeTotals) : Number(plan?.best_pick?.total_cost) || 100000;
   const affordable = alternatives.filter((option) => option.total_cost <= whatIfBudget);
   const bestWhatIf = affordable[0] || alternatives[0];
+  // Genuinely one combination in the live data → all tiers repeat it.
+  const allSameTier = alternativeTotals.length >= 2 && alternativeTotals.every((t) => t === alternativeTotals[0]);
+  const flightCount = Number(plan?.counts?.flights) || 0;
+  const hotelCount = Number(plan?.counts?.hotels) || 0;
 
   if (!plan) return null;
 
@@ -37,68 +46,103 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
     <section id="smart" aria-label="Smart trip options" className="scroll-mt-24 space-y-4">
       {/* Alternatives Comparison */}
       <div
-        className="glass-panel rounded-[24px] p-6 sm:p-7 text-white"
+        className="rounded-[24px] p-6 sm:p-7"
         style={{
-          background: "rgba(9, 38, 48, 0.88)",
-          border: "1px solid rgba(255, 255, 255, 0.12)",
+          background: "#FFFFFF",
+          border: "1px solid #E5E7EB",
+          boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
+          color: "#102A43",
         }}
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--coral)" }}>
+            <p className="t-badge uppercase" style={{ color: "#FF6B57" }}>
               Travel Styles
             </p>
-            <h2 className="font-display mt-0.5 text-xl font-extrabold text-white">
+            <h2 className="font-display mt-0.5 t-section" style={{ color: "#102A43" }}>
               Compare Travel Options
             </h2>
-            <p className="mt-1 text-xs text-slate-300">
-              Alternative configurations calculated from live options.
+            <p className="mt-1 t-small" style={{ color: "#52606D" }}>
+              {flightCount && hotelCount
+                ? `Saver = cheapest total · Balanced = cost–comfort mix · Comfort = highest-rated stay — from ${flightCount} flights × ${hotelCount} hotels.`
+                : "Saver = cheapest total · Balanced = cost–comfort mix · Comfort = highest-rated stay."}
             </p>
           </div>
           <button
             type="button"
             onClick={share}
-            className="btn-secondary h-9 gap-1.5 rounded-xl px-3.5 text-xs font-semibold"
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3.5 t-btn-sm transition-colors"
+            style={{ background: "#F1F5F9", border: "1px solid #E5E7EB", color: "#102A43" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "#EEF2F6"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "#F1F5F9"; }}
             title="Copy trip summary"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Share2 className="h-3.5 w-3.5" />}
+            {copied ? <Check className="h-3.5 w-3.5" style={{ color: "#22C55E" }} /> : <Share2 className="h-3.5 w-3.5" />}
             {copied ? "Copied" : "Share"}
           </button>
         </div>
 
+        {allSameTier && (
+          <p
+            className="mt-4 rounded-xl p-3 t-meta"
+            style={{ background: "#FFFBEB", border: "1px solid #FDE68A", color: "#92400E" }}
+            role="note"
+          >
+            Only one flight + hotel combination was found for these dates, so all three tiers show
+            the same price. Try different dates or airports for more choice.
+          </p>
+        )}
+
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           {alternatives.map((option, index) => {
             const isCurrent = option.mode === plan.travel_mode;
+            const gap = maximumOption - (Number(option.total_cost) || 0);
+            const noOp = allSameTier && !isCurrent;
             return (
               <div
                 key={`${option.hotel?.name}-${option.flight?.airline}-${index}`}
                 className="flex flex-col justify-between rounded-[18px] p-4 transition-all"
                 style={{
-                  background: isCurrent ? "rgba(255, 114, 94, 0.08)" : "rgba(255, 255, 255, 0.04)",
+                  background: isCurrent ? "#FFF1EE" : "#FFFFFF",
                   border: isCurrent
-                    ? "1px solid rgba(255, 114, 94, 0.4)"
-                    : "1px solid rgba(255, 255, 255, 0.08)",
+                    ? "1.5px solid #FF6B57"
+                    : "1px solid #E5E7EB",
+                  boxShadow: isCurrent
+                    ? "0 4px 20px rgba(15, 23, 42, 0.06)"
+                    : "none",
                 }}
               >
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <span
+                    className="inline-flex items-center gap-1 t-badge uppercase"
+                    style={{ color: isCurrent ? "#FF6B57" : "#829AB1" }}
+                  >
+                    {isCurrent && <Check className="h-3.5 w-3.5" style={{ color: "#FF6B57" }} aria-hidden="true" />}
                     {MODE_LABELS[option.mode] || "Option"}
                   </span>
-                  <p className="font-display mt-1 text-2xl font-black text-white">
+                  <p className="font-display mt-1 t-price-md" style={{ color: "#102A43" }}>
                     {inr(option.total_cost)}
                   </p>
-                  <p className="mt-1 truncate text-xs font-semibold text-slate-200">
+                  <p className="mt-1 t-meta-sm" style={{ color: "#15803D" }}>
+                    {MODE_WHY[option.mode] || ""}
+                    {gap > 0 ? ` · ${inr(gap)} less than top tier` : ""}
+                  </p>
+                  <p className="mt-1 truncate t-label" style={{ color: "#102A43" }}>
                     {option.hotel?.name}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-slate-400">
+                  <p className="mt-0.5 t-meta-sm" style={{ color: "#829AB1" }}>
                     {option.flight?.airline} · {formatStops(option.flight?.stops) || "—"} · {option.hotel?.rating || "-"}★
                   </p>
+                  <p className="mt-0.5 t-meta-sm" style={{ color: "#829AB1" }}>
+                    {inr(option.flight?.price)} flight + {inr(option.hotel?.total_price)} hotel
+                  </p>
                   <span
-                    className="mt-3 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold"
-                    style={{
-                      background: option.fits_budget ? "rgba(67, 209, 124, 0.15)" : "rgba(255, 114, 94, 0.15)",
-                      color: option.fits_budget ? "var(--success)" : "var(--coral)",
-                    }}
+                    className="mt-3 inline-flex rounded-full px-2.5 py-0.5 t-badge-sm"
+                    style={
+                      option.fits_budget
+                        ? { background: "#ECFDF3", color: "#15803D", border: "1px solid #A7F3D0" }
+                        : { background: "#FFF1EE", color: "#F25542", border: "1px solid #FECACA" }
+                    }
                   >
                     {option.fits_budget ? "Within budget" : "Over budget"}
                   </span>
@@ -106,15 +150,19 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
 
                 <button
                   type="button"
-                  disabled={recomputing || isCurrent}
+                  disabled={recomputing || isCurrent || noOp}
+                  title={noOp ? "Same combination as your current tier" : undefined}
                   onClick={() => onSelectAlternative?.(option)}
-                  className={`tcc-focus mt-4 w-full rounded-xl py-2 text-xs font-bold transition-all ${
-                    isCurrent
-                      ? "bg-white/10 text-slate-400 cursor-default"
-                      : "btn-primary"
-                  }`}
+                  className="tcc-focus mt-4 w-full rounded-xl py-2 t-btn-sm transition-all"
+                  style={
+                    isCurrent || noOp
+                      ? { background: "#F1F5F9", color: "#829AB1", border: "1px solid #E5E7EB", cursor: "default" }
+                      : { background: "#FF6B57", color: "#FFFFFF", border: "1px solid transparent" }
+                  }
+                  onMouseEnter={(e) => { if (!isCurrent && !recomputing) e.currentTarget.style.background = "#F25542"; }}
+                  onMouseLeave={(e) => { if (!isCurrent) e.currentTarget.style.background = "#FF6B57"; }}
                 >
-                  {isCurrent ? "Current option" : recomputing ? "Updating…" : `Switch to ${MODE_LABELS[option.mode] || "option"}`}
+                  {isCurrent ? "Current option" : noOp ? "Same combination" : recomputing ? "Updating…" : `Switch to ${MODE_LABELS[option.mode] || "option"}`}
                 </button>
               </div>
             );
@@ -124,19 +172,21 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
 
       {/* What if budget slider */}
       <div
-        className="glass-panel rounded-[24px] p-6 sm:p-7 text-white"
+        className="rounded-[24px] p-6 sm:p-7"
         style={{
-          background: "rgba(9, 38, 48, 0.88)",
-          border: "1px solid rgba(255, 255, 255, 0.12)",
+          background: "#FFFFFF",
+          border: "1px solid #E5E7EB",
+          boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
+          color: "#102A43",
         }}
       >
         <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-5 w-5 text-[var(--coral)]" />
-          <h3 className="font-display text-lg font-bold text-white">
+          <SlidersHorizontal className="h-5 w-5" style={{ color: "#FF6B57" }} />
+          <h3 className="font-display t-card-lg" style={{ color: "#102A43" }}>
             What-If Budget Calculator
           </h3>
         </div>
-        <p className="mt-1 text-xs text-slate-300">
+        <p className="mt-1 t-small" style={{ color: "#52606D" }}>
           See which tier unlocks at different budget levels.
         </p>
 
@@ -147,27 +197,32 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
           step="1000"
           value={Math.min(whatIfBudget, Math.max(100000, maximumOption, Number(plan.budget) * 2))}
           onChange={(event) => setWhatIfBudget(Number(event.target.value))}
-          className="mt-5 w-full accent-[var(--coral)]"
+          className="mt-5 w-full"
+          style={{ accentColor: "#FF6B57" }}
           aria-label="What-if budget"
         />
 
-        <div className="mt-2 flex justify-between text-xs text-slate-400">
+        <div className="mt-2 flex justify-between t-meta" style={{ color: "#829AB1" }}>
           <span>Test budget</span>
-          <strong className="text-white font-bold text-sm">{inr(whatIfBudget)}</strong>
+          <strong className="t-price-sm" style={{ color: "#102A43" }}>{inr(whatIfBudget)}</strong>
         </div>
 
         {bestWhatIf && (
           <div
-            className="mt-4 rounded-xl p-3 text-xs leading-relaxed text-slate-200"
-            style={{ background: "rgba(255, 255, 255, 0.05)" }}
+            className="mt-4 rounded-xl border p-3 t-meta"
+            style={
+              bestWhatIf.total_cost <= whatIfBudget
+                ? { background: "#ECFDF3", borderColor: "#A7F3D0", color: "#102A43" }
+                : { background: "#FFFBEB", borderColor: "#FDE68A", color: "#102A43" }
+            }
           >
             {bestWhatIf.total_cost <= whatIfBudget ? (
               <>
-                <strong className="text-[var(--teal)]">{inr(bestWhatIf.total_cost)}</strong> unlocks the {MODE_LABELS[bestWhatIf.mode] || "selected"} tier with {bestWhatIf.flight?.airline}.
+                <strong style={{ color: "#15803D" }}>{inr(bestWhatIf.total_cost)}</strong> unlocks the {MODE_LABELS[bestWhatIf.mode] || "selected"} tier with {bestWhatIf.flight?.airline}.
               </>
             ) : (
               <>
-                The lowest found option is <strong className="text-[var(--coral)]">{inr(minimumOption)}</strong>; increase your budget to unlock it.
+                The lowest found option is <strong style={{ color: "#FF6B57" }}>{inr(minimumOption)}</strong>; increase your budget to unlock it.
               </>
             )}
           </div>

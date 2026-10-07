@@ -8,11 +8,9 @@ export default function PrintTripButton() {
     <button
       type="button"
       onClick={() => window.print()}
-      className="tcc-focus inline-flex h-9 items-center gap-2 rounded-[11px] px-3.5 text-[13px] font-semibold transition-colors hover:bg-white/10"
+      className="tcc-focus inline-flex h-9 items-center gap-2 rounded-[11px] bg-[#F1F5F9] px-3.5 t-btn text-[#102A43] transition-colors hover:border-[#FF6B57] hover:bg-[#FFF1EE] hover:text-[#FF6B57]"
       style={{
-        background: "rgba(255,255,255,0.07)",
-        border: "1px solid rgba(255,255,255,0.13)",
-        color: "var(--text-secondary)",
+        border: "1px solid #E5E7EB",
       }}
       title="Print or save this trip as PDF"
     >

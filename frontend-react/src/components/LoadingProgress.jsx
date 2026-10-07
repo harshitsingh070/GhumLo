@@ -20,26 +20,25 @@ export default function LoadingProgress() {
 
   return (
     <section
-      className="glass-panel animate-fade-rise rounded-[24px] p-6 sm:p-8"
+      className="animate-fade-rise rounded-[24px] bg-white p-6 sm:p-8"
+      style={{ border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)" }}
       aria-live="polite"
       aria-label="Finding the best options for your budget"
     >
       <div className="flex items-center gap-3">
         <span
-          className="flex h-10 w-10 items-center justify-center rounded-[12px]"
-          style={{ background: "var(--coral-soft)", color: "var(--coral)" }}
+          className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#FFF1EE] text-[#FF6B57]"
           aria-hidden="true"
         >
           <Plane className="h-5 w-5" />
         </span>
         <div>
           <h2
-            className="font-display text-xl font-extrabold tracking-tight sm:text-2xl"
-            style={{ color: "var(--text-primary)" }}
+            className="font-display t-subsection text-[#102A43]"
           >
             Finding the best options for your budget…
           </h2>
-          <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>
+          <p className="t-small text-[#52606D]">
             Real flights, stays and places — no sample data.
           </p>
         </div>
@@ -53,21 +52,21 @@ export default function LoadingProgress() {
           return (
             <li
               key={s.label}
-              className="glass-tile flex items-center gap-3 px-3.5 py-3"
+              className="flex items-center gap-3 rounded-[16px] bg-[#F7F9FC] px-3.5 py-3"
               style={{
-                background: active ? "rgba(255,114,94,0.08)" : undefined,
-                borderColor: active ? "rgba(255,114,94,0.30)" : undefined,
+                border: `1px solid ${active ? "#FF6B57" : "#E5E7EB"}`,
+                background: active ? "#FFF1EE" : "#F7F9FC",
               }}
             >
               <span
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px]"
                 style={{
                   background: done
-                    ? "rgba(32,199,201,0.16)"
+                    ? "#ECFDF3"
                     : active
-                      ? "var(--coral-soft)"
-                      : "rgba(255,255,255,0.06)",
-                  color: done ? "var(--teal)" : active ? "var(--coral)" : "var(--text-muted)",
+                      ? "#FFF1EE"
+                      : "#EEF2F6",
+                  color: done ? "#22C55E" : active ? "#FF6B57" : "#829AB1",
                 }}
                 aria-hidden="true"
               >
@@ -75,20 +74,18 @@ export default function LoadingProgress() {
               </span>
               <div className="min-w-0">
                 <p
-                  className="flex items-center gap-2 text-[14px] font-semibold"
-                  style={{ color: done || active ? "var(--text-primary)" : "var(--text-muted)" }}
+                  className={`flex items-center gap-2 t-body-strong ${done || active ? "text-[#102A43]" : "text-[#829AB1]"}`}
                 >
                   {s.label}
                   {done && <span className="sr-only"> (done)</span>}
                   {active && (
                     <span
-                      className="inline-block h-1.5 w-1.5 animate-pulse rounded-full"
-                      style={{ background: "var(--coral)" }}
+                      className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF6B57]"
                       aria-hidden="true"
                     />
                   )}
                 </p>
-                <p className="truncate text-[12px]" style={{ color: "var(--text-muted)" }}>
+                <p className="truncate t-meta text-[#52606D]">
                   {s.detail}
                 </p>
               </div>
@@ -104,7 +101,7 @@ export default function LoadingProgress() {
             key={i}
             className="h-1.5 flex-1 rounded-full transition-colors duration-300"
             style={{
-              background: i <= step ? "var(--coral)" : "rgba(255,255,255,0.10)",
+              background: i <= step ? "#FF6B57" : "#EEF2F6",
             }}
           />
         ))}
@@ -112,9 +109,9 @@ export default function LoadingProgress() {
 
       {/* Skeleton preview cards */}
       <div className="mt-6 grid gap-3 sm:grid-cols-3" aria-hidden="true">
-        <div className="tcc-skeleton h-28 rounded-[18px]" />
-        <div className="tcc-skeleton h-28 rounded-[18px]" />
-        <div className="tcc-skeleton h-28 rounded-[18px]" />
+        <div className="tcc-skeleton h-28 rounded-[18px] bg-[#EEF2F6]" />
+        <div className="tcc-skeleton h-28 rounded-[18px] bg-[#EEF2F6]" />
+        <div className="tcc-skeleton h-28 rounded-[18px] bg-[#EEF2F6]" />
       </div>
     </section>
   );

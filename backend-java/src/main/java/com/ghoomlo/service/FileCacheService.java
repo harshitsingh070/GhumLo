@@ -161,6 +161,22 @@ public class FileCacheService {
     }
   }
 
+  /** Last-resort read ignoring TTL: when the live API is unreachable after
+   *  retries, a stale snapshot beats a failed trip. Callers must mark the
+   *  result as cached/stale so the UI stays honest about its age. */
+  @SuppressWarnings("unchecked")
+  public synchronized Map<String, Object> getStale(String name, Map<String, Object> params) {
+    if (!enabled()) return null;
+    Path p = keyPath(name, params);
+    if (!Files.exists(p)) return null;
+    try {
+      String text = Files.readString(p, StandardCharsets.UTF_8);
+      return mapper.readValue(text, new TypeReference<Map<String, Object>>() {});
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
   public synchronized void set(String name, Map<String, Object> params, Map<String, Object> data) {
     if (!enabled()) return;
     try {

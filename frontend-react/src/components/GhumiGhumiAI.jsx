@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bot, Send, Sparkles, X } from "lucide-react";
+import { apiRequest, friendlyError } from "../lib/api.js";
+import { ButtonSpinner, InlineThinking } from "./Loader.jsx";
+import { InlineError } from "./ErrorState.jsx";
 
 const QUICK_PROMPTS = [
   "How can I reduce the cost?",
@@ -20,15 +23,15 @@ function renderAnswer(text) {
     const parts = cleaned.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
     const formatted = parts.map((part, partIndex) =>
       part.startsWith("**") && part.endsWith("**") ? (
-        <strong key={partIndex} className="text-white font-bold">{part.slice(2, -2)}</strong>
+        <strong key={partIndex} className="font-bold text-[#102A43]">{part.slice(2, -2)}</strong>
       ) : (
         <span key={partIndex}>{part}</span>
       )
     );
     if (isBullet) {
-      return <li key={index} className="ml-4 list-disc pl-1 text-slate-200">{formatted}</li>;
+      return <li key={index} className="ml-4 list-disc pl-1 text-[#52606D]">{formatted}</li>;
     }
-    return <p key={index} className="mb-2 last:mb-0 text-slate-200">{formatted}</p>;
+    return <p key={index} className="mb-2 last:mb-0 text-[#52606D]">{formatted}</p>;
   });
 }
 
@@ -65,10 +68,10 @@ export default function GhumiGhumiAI({ plan }) {
     setMessages((prev) => [...prev, { role: "user", text: trimmed }]);
     setLoading(true);
     try {
-      const response = await fetch("/api/assistant", {
+      const data = await apiRequest("/api/assistant", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        timeoutMs: 60000,
+        body: {
           destination: plan.destination,
           dates: `${plan.departure_date} to ${plan.return_date}`,
           itinerary: plan.itinerary,
@@ -83,13 +86,11 @@ export default function GhumiGhumiAI({ plan }) {
             other_options: plan.other_options,
           },
           request: trimmed,
-        }),
+        },
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Assistant request failed.");
       setMessages((prev) => [...prev, { role: "assistant", text: data.answer || "No answer returned." }]);
     } catch (err) {
-      setError(err.message);
+      setError(friendlyError(err, "Assistant request failed. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -103,8 +104,8 @@ export default function GhumiGhumiAI({ plan }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open Ghumi Ghumi AI chat"
-        className="tcc-focus no-print fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full py-3 pl-4 pr-5 text-[14px] font-bold text-white shadow-xl transition-transform hover:-translate-y-0.5 sm:bottom-6 sm:right-6"
-        style={{ background: "var(--coral)", boxShadow: "0 18px 45px rgba(0,0,0,0.45)" }}
+        className="tcc-focus no-print fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full py-3 pl-4 pr-5 t-btn text-white shadow-xl transition-transform hover:-translate-y-0.5 sm:bottom-6 sm:right-6"
+        style={{ background: "#FF6B57", boxShadow: "0 8px 24px rgba(255, 107, 87, 0.35)" }}
       >
         <Bot className="h-5 w-5" aria-hidden="true" />
         Ghumi Ghumi AI
@@ -116,40 +117,40 @@ export default function GhumiGhumiAI({ plan }) {
     <aside
       id="ghumi-chat"
       aria-label="Ghumi Ghumi AI chat"
-      className="no-print fixed bottom-4 right-4 z-50 flex w-[min(320px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[20px] text-white sm:bottom-6 sm:right-6"
+      className="no-print fixed bottom-4 right-4 z-50 flex w-[min(320px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[20px] text-[#102A43] sm:bottom-6 sm:right-6"
       style={{
-        background: "rgba(9, 38, 48, 0.96)",
-        border: "1px solid rgba(255, 255, 255, 0.14)",
-        boxShadow: "0 24px 60px rgba(0,0,0,0.5)",
+        background: "#FFFFFF",
+        border: "1px solid #E5E7EB",
+        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
         height: "min(720px, calc(100dvh - 5rem))",
         maxHeight: "min(720px, calc(100dvh - 5rem))",
       }}
     >
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 p-4 pb-3 sm:p-5 sm:pb-3">
+      <div className="flex items-start justify-between gap-3 bg-white p-4 pb-3 sm:p-5 sm:pb-3">
         <div className="flex min-w-0 gap-3">
           <span
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-            style={{ background: "rgba(255, 114, 94, 0.18)", color: "var(--coral)" }}
+            style={{ background: "#FFF1EE", color: "#FF6B57" }}
           >
             <Bot className="h-5 w-5" aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--coral)" }}>
-              Ghumi Ghumi AI
+            <p className="t-badge uppercase text-[#829AB1]">
+              Ghoomlo Beta
             </p>
-            <h2 className="font-display mt-0.5 truncate text-[17px] font-extrabold tracking-tight text-white">
+            <h2 className="font-display mt-0.5 truncate t-card-lg text-[#102A43]">
               Ask about {plan.destination || "trip"}
             </h2>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Sparkles className="h-4 w-4" style={{ color: "var(--coral)" }} aria-hidden="true" />
+          <Sparkles className="h-4 w-4 text-[#8B5CF6]" aria-hidden="true" />
           <button
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Minimize Ghumi Ghumi AI chat"
-            className="tcc-focus flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-white/10 hover:text-white"
+            className="tcc-focus flex h-8 w-8 items-center justify-center rounded-full text-[#829AB1] hover:bg-[#F1F5F9] hover:text-[#102A43]"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -157,17 +158,17 @@ export default function GhumiGhumiAI({ plan }) {
       </div>
 
       {/* Suggestion chips */}
-      <div className="flex flex-wrap gap-2 px-4 sm:px-5" aria-label="Suggested questions">
+      <div className="flex flex-wrap gap-2 bg-white px-4 sm:px-5" aria-label="Suggested questions">
         {QUICK_PROMPTS.map((prompt) => (
           <button
             key={prompt}
             type="button"
             onClick={() => ask(prompt)}
             disabled={loading}
-            className="tcc-focus rounded-full px-3 py-1.5 text-[12px] font-semibold text-slate-300 transition-colors hover:text-white disabled:opacity-50"
+            className="tcc-focus rounded-full px-3 py-1.5 t-btn-sm text-[#52606D] transition-colors hover:border-[#FF6B57] hover:bg-[#FFF1EE] hover:text-[#FF6B57] disabled:opacity-50"
             style={{
-              background: "rgba(255, 255, 255, 0.06)",
-              border: "1px solid rgba(255, 255, 255, 0.12)",
+              background: "#F1F5F9",
+              border: "1px solid #E5E7EB",
             }}
           >
             {prompt}
@@ -181,11 +182,11 @@ export default function GhumiGhumiAI({ plan }) {
         role="log"
         aria-live="polite"
         aria-label="Ghumi Ghumi AI conversation"
-        className="mx-4 mt-3 min-h-[160px] flex-1 space-y-2.5 overflow-y-auto rounded-xl p-3 sm:mx-5"
-        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+        className="mx-4 mt-3 min-h-[160px] flex-1 space-y-2.5 overflow-y-auto rounded-xl bg-[#F7F9FC] p-3 sm:mx-5"
+        style={{ border: "1px solid #EEF2F6" }}
       >
         {messages.length === 0 && !loading && (
-          <p className="text-[13px] leading-relaxed text-slate-400">
+          <p className="t-small text-[#829AB1]" style={{ lineHeight: 1.5 }}>
             Hi! I know your {plan.destination || "trip"} plan — pick a suggestion above or ask me anything.
           </p>
         )}
@@ -193,37 +194,34 @@ export default function GhumiGhumiAI({ plan }) {
           msg.role === "user" ? (
             <p
               key={i}
-              className="ml-auto w-fit max-w-[90%] rounded-2xl rounded-br-md px-3.5 py-2 text-[13px] font-medium text-white"
-              style={{ background: "rgba(255, 114, 94, 0.85)" }}
+              className="ml-auto w-fit max-w-[90%] rounded-2xl rounded-br-md bg-[#FF6B57] px-3.5 py-2 t-small text-white"
+              style={{ lineHeight: 1.5 }}
             >
               {msg.text}
             </p>
           ) : (
             <div
               key={i}
-              className="w-fit max-w-full rounded-2xl rounded-bl-md px-3.5 py-2.5 text-[13px] leading-relaxed"
-              style={{ background: "rgba(255, 255, 255, 0.06)" }}
+              className="w-fit max-w-full rounded-2xl rounded-bl-md bg-[#F1F5F9] px-3.5 py-2.5 t-small text-[#102A43]"
+              style={{ lineHeight: 1.5 }}
             >
               {renderAnswer(msg.text)}
             </div>
           )
         )}
         {loading && (
-          <p className="flex items-center gap-2 text-[13px] text-slate-300" role="status">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />
-            Thinking through your {plan.destination || "trip"} plan…
-          </p>
+          <InlineThinking label={`Thinking through your ${plan.destination || "trip"} plan…`} />
         )}
       </div>
       {error && (
-        <p className="mx-4 mt-2 rounded-xl bg-red-500/10 p-2.5 text-[13px] text-[var(--coral)] sm:mx-5" role="alert">
-          {error}
-        </p>
+        <div className="mx-4 mt-2 sm:mx-5">
+          <InlineError message={error} />
+        </div>
       )}
 
       {/* Input */}
       <form
-        className="flex gap-2 p-4 sm:p-5 sm:pt-4"
+        className="flex gap-2 bg-white p-4 sm:p-5 sm:pt-4"
         onSubmit={(event) => { event.preventDefault(); ask(input); }}
       >
         <input
@@ -231,10 +229,9 @@ export default function GhumiGhumiAI({ plan }) {
           onChange={(event) => setInput(event.target.value)}
           maxLength={600}
           placeholder="Ask anything about flights, itinerary, budget, restaurants..."
-          className="tcc-focus h-11 min-w-0 flex-1 rounded-xl px-3.5 text-sm text-white placeholder-slate-400 outline-none focus:border-[var(--coral)]"
+          className="tcc-focus h-11 min-w-0 flex-1 rounded-xl bg-[#F7F9FC] px-3.5 t-input text-[#102A43] placeholder-[#829AB1] outline-none focus:border-[#FF6B57]"
           style={{
-            background: "rgba(255, 255, 255, 0.06)",
-            border: "1px solid rgba(255, 255, 255, 0.14)",
+            border: "1px solid #E5E7EB",
           }}
           aria-label="Ask Ghumi Ghumi AI about this trip"
         />
@@ -246,7 +243,7 @@ export default function GhumiGhumiAI({ plan }) {
           aria-label="Ask Ghumi Ghumi AI"
         >
           {loading ? (
-            <span className="mx-auto block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            <ButtonSpinner />
           ) : (
             <Send className="mx-auto h-4 w-4" />
           )}

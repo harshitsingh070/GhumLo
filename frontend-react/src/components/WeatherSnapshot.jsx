@@ -16,13 +16,15 @@ export default function WeatherSnapshot({ weather, destination }) {
     <section
       id="weather"
       aria-label="Current weather conditions"
-      className="glass-panel scroll-mt-24 rounded-[16px] px-4 py-3.5 text-white"
+      className="scroll-mt-24 rounded-[16px] px-4 py-3.5"
       style={{
-        background: "rgba(9, 38, 48, 0.88)",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
+        background: "#FFFFFF",
+        border: "1px solid #E5E7EB",
+        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
+        color: "#102A43",
       }}
     >
-      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+      <p className="t-badge-sm uppercase" style={{ color: "#829AB1" }}>
         {String(place).toUpperCase()} • Current weather
       </p>
       <div className="mt-1.5 flex items-center justify-between gap-3">
@@ -40,14 +42,14 @@ export default function WeatherSnapshot({ weather, destination }) {
               }}
             />
           ) : (
-            <CloudSun className="h-5 w-5 shrink-0 text-amber-400" aria-hidden="true" />
+            <CloudSun className="h-5 w-5 shrink-0" style={{ color: "#F59E0B" }} aria-hidden="true" />
           )}
-          <p className="truncate text-[14px]">
-            <span className="font-display font-extrabold text-white">
+          <p className="truncate t-body">
+            <span className="font-display t-price-sm" style={{ color: "#102A43" }}>
               {weather.temperature}°{unit}
             </span>
             {weather.condition && (
-              <span className="ml-1.5 text-[12px] font-medium text-slate-300">
+              <span className="ml-1.5 t-meta" style={{ color: "#52606D" }}>
                 {weather.condition}
               </span>
             )}
@@ -55,16 +57,22 @@ export default function WeatherSnapshot({ weather, destination }) {
         </div>
 
         {/* Humidity & Wind */}
-        <div className="flex shrink-0 items-center gap-3 text-[11px] text-slate-300">
+        <div className="flex shrink-0 items-center gap-2 t-meta-sm" style={{ color: "#52606D" }}>
           {weather.humidity && (
-            <span className="inline-flex items-center gap-1">
-              <Droplets className="h-3.5 w-3.5 text-blue-400" aria-hidden="true" />
+            <span
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1"
+              style={{ background: "#EFF6FF", border: "1px solid #DBEAFE", color: "#1D4ED8" }}
+            >
+              <Droplets className="h-3.5 w-3.5" style={{ color: "#3B82F6" }} aria-hidden="true" />
               {weather.humidity}
             </span>
           )}
           {weather.wind && (
-            <span className="inline-flex items-center gap-1">
-              <Wind className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+            <span
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1"
+              style={{ background: "#F5F3FF", border: "1px solid #DDD6FE", color: "#6D28D9" }}
+            >
+              <Wind className="h-3.5 w-3.5" style={{ color: "#8B5CF6" }} aria-hidden="true" />
               {weather.wind}
             </span>
           )}

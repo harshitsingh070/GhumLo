@@ -19,7 +19,7 @@ export default function TripBudgetCard({
   const total = Number(total_cost) || flight + hotel;
   const bgt = Number(budget) || 1;
   const over = !fits_budget || total > bgt;
-  // §42 Budget States: within (teal) · near budget (gold, ≤10% headroom) · over (coral)
+  // §42 Budget States: within (green) · near budget (amber, ≤10% headroom) · over (coral)
   const near = !over && bgt > 0 && bgt - total <= bgt * 0.1;
   const diff = Math.abs(total - bgt);
   const overPct = bgt > 0 ? Math.round(((total - bgt) / bgt) * 100) : 0;
@@ -40,16 +40,20 @@ export default function TripBudgetCard({
     <section
       id="trip-budget-card"
       aria-label="Trip Budget"
-      className="glass-panel flex scroll-mt-24 flex-col rounded-[24px] p-5 sm:p-6 text-white"
+      className="glass-panel flex scroll-mt-24 flex-col rounded-[24px] p-5 sm:p-6"
       style={{
-        background: "rgba(9, 38, 48, 0.88)",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
+        background: "#FFFFFF",
+        border: "1px solid #E5E7EB",
+        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
       }}
     >
       <div>
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-bold tracking-tight text-white">
+          <h2
+            className="font-display t-subsection"
+            style={{ color: "#102A43" }}
+          >
             Trip Budget
           </h2>
         </div>
@@ -67,7 +71,7 @@ export default function TripBudgetCard({
                 cy={size / 2}
                 r={radius}
                 fill="none"
-                stroke="rgba(255, 255, 255, 0.08)"
+                stroke="#EEF2F6"
                 strokeWidth={strokeWidth}
               />
               {/* Value Stroke */}
@@ -76,7 +80,7 @@ export default function TripBudgetCard({
                 cy={size / 2}
                 r={radius}
                 fill="none"
-                stroke={over ? "var(--coral)" : near ? "var(--gold)" : "var(--teal)"}
+                stroke={over ? "#FF6B57" : near ? "#F59E0B" : "#22C55E"}
                 strokeWidth={strokeWidth}
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
@@ -87,10 +91,13 @@ export default function TripBudgetCard({
 
             {/* Inner Content */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="font-display text-2xl font-black tracking-tight text-white">
+              <span
+                className="font-display t-price-md"
+                style={{ color: "#102A43" }}
+              >
                 {inr(total)}
               </span>
-              <span className="text-[12px] font-medium text-slate-400">
+              <span className="t-meta" style={{ color: "#829AB1" }}>
                 of {inr(bgt)}
               </span>
             </div>
@@ -99,15 +106,24 @@ export default function TripBudgetCard({
           {/* Over / Near / Under Budget Tag */}
           <div className="mt-3 text-center">
             {over ? (
-              <span className="text-[13px] font-bold" style={{ color: "var(--coral)" }}>
+              <span
+                className="inline-flex items-center rounded-full px-3 py-1 t-btn"
+                style={{ background: "#FFF1EE", color: "#F25542", border: "1px solid #FECACA" }}
+              >
                 {overPct > 0 ? `${overPct}% over budget (${inr(diff)})` : `Over budget (${inr(diff)})`}
               </span>
             ) : near ? (
-              <span className="text-[13px] font-bold" style={{ color: "var(--gold)" }}>
+              <span
+                className="inline-flex items-center rounded-full px-3 py-1 t-btn"
+                style={{ background: "#FFFBEB", color: "#F59E0B", border: "1px solid #FDE68A" }}
+              >
                 ⚠ Near your budget ({inr(diff)} left)
               </span>
             ) : (
-              <span className="text-[13px] font-bold" style={{ color: "var(--success)" }}>
+              <span
+                className="inline-flex items-center rounded-full px-3 py-1 t-btn"
+                style={{ background: "#ECFDF3", color: "#22C55E", border: "1px solid #A7F3D0" }}
+              >
                 ✓ Within budget ({inr(diff)} left)
               </span>
             )}
@@ -119,25 +135,25 @@ export default function TripBudgetCard({
           {/* Flight */}
           <div
             className="flex items-center justify-between rounded-xl p-3"
-            style={{ background: "rgba(255, 255, 255, 0.04)" }}
+            style={{ background: "#F7F9FC", border: "1px solid #E5E7EB" }}
           >
             <div className="flex items-center gap-3">
               <span
                 className="flex h-9 w-9 items-center justify-center rounded-xl"
-                style={{ background: "rgba(255, 114, 94, 0.15)", color: "var(--coral)" }}
+                style={{ background: "#EFF6FF", color: "#3B82F6" }}
               >
                 <Plane className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-[13px] font-semibold text-white">
+                <p className="t-body-strong" style={{ color: "#102A43" }}>
                   Flight {flight_airline ? `(${flight_airline})` : ""}
                 </p>
-                <p className="text-[11px] text-slate-400">
+                <p className="t-meta-sm" style={{ color: "#829AB1" }}>
                   {flightShare}% of total
                 </p>
               </div>
             </div>
-            <span className="font-display text-[14px] font-bold text-white">
+            <span className="font-display t-price-sm" style={{ color: "#102A43" }}>
               {inr(flight)}
             </span>
           </div>
@@ -145,25 +161,25 @@ export default function TripBudgetCard({
           {/* Hotel */}
           <div
             className="flex items-center justify-between rounded-xl p-3"
-            style={{ background: "rgba(255, 255, 255, 0.04)" }}
+            style={{ background: "#F7F9FC", border: "1px solid #E5E7EB" }}
           >
             <div className="flex items-center gap-3">
               <span
                 className="flex h-9 w-9 items-center justify-center rounded-xl"
-                style={{ background: "rgba(32, 199, 201, 0.15)", color: "var(--teal)" }}
+                style={{ background: "#F5F3FF", color: "#8B5CF6" }}
               >
                 <Hotel className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-[13px] font-semibold text-white">
+                <p className="t-body-strong" style={{ color: "#102A43" }}>
                   Hotel {hotel_nights ? `(${hotel_nights} nights)` : ""}
                 </p>
-                <p className="text-[11px] text-slate-400">
+                <p className="t-meta-sm" style={{ color: "#829AB1" }}>
                   {hotelShare}% of total
                 </p>
               </div>
             </div>
-            <span className="font-display text-[14px] font-bold text-white">
+            <span className="font-display t-price-sm" style={{ color: "#102A43" }}>
               {inr(hotel)}
             </span>
           </div>
@@ -178,11 +194,14 @@ export default function TripBudgetCard({
             if (onViewFullPlan) onViewFullPlan();
             else document.getElementById("itinerary")?.scrollIntoView({ behavior: "smooth" });
           }}
-          className="btn-primary w-full py-3.5 text-[14px] font-bold shadow-lg"
+          className="btn-primary w-full py-3.5 t-btn shadow-lg"
           style={{
-            background: "var(--coral)",
+            background: "#FF6B57",
+            color: "#FFFFFF",
             borderRadius: "14px",
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "#F25542"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "#FF6B57"; }}
         >
           View Full Plan <ArrowRight className="h-4 w-4" />
         </button>

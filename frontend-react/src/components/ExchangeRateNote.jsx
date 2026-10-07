@@ -20,35 +20,38 @@ export default function ExchangeRateNote({ exchange_rate: fx, budget }) {
   return (
     <section
       aria-label="Currency context"
-      className="glass-panel rounded-[20px] p-5 text-white"
+      className="w-full rounded-[20px] p-5"
       style={{
-        background: "rgba(9, 38, 48, 0.88)",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
+        background: "#FFFFFF",
+        border: "1px solid #E5E7EB",
+        borderLeft: "4px solid #22C55E",
+        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
+        color: "#102A43",
       }}
     >
       <div className="flex items-center gap-3">
         <span
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-          style={{ background: "rgba(32, 199, 201, 0.15)", color: "var(--teal)" }}
+          style={{ background: "#ECFDF3", color: "#15803D", border: "1px solid #A7F3D0" }}
         >
           <Coins className="h-5 w-5" />
         </span>
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+          <p className="t-badge uppercase" style={{ color: "#829AB1" }}>
             Currency conversion · {fx.from_currency} → {fx.to_currency}
           </p>
-          <p className="mt-0.5 text-[15px] font-bold text-white">
+          <p className="mt-0.5 t-price-sm" style={{ color: "#102A43" }}>
             {converted !== null ? (
               <>
-                {inr(budget)} ≈ <span className="text-[var(--teal)]">{converted} {fx.to_currency}</span>
+                {inr(budget)} ≈ <span style={{ color: "#15803D" }}>{converted} {fx.to_currency}</span>
               </>
             ) : (
               <>
-                1 {fx.from_currency} ≈ <span className="text-[var(--teal)]">{rateStr} {fx.to_currency}</span>
+                1 {fx.from_currency} ≈ <span style={{ color: "#15803D" }}>{rateStr} {fx.to_currency}</span>
               </>
             )}
           </p>
-          <p className="mt-0.5 text-[11px] text-slate-400">
+          <p className="mt-0.5 t-meta-sm" style={{ color: "#52606D" }}>
             Live indicative rate ({rateStr} per 1 {fx.from_currency}) for budget planning.
           </p>
         </div>

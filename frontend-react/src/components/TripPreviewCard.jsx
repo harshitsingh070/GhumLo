@@ -1,7 +1,7 @@
-import { ArrowRight, Plane, Moon } from "lucide-react";
+import { ArrowRight, Plane, Moon, Star } from "lucide-react";
 import { inr, fmtDateRange } from "../lib/format.js";
 
-/** Floating hero card — a live snapshot of the trip the user just planned.
+/** Destination summary card — live snapshot of the planned trip.
  *  Purely presentational: every number comes from the plan response.
  *  Props: plan, onViewPlan. Returns null until a plan exists. */
 export default function TripPreviewCard({ plan, onViewPlan }) {
@@ -16,41 +16,49 @@ export default function TripPreviewCard({ plan, onViewPlan }) {
   const diff = Math.abs(total - budget);
   const pct = budget > 0 ? Math.round((diff / budget) * 100) : 0;
   const fill = budget > 0 ? Math.min(1, total / budget) : 0;
+  const rating = plan.best_pick.hotel?.rating;
 
   return (
     <div
-      className="animate-fade-rise w-full max-w-[360px] rounded-[24px] p-6 sm:p-7"
+      className="animate-fade-rise w-full max-w-[360px] rounded-[20px] p-6"
       style={{
-        background: "rgba(6, 24, 32, 0.72)",
-        border: "1px solid rgba(255,255,255,0.18)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        boxShadow:
-          "0 32px 90px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.08)",
+        background: "#FFFFFF",
+        border: "1px solid #E5E7EB",
+        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
       }}
     >
-      <p
-        className="text-[10px] font-bold uppercase tracking-[0.18em]"
-        style={{ color: "var(--text-muted)" }}
-      >
-        Your trip to {plan.destination || "your destination"}
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p
+          className="t-badge-sm uppercase"
+          style={{ color: "#829AB1" }}
+        >
+          {plan.destination || "Your destination"}
+        </p>
+        {rating && (
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 t-badge"
+            style={{ background: "#FFFBEB", color: "#F59E0B" }}
+          >
+            <Star className="h-3 w-3 fill-current" /> {rating}
+          </span>
+        )}
+      </div>
 
-      <p className="mt-2.5 text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>
+      <p className="mt-2 t-body-strong" style={{ color: "#102A43" }}>
         {fmtDateRange(plan.departure_date, plan.return_date)}
       </p>
-      <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+      <p className="t-meta" style={{ color: "#829AB1" }}>
         {plan.travelers} traveler{Number(plan.travelers) === 1 ? "" : "s"}
       </p>
 
       <div className="mt-4 flex items-end gap-2">
         <span
-          className="font-display text-[34px] font-extrabold leading-none tracking-tight"
-          style={{ color: "var(--text-primary)" }}
+          className="font-display t-price-lg"
+          style={{ color: "#102A43" }}
         >
           {inr(total)}
         </span>
-        <span className="pb-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>
+        <span className="pb-0.5 t-meta" style={{ color: "#829AB1" }}>
           of {inr(budget)}
         </span>
       </div>
@@ -58,7 +66,7 @@ export default function TripPreviewCard({ plan, onViewPlan }) {
       {/* Budget meter */}
       <div
         className="mt-3 h-2 w-full overflow-hidden rounded-full"
-        style={{ background: "rgba(255,255,255,0.10)" }}
+        style={{ background: "#EEF2F6" }}
         role="img"
         aria-label={`${inr(total)} of ${inr(budget)} budget`}
       >
@@ -66,48 +74,61 @@ export default function TripPreviewCard({ plan, onViewPlan }) {
           className="h-full rounded-full transition-[width] duration-500"
           style={{
             width: `${Math.max(4, Math.round(fill * 100))}%`,
-            background: over ? "var(--coral)" : near ? "var(--gold)" : "var(--teal)",
+            background: over ? "#FF6B57" : near ? "#F59E0B" : "#22C55E",
           }}
         />
       </div>
 
       <p
-        className="mt-2 text-[12px] font-bold"
-        style={{ color: over ? "var(--coral)" : near ? "var(--gold)" : "var(--success)" }}
+        className="mt-2 rounded-lg px-2.5 py-1.5 t-meta"
+        style={
+          over
+            ? { background: "#FFF1EE", color: "#F25542" }
+            : near
+              ? { background: "#FFFBEB", color: "#F59E0B" }
+              : { background: "#ECFDF3", color: "#22C55E" }
+        }
       >
         {over
           ? `${pct}% over budget · ${inr(diff)} above`
           : near
-            ? `⚠ Near your budget · ${inr(diff)} left`
+            ? `Near budget · ${inr(diff)} left`
             : `${inr(diff)} under budget`}
       </p>
 
+      {plan.insight && (
+        <p className="mt-2 t-small" style={{ color: "#52606D" }}>
+          {plan.insight}
+        </p>
+      )}
+
       <div className="mt-4 space-y-2">
-        <Row icon={Plane} tint="coral" label="Flight" value={inr(flight)} />
-        <Row icon={Moon} tint="teal" label="Hotel" value={inr(hotel)} />
+        <Row icon={Plane} bg="#EFF6FF" fg="#3B82F6" label="Flight" value={inr(flight)} />
+        <Row icon={Moon} bg="#F5F3FF" fg="#8B5CF6" label="Hotel" value={inr(hotel)} />
       </div>
 
       <button
         type="button"
         onClick={onViewPlan}
-        className="btn-primary mt-4 h-[42px] w-full rounded-[14px] text-[13px]"
+        className="btn-primary mt-4 h-[42px] w-full rounded-[12px] t-btn"
       >
-        View full plan <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        View full itinerary <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </button>
     </div>
   );
 }
 
-function Row({ icon: Icon, tint, label, value }) {
-  const color = tint === "coral" ? "var(--coral)" : "var(--teal)";
+function Row({ icon: Icon, bg, fg, label, value }) {
   return (
     <div className="flex items-center justify-between rounded-[12px] px-3 py-2"
-      style={{ background: "rgba(255,255,255,0.06)" }}>
-      <span className="flex items-center gap-2 text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>
-        <Icon className="h-3.5 w-3.5" style={{ color }} aria-hidden="true" />
+      style={{ background: "#F7F9FC", border: "1px solid #EEF2F6" }}>
+      <span className="flex items-center gap-2 t-meta" style={{ color: "#52606D" }}>
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg" style={{ background: bg, color: fg }}>
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+        </span>
         {label}
       </span>
-      <span className="text-[13px] font-bold" style={{ color: "var(--text-primary)" }}>
+      <span className="t-price-sm" style={{ color: "#102A43" }}>
         {value}
       </span>
     </div>

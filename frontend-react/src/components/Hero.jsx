@@ -1,6 +1,5 @@
 import { Sparkles, Plane, Wallet, MapPin } from "lucide-react";
-import heroGoa from "../assets/destinations/hero-goa.jpg";
-import { DESTINATIONS } from "../lib/destinations.js";
+import { DESTINATIONS, bundledHeroFor } from "../lib/destinations.js";
 import TripPreviewCard from "./TripPreviewCard.jsx";
 
 const FEATURES = [
@@ -9,21 +8,16 @@ const FEATURES = [
   { icon: Sparkles, title: "AI powered", sub: "Smart itineraries instantly" },
 ];
 
-/** Resolve a bundled cinematic photo for the current destination.
- *  Falls back to the hero shot so a live trip never shows a blank frame. */
-function heroImageFor(destination) {
-  if (!destination) return heroGoa;
-  const name = String(destination).toLowerCase();
-  const match = DESTINATIONS.find((d) => name.includes(d.name.toLowerCase()));
-  return match ? match.img : heroGoa;
-}
-
-/** GhoomLo Hero — cinematic destination photo with the value proposition
- *  overlaid on the left and the live trip preview floating on the right.
+/** GhoomLo Explore hero — full-bleed destination photo as the section
+ *  background with a light readability wash, navy headline on the left
+ *  and the live trip preview floating on the right.
  *  The trip builder overlaps this section from below. */
 export default function Hero({ plan, onViewPlan }) {
   const destination = plan?.destination || "Goa";
-  const img = heroImageFor(plan?.destination);
+  // Bundled location photo only (full-resolution assets): catalogue match
+  // → stable hash-picked photo per location. No live thumbnails here —
+  // small provider images pixelate when stretched full-bleed.
+  const img = bundledHeroFor(plan?.destination || "Goa");
   const known = DESTINATIONS.find((d) =>
     String(destination).toLowerCase().includes(d.name.toLowerCase())
   );
@@ -31,122 +25,113 @@ export default function Hero({ plan, onViewPlan }) {
   return (
     <section
       id="home"
-      className="relative overflow-hidden scroll-mt-[92px]"
-      style={{ minHeight: "640px" }}
+      className="relative scroll-mt-[92px] overflow-hidden"
+      style={{ minHeight: "700px" }}
     >
-      {/* Background image */}
+      {/* Full-background destination image */}
       <img
         src={img}
-        alt={known ? known.alt : "Goa beach with palm trees"}
+        alt={known ? known.alt : `${destination} destination`}
         className="absolute inset-0 h-full w-full object-cover"
         loading="eager"
-        style={{ objectPosition: "center 42%", filter: "brightness(1.16) saturate(1.12)" }}
+        style={{ objectPosition: "center 38%" }}
       />
 
-      {/* Gradient overlay — darkest on the left so copy stays legible */}
+      {/* Light readability wash — sheer veil over the whole photo so it
+          shows through edge-to-edge (left included), denser on the left
+          where the copy sits */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to right, rgba(4,20,27,0.90) 0%, rgba(4,20,27,0.60) 44%, rgba(4,20,27,0.16) 100%)," +
-            "linear-gradient(to top, rgba(6,27,36,0.94) 0%, rgba(6,27,36,0.30) 22%, transparent 55%)",
+            "linear-gradient(to right, rgba(247,249,252,0.84) 0%, rgba(247,249,252,0.68) 35%, rgba(247,249,252,0.32) 62%, rgba(247,249,252,0.08) 85%, rgba(247,249,252,0.02) 100%)",
         }}
         aria-hidden="true"
       />
 
-      {/* Destination script wordmark — idle state only.
-          Once a plan exists the live trip preview owns the right-hand corner.
-          No weather chip here: idle weather would be fake data with no API response. */}
-      {!plan && (
-        <div
-          className="pointer-events-none absolute right-8 top-[150px] hidden text-right lg:block"
-          aria-hidden="true"
-        >
-          <p
-            className="font-display text-[54px] font-extrabold italic leading-none tracking-tight"
-            style={{
-              color: "rgba(255,255,255,0.92)",
-              textShadow: "0 6px 30px rgba(0,0,0,0.5)",
-            }}
-          >
-            {destination}
-          </p>
-          <p className="mt-1 text-[15px] font-semibold tracking-wide" style={{ color: "rgba(255,255,255,0.62)" }}>
-            {known ? known.tag : "India"}
-          </p>
-        </div>
-      )}
-
-      {/* Content */}
-      <div className="tcc-container relative z-10 flex min-h-[640px] items-center pb-44 pt-[112px]">
+      {/* Content — top-aligned so pills/chip sit under the headline,
+          clear of the overlapping builder form below */}
+      <div className="tcc-container relative z-10 flex min-h-[700px] items-start pb-56 pt-[118px]" style={{ maxWidth: 1320 }}>
         <div className="grid w-full items-start gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="max-w-[720px] animate-fade-rise">
-            {/* Eyebrow */}
+            {/* Eyebrow — kicker label */}
             <p
-              className="mb-5 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em]"
+              className="t-badge mb-5 inline-flex items-center gap-2 rounded-full px-4 py-1.5 uppercase"
               style={{
-                background: "rgba(4,20,27,0.5)",
-                border: "1px solid rgba(255,255,255,0.24)",
-                color: "var(--text-primary)",
-                backdropFilter: "blur(10px)",
-                WebkitBackdropFilter: "blur(10px)",
+                background: "#FFF1EE",
+                border: "1px solid #FFD9D1",
+                color: "#F25542",
               }}
             >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--coral)" }} aria-hidden="true" />
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#FF6B57" }} aria-hidden="true" />
               Smart travel planning
             </p>
 
             {/* Headline */}
             <h1
-              className="font-display font-extrabold leading-[1.0] tracking-[-0.035em]"
-              style={{ fontSize: "clamp(44px, 5.2vw, 76px)", color: "var(--text-primary)" }}
+              className="t-hero font-display"
+              style={{
+                color: "#0B2237",
+                textShadow: "0 0 28px rgba(247,249,252,0.95), 0 1px 0 rgba(255,255,255,0.7)",
+              }}
             >
               Plan unforgettable
               <br />
               trips with{" "}
-              <span style={{ color: "var(--coral)" }}>GhoomLo.</span>
+              <span style={{ color: "#F25542" }}>GhoomLo.</span>
             </h1>
 
-            {/* Sub */}
+            {/* Sub — supporting line, lighter weight + smaller than headline */}
             <p
-              className="mt-6 max-w-xl text-[17px] leading-relaxed"
-              style={{ color: "rgba(255,255,255,0.82)" }}
+              className="t-body mt-5 max-w-xl"
+              style={{ color: "#3E5463", textShadow: "0 1px 12px rgba(247,249,252,0.9)" }}
             >
               Find flights, stays and experiences that fit your budget.
               Compare real options and get a complete trip plan in one place.
             </p>
 
             {/* Feature pills */}
-            <div className="mt-7 flex flex-wrap gap-2.5">
+            <div className="mt-6 flex flex-wrap gap-2.5">
               {FEATURES.map(({ icon: Icon, title, sub }) => (
                 <div
                   key={title}
-                  className="flex items-center gap-2.5 rounded-[14px] px-3 py-2.5"
+                  className="flex shrink-0 items-center gap-2.5 rounded-[14px] px-3 py-2.5 transition-all hover:-translate-y-0.5"
                   style={{
-                    background: "rgba(255,255,255,0.10)",
-                    border: "1px solid rgba(255,255,255,0.16)",
-                    backdropFilter: "blur(12px)",
-                    WebkitBackdropFilter: "blur(12px)",
+                    background: "rgba(255,255,255,0.94)",
+                    border: "1px solid #E5E7EB",
+                    boxShadow: "0 4px 20px rgba(15, 23, 42, 0.08)",
                   }}
                 >
                   <span
-                    className="flex h-8 w-8 items-center justify-center rounded-[10px]"
-                    style={{ background: "rgba(255,114,94,0.20)", color: "var(--coral)" }}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px]"
+                    style={{ background: "#FFF1EE", color: "#FF6B57" }}
                     aria-hidden="true"
                   >
                     <Icon className="h-4 w-4" />
                   </span>
-                  <div>
-                    <p className="text-[12px] font-bold" style={{ color: "var(--text-primary)" }}>{title}</p>
-                    <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.65)" }}>{sub}</p>
+                  <div className="whitespace-nowrap">
+                    <p className="t-meta whitespace-nowrap" style={{ color: "#0B2237", fontWeight: 600 }}>{title}</p>
+                    <p className="t-meta-sm whitespace-nowrap" style={{ color: "#677F93" }}>{sub}</p>
                   </div>
                 </div>
               ))}
             </div>
-            {/* Mobile trip summary — same live data as the desktop floating card.
-                TripPreviewCard returns null until a plan exists, so this adds
-                zero layout shift when idle and reuses StickyBudgetSummary-grade
-                totals on small screens without duplicating logic. */}
+
+            {/* Destination chip — in-flow below pills so it can never
+                overlap them */}
+            <div className="mt-4">
+              <span
+                className="t-meta inline-flex items-center gap-1.5 rounded-full px-4 py-2"
+                style={{
+                  background: "rgba(255,255,255,0.92)",
+                  border: "1px solid #E5E7EB",
+                  color: "#0B2237",
+                  boxShadow: "0 4px 20px rgba(15, 23, 42, 0.08)",
+                }}
+              >
+                <span style={{ color: "#FF6B57" }}>📍</span> {destination}{known ? ` · ${known.tag}` : ""}
+              </span>
+            </div>
             {plan?.best_pick && (
               <div className="mt-6 lg:hidden">
                 <TripPreviewCard plan={plan} onViewPlan={onViewPlan} />
@@ -154,17 +139,17 @@ export default function Hero({ plan, onViewPlan }) {
             )}
           </div>
 
-          {/* Live trip preview — floats over the photo once a plan exists (desktop). */}
-          <div className="hidden justify-end pt-6 lg:flex">
+          {/* Live trip preview (desktop). */}
+          <div className="hidden justify-end pt-2 lg:flex">
             <TripPreviewCard plan={plan} onViewPlan={onViewPlan} />
           </div>
         </div>
       </div>
 
-      {/* Soft fade into the page background so the trip builder can overlap */}
+      {/* Fade into the page background so the builder overlaps cleanly */}
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-32"
-        style={{ background: "linear-gradient(to top, var(--bg-primary), transparent)" }}
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-28"
+        style={{ background: "linear-gradient(to top, #F7F9FC 0%, rgba(247,249,252,0) 100%)" }}
         aria-hidden="true"
       />
 

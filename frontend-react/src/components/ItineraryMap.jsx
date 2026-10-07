@@ -378,20 +378,24 @@ export default function ItineraryMap({
   }, [itinerary, activeDay, hotel, destination, showAll, selectedStop]);
 
   if (mapError) {
-    return <p className="text-sm text-slate-500">Map unavailable — see itinerary list below.</p>;
+    return <p className="t-body" style={{ color: "#829AB1" }}>Map unavailable — see itinerary list below.</p>;
   }
 
   return (
-    <div className="max-w-full">
+    <div
+      className="max-w-full rounded-[20px] p-3"
+      style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)" }}
+    >
       {/* Status + view controls: plain-language summary on the left,
           Whole-trip/Selected-day toggle and Reset view on the right. */}
       <div className="mb-2 flex max-w-full flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-medium text-slate-400" aria-live="polite">
+        <p className="t-meta" style={{ color: "#52606D" }} aria-live="polite">
           {summary}
         </p>
         <div className="flex items-center gap-1.5">
           <div
-            className="inline-flex rounded-full border border-white/10 bg-white/[0.06] p-0.5 text-xs font-medium"
+            className="inline-flex rounded-full p-0.5 t-meta"
+            style={{ background: "#F1F5F9", border: "1px solid #E5E7EB" }}
             role="group"
             aria-label="Map view"
           >
@@ -399,11 +403,12 @@ export default function ItineraryMap({
               type="button"
               onClick={() => setShowAll(false)}
               aria-pressed={!showAll}
-              className={`rounded-full px-2.5 py-1 transition-colors ${
+              className="rounded-full px-2.5 py-1 transition-colors"
+              style={
                 !showAll
-                  ? "bg-[var(--coral)] text-white shadow-sm"
-                  : "text-slate-400 hover:text-white"
-              }`}
+                  ? { background: "#FF6B57", color: "#FFFFFF", boxShadow: "0 1px 4px rgba(15, 23, 42, 0.12)" }
+                  : { background: "transparent", color: "#52606D" }
+              }
             >
               Selected day
             </button>
@@ -411,11 +416,12 @@ export default function ItineraryMap({
               type="button"
               onClick={() => setShowAll(true)}
               aria-pressed={showAll}
-              className={`rounded-full px-2.5 py-1 transition-colors ${
+              className="rounded-full px-2.5 py-1 transition-colors"
+              style={
                 showAll
-                  ? "bg-[var(--coral)] text-white shadow-sm"
-                  : "text-slate-400 hover:text-white"
-              }`}
+                  ? { background: "#FF6B57", color: "#FFFFFF", boxShadow: "0 1px 4px rgba(15, 23, 42, 0.12)" }
+                  : { background: "transparent", color: "#52606D" }
+              }
             >
               Whole trip
             </button>
@@ -424,7 +430,10 @@ export default function ItineraryMap({
             type="button"
             onClick={resetView}
             title="Zoom back out to all stops"
-            className="rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1 text-xs font-medium text-slate-300 transition-colors hover:border-white/25 hover:bg-white/10 hover:text-white"
+            className="rounded-full px-2.5 py-1 t-btn-sm transition-colors"
+            style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", color: "#52606D" }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FF6B57"; e.currentTarget.style.color = "#102A43"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = "#52606D"; }}
           >
             Reset view
           </button>
@@ -436,14 +445,19 @@ export default function ItineraryMap({
           only the frame adapts. */}
       <div
         ref={containerRef}
-        className={`relative z-0 w-full max-w-full overflow-hidden rounded-xl border border-white/[0.12] shadow-[0_14px_36px_rgba(0,0,0,0.35)] ${
+        className={`relative z-0 w-full max-w-full overflow-hidden rounded-xl ${
           mapHeightClass || "h-[360px] sm:h-[480px]"
         }`}
+        style={{ border: "1px solid #E5E7EB" }}
         role="img"
         aria-label="Map of clustered itinerary stops"
       />
       {tilesDown && !mapError && (
-        <p className="mt-1.5 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-400" role="status">
+        <p
+          className="mt-1.5 rounded-lg px-2.5 py-1.5 t-meta-sm"
+          style={{ color: "#52606D", background: "#F7F9FC", border: "1px solid #E5E7EB" }}
+          role="status"
+        >
           Map tiles couldn&apos;t load — the tile network may be blocked. Markers, routes and
           distances still work; the stop list has every detail.
         </p>
@@ -451,9 +465,15 @@ export default function ItineraryMap({
       {/* Plain HTML/Tailwind legend (not a Leaflet control): hotel key +
           one swatch per day, matching marker colors. Day swatches are buttons
           that jump to that day's tab — the legend doubles as navigation. */}
-      <div className="mt-2 flex max-w-full flex-wrap items-center gap-x-1 gap-y-1 text-xs text-slate-400">
+      <div
+        className="mt-2 flex max-w-full flex-wrap items-center gap-x-1 gap-y-1 rounded-[12px] px-1.5 py-1 t-meta"
+        style={{ background: "#F7F9FC", border: "1px solid #EEF2F6", color: "#52606D" }}
+      >
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5">
-          <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-600 text-[10px] font-bold text-white shadow ring-2 ring-white">
+          <span
+            className="inline-flex h-4 w-4 items-center justify-center rounded-full t-badge-sm"
+            style={{ background: "#52606D", color: "#FFFFFF", boxShadow: "0 1px 4px rgba(15, 23, 42, 0.12)" }}
+          >
             H
           </span>
           Hotel
@@ -467,20 +487,23 @@ export default function ItineraryMap({
               onClick={() => onSelectDay?.(d.day)}
               aria-pressed={selected}
               title={`Show Day ${d.day} stops`}
-              className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 transition-colors hover:bg-white/10 ${
-                selected ? "bg-white/10 font-semibold text-white ring-1 ring-white/20" : ""
-              }`}
+              className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 transition-colors"
+              style={
+                selected
+                  ? { background: "#FFF1EE", color: "#102A43", fontWeight: 600, border: "1px solid #FF6B57" }
+                  : { background: "transparent", color: "#52606D", border: "1px solid transparent" }
+              }
             >
               <span
-                className="inline-block h-3 w-3 rounded-full border border-white shadow"
-                style={{ backgroundColor: colorForDay(d.day) }}
+                className="inline-block h-3 w-3 rounded-full shadow"
+                style={{ backgroundColor: colorForDay(d.day), border: "1px solid #FFFFFF" }}
               />
               Day {d.day}
             </button>
           );
         })}
       </div>
-      <p className="mt-1 text-[11px] text-slate-500">
+      <p className="mt-1 t-meta-sm" style={{ color: "#829AB1" }}>
         Badge numbers show visit order — hover for names, click for details.
       </p>
     </div>

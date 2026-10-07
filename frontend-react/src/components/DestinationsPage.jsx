@@ -28,7 +28,7 @@ function useSearchQuery() {
   return q;
 }
 
-/** Full Destinations page in dark glassmorphic style. */
+/** Full Destinations page in light style. */
 export default function DestinationsPage({ onPick }) {
   const rawQuery = useSearchQuery().trim();
   const query = rawQuery.toLowerCase();
@@ -44,19 +44,18 @@ export default function DestinationsPage({ onPick }) {
   };
 
   return (
-    <div className="tcc-page space-y-12 sm:space-y-16 text-white">
+    <div className="tcc-page space-y-12 bg-[#F7F9FC] text-[#102A43] sm:space-y-16">
       {/* Page hero */}
       <div className="pt-4">
         <p
-          className="text-[11px] font-bold uppercase tracking-[0.18em]"
-          style={{ color: "var(--coral)" }}
+          className="t-badge uppercase text-[#FF6B57]"
         >
           Destinations
         </p>
-        <h1 className="font-display mt-2 max-w-2xl text-4xl font-extrabold leading-[1.05] tracking-[-0.02em] text-white sm:text-5xl">
+        <h1 className="font-display mt-2 max-w-2xl t-hero text-[#102A43]">
           Places that fit your budget
         </h1>
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
+        <p className="mt-4 max-w-2xl t-body text-[#52606D]">
           Explore curated destinations with realistic pricing. Pick one and we&apos;ll build the
           flights, stay and day-by-day plan around what you can spend.
         </p>
@@ -65,25 +64,23 @@ export default function DestinationsPage({ onPick }) {
       {/* Search status — only when navigated here via navbar search */}
       {query && (
         <div
-          className="flex flex-wrap items-center gap-3 rounded-[16px] px-4 py-3 text-[13px]"
+          className="flex flex-wrap items-center gap-3 rounded-[16px] bg-white px-4 py-3 t-small text-[#52606D]"
           style={{
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.10)",
-            color: "var(--text-secondary)",
+            border: "1px solid #E5E7EB",
+            boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
           }}
           role="status"
         >
           <span>
             {results.length} result{results.length === 1 ? "" : "s"} for{" "}
-            <strong style={{ color: "var(--text-primary)" }}>
+            <strong className="text-[#102A43]">
               “{rawQuery}”
             </strong>
           </span>
           <button
             type="button"
             onClick={clearSearch}
-            className="tcc-focus ml-auto text-[12px] font-bold transition-colors hover:underline"
-            style={{ color: "var(--coral)" }}
+            className="tcc-focus ml-auto t-btn-sm text-[#FF6B57] transition-colors hover:text-[#F25542] hover:underline"
           >
             Clear search
           </button>
@@ -93,27 +90,30 @@ export default function DestinationsPage({ onPick }) {
       {/* Detailed cards */}
       {results.length === 0 ? (
         <div
-          className="glass-panel rounded-[24px] p-8 text-center sm:p-10"
+          className="rounded-[24px] bg-white p-8 text-center sm:p-10"
+          style={{
+            border: "1px solid #E5E7EB",
+            boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
+          }}
           role="status"
         >
           <span
-            className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl"
-            style={{ background: "rgba(255,114,94,0.15)", color: "var(--coral)" }}
+            className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF1EE] text-[#FF6B57]"
             aria-hidden="true"
           >
             <SearchX className="h-6 w-6" />
           </span>
-          <h2 className="font-display mt-4 text-xl font-extrabold text-white">
+          <h2 className="font-display mt-4 t-subsection text-[#102A43]">
             No destinations match your search
           </h2>
-          <p className="mx-auto mt-2 max-w-sm text-[14px] text-slate-300">
+          <p className="mx-auto mt-2 max-w-sm t-body text-[#52606D]">
             Try a different name — Goa, Jaipur, Manali, Mumbai, Delhi or London —
             or browse everything.
           </p>
           <button
             type="button"
             onClick={clearSearch}
-            className="btn-primary mt-5 inline-flex h-[44px] items-center px-6 text-[13px] font-bold"
+            className="btn-primary mt-5 inline-flex h-[44px] items-center px-6 t-btn"
           >
             Show all destinations
           </button>
@@ -123,54 +123,47 @@ export default function DestinationsPage({ onPick }) {
         {results.map((p, i) => (
           <Reveal key={p.name} delay={(i % 2) * 80}>
             <article
-              className="tcc-zoom h-full overflow-hidden rounded-[24px] transition-all hover:-translate-y-1"
+              className="tcc-zoom h-full overflow-hidden rounded-[24px] bg-white transition-all hover:-translate-y-1"
               style={{
-                background: "rgba(9, 38, 48, 0.88)",
-                border: "1px solid rgba(255, 255, 255, 0.12)",
+                border: "1px solid #E5E7EB",
+                boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
               }}
             >
-              <div className="relative aspect-[16/9] overflow-hidden">
+              <div className="relative aspect-[16/9] overflow-hidden bg-[#F1F5F9]">
                 <img src={p.img} alt={p.alt} loading="lazy" className="h-full w-full object-cover" />
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background: "linear-gradient(to top, rgba(6,27,36,0.8) 0%, transparent 60%)",
-                  }}
-                />
                 <span
-                  className="absolute right-4 top-4 rounded-full px-3.5 py-1.5 text-xs font-bold text-white backdrop-blur-md"
-                  style={{ background: "rgba(0,0,0,0.65)" }}
+                  className="absolute right-4 top-4 rounded-full bg-white/95 px-3.5 py-1.5 t-price-sm text-[#102A43]"
+                  style={{ border: "1px solid #E5E7EB" }}
                 >
                   {p.price}
                 </span>
               </div>
               <div className="p-6 sm:p-7">
                 <p
-                  className="text-[11px] font-bold uppercase tracking-[0.16em]"
-                  style={{ color: "var(--coral)" }}
+                  className="t-badge uppercase text-[#FF6B57]"
                 >
                   {p.tag}
                 </p>
-                <h2 className="font-display mt-1 text-2xl font-extrabold tracking-tight text-white">
+                <h2 className="font-display mt-1 t-section text-[#102A43]">
                   {p.name}
                 </h2>
-                <p className="mt-2 text-[14px] leading-relaxed text-slate-300">
+                <p className="mt-2 t-body text-[#52606D]">
                   {p.blurb}
                 </p>
-                <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
-                  <CalendarDays className="h-4 w-4 text-[var(--teal)]" aria-hidden="true" />
+                <p className="mt-3 inline-flex items-center gap-1.5 t-meta text-[#829AB1]">
+                  <CalendarDays className="h-4 w-4 text-[#3B82F6]" aria-hidden="true" />
                   {p.season}
                 </p>
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#EEF2F6] pt-5">
                   <button
                     type="button"
                     onClick={() => onPick?.(p.name)}
-                    className="btn-primary inline-flex h-[44px] items-center gap-2 rounded-xl px-5 text-[13px] font-bold"
+                    className="btn-primary inline-flex h-[44px] items-center gap-2 rounded-xl px-5 t-btn"
                   >
                     Plan this trip
                     <ArrowRight className="h-4 w-4" />
                   </button>
-                  <span className="font-display text-base font-extrabold text-white">
+                  <span className="font-display t-price-sm text-[#102A43]">
                     from {p.price}
                   </span>
                 </div>

@@ -11,19 +11,19 @@ export default function DestinationVlogs({ videos, destination }) {
     <section
       id="vlogs"
       aria-label="Destination vlogs"
-      className="glass-panel h-full scroll-mt-24 rounded-[16px] p-5 text-white"
+      className="h-full scroll-mt-24 rounded-[16px] bg-white p-5 text-[#102A43]"
       style={{
-        background: "rgba(9, 38, 48, 0.88)",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
+        border: "1px solid #E5E7EB",
+        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
       }}
     >
       <div className="flex items-center gap-1.5">
         <Play className="h-3.5 w-3.5 fill-current text-[#FF4D4D]" aria-hidden="true" />
-        <h2 className="font-display text-[15px] font-bold tracking-tight text-white">
+        <h2 className="font-display t-activity text-[#102A43]">
           Watch {destination || "Destination"} Guides
         </h2>
       </div>
-      <p className="mt-0.5 pl-5 text-[11px] text-slate-400">
+      <p className="mt-0.5 pl-5 t-meta-sm text-[#52606D]">
         Top curated travel videos and guides from YouTube.
       </p>
 
@@ -40,13 +40,13 @@ export default function DestinationVlogs({ videos, destination }) {
               className="tcc-focus group flex items-center gap-3 rounded-xl"
             >
               {/* Thumbnail with Play + duration */}
-              <span className="relative block h-[62px] w-[112px] shrink-0 overflow-hidden rounded-[10px] bg-slate-900">
+              <span className="relative block h-[62px] w-[112px] shrink-0 overflow-hidden rounded-[10px] bg-[#F1F5F9]">
                 <SafeImage
                   src={v.thumbnail || fallbackImg}
                   alt=""
                   className="h-full w-full object-cover"
                   fallback={
-                    <span className="flex h-full w-full items-center justify-center bg-slate-800 text-slate-500">
+                    <span className="flex h-full w-full items-center justify-center bg-[#F1F5F9] text-[#829AB1]">
                       <Play className="h-5 w-5" />
                     </span>
                   }
@@ -57,7 +57,7 @@ export default function DestinationVlogs({ videos, destination }) {
                   </span>
                 </span>
                 {v.duration && (
-                  <span className="absolute bottom-1 right-1 rounded bg-black/85 px-1 py-px text-[9px] font-semibold text-white">
+                  <span className="absolute bottom-1 right-1 rounded bg-black/85 px-1 py-px t-badge-sm text-white">
                     {v.duration}
                   </span>
                 )}
@@ -65,11 +65,11 @@ export default function DestinationVlogs({ videos, destination }) {
 
               {/* Video Info */}
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12px] font-semibold leading-snug text-white group-hover:text-[var(--coral)]">
+                <span className="block truncate t-label text-[#102A43] group-hover:text-[#FF6B57]">
                   {v.title}
                 </span>
                 {(v.channel || v.duration) && (
-                  <span className="mt-1 block truncate text-[11px] text-slate-400">
+                  <span className="mt-1 block truncate t-meta-sm text-[#829AB1]">
                     {[v.channel, v.duration].filter(Boolean).join(" • ")} ›
                   </span>
                 )}

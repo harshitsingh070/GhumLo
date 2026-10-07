@@ -15,21 +15,23 @@ export default function SavingsSuggestions({ suggestions }) {
   return (
     <section
       id="savings"
-      className="glass-panel scroll-mt-24 rounded-[24px] p-6 sm:p-7 text-white"
+      className="scroll-mt-24 rounded-[24px] p-6 sm:p-7"
       style={{
-        background: "rgba(9, 38, 48, 0.88)",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
+        background: "#ECFDF3",
+        border: "1px solid #A7F3D0",
+        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
+        color: "#102A43",
       }}
       aria-label="Ways to reduce the cost"
     >
       <div className="mb-4">
-        <span className="text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--coral)" }}>
+        <span className="t-badge uppercase" style={{ color: "#15803D" }}>
           Cost Optimizer
         </span>
-        <h2 className="font-display text-xl font-extrabold text-white">
+        <h2 className="font-display t-section" style={{ color: "#102A43" }}>
           Ways to Reduce Trip Cost
         </h2>
-        <p className="mt-1 text-xs text-slate-300">
+        <p className="mt-1 t-small" style={{ color: "#52606D" }}>
           Smart recommendations calculated from live options in your results.
         </p>
       </div>
@@ -41,42 +43,46 @@ export default function SavingsSuggestions({ suggestions }) {
           return (
             <div
               key={i}
-              className="flex flex-col justify-between rounded-[20px] p-5 transition-transform hover:-translate-y-1"
+              className="flex flex-col justify-between rounded-[20px] bg-white p-5 transition-all hover:-translate-y-1"
               style={{
-                background: "rgba(255, 255, 255, 0.04)",
-                border: "1px solid rgba(255, 255, 255, 0.09)",
+                background: "#FFFFFF",
+                border: "1px solid #E5E7EB",
+                boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
               }}
             >
               <div className="flex items-start gap-3.5">
                 <span
                   className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-                  style={{ background: "rgba(32, 199, 201, 0.15)", color: "var(--teal)" }}
+                  style={{ background: "#ECFDF3", color: "#15803D", border: "1px solid #A7F3D0" }}
                 >
                   <Icon className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="t-badge uppercase" style={{ color: "#829AB1" }}>
                       {meta.label}
                     </span>
                     <span
-                      className="rounded-full px-2 py-0.5 text-[11px] font-black"
-                      style={{ background: "rgba(67, 209, 124, 0.15)", color: "var(--success)" }}
+                      className="rounded-full px-2 py-0.5 t-badge"
+                      style={{ background: "#ECFDF3", color: "#15803D", border: "1px solid #A7F3D0" }}
                     >
                       Save {inr(s.potential_savings)}
                     </span>
                   </div>
-                  <p className="mt-2 text-[14px] leading-relaxed text-slate-200">
+                  <p className="mt-2 t-body" style={{ color: "#102A43" }}>
                     {s.message}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
-                <span className="text-[11px] text-slate-400">Calculated savings</span>
+              <div className="mt-4 flex items-center justify-between border-t pt-3" style={{ borderColor: "#EEF2F6" }}>
+                <span className="t-meta-sm" style={{ color: "#829AB1" }}>Calculated savings</span>
                 <a
                   href="#trip-builder"
-                  className="inline-flex items-center gap-1 text-[12px] font-bold text-[var(--coral)] hover:underline"
+                  className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 t-btn-sm transition-colors"
+                  style={{ background: "#FF6B57", color: "#FFFFFF" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "#F25542"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "#FF6B57"; }}
                 >
                   Adjust plan <ArrowRight className="h-3.5 w-3.5" />
                 </a>

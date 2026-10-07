@@ -7,17 +7,16 @@ const LINKS = [
   { label: "About", action: () => go("home", "about") },
 ];
 
-/** Clean footer in dark glass style. */
+/** Clean white/light footer. */
 export default function Footer() {
   return (
     <footer
-      className="text-white/70"
       style={{
-        background: "rgba(4, 20, 27, 0.95)",
-        borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+        background: "#FFFFFF",
+        borderTop: "1px solid #E5E7EB",
       }}
     >
-      <div className="tcc-container py-12">
+      <div className="tcc-container py-12" style={{ maxWidth: 1320 }}>
         <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
           {/* Brand */}
           <div>
@@ -28,23 +27,26 @@ export default function Footer() {
                 className="h-9 w-9 rounded-full object-cover"
                 loading="lazy"
               />
-              <span className="font-display text-[17px] font-extrabold tracking-tight text-white">
+              <span className="font-display t-card-lg" style={{ color: "#102A43" }}>
                 GhoomLo
               </span>
             </a>
-            <p className="mt-3 max-w-xs text-[14px] leading-relaxed text-slate-400">
-              Plan smarter. Explore more. Spend less. Built with SerpApi live travel intelligence.
+            <p className="mt-3 max-w-xs t-body" style={{ color: "#52606D" }}>
+              Plan smarter. Explore more. Spend less.
             </p>
           </div>
 
           {/* Nav */}
-          <nav className="flex flex-wrap gap-x-6 gap-y-2 text-[14px] font-medium" aria-label="Footer">
+          <nav className="flex flex-wrap gap-x-6 gap-y-2 t-nav" aria-label="Footer">
             {LINKS.map((l) =>
               l.href ? (
                 <a
                   key={l.label}
                   href={l.href}
-                  className="tcc-focus text-slate-400 transition-colors hover:text-white"
+                  className="tcc-focus transition-colors"
+                  style={{ color: "#52606D" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#FF6B57"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#52606D"; }}
                 >
                   {l.label}
                 </a>
@@ -53,7 +55,10 @@ export default function Footer() {
                   key={l.label}
                   type="button"
                   onClick={l.action}
-                  className="tcc-focus text-slate-400 transition-colors hover:text-white"
+                  className="tcc-focus transition-colors"
+                  style={{ color: "#52606D" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#FF6B57"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#52606D"; }}
                 >
                   {l.label}
                 </button>
@@ -62,9 +67,9 @@ export default function Footer() {
           </nav>
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-2 border-t border-white/10 pt-6 text-xs text-slate-400 sm:flex-row">
+        <div className="mt-10 flex flex-col items-center justify-between gap-2 pt-6 t-meta sm:flex-row" style={{ borderTop: "1px solid #EEF2F6", color: "#829AB1" }}>
           <p>© 2026 GhoomLo. All rights reserved.</p>
-          <p>Designed for the SerpApi Travel Hackathon.</p>
+          <p>Plan smarter. Explore more. Spend less.</p>
         </div>
       </div>
     </footer>

@@ -84,11 +84,22 @@ public class BudgetService {
     if (combos.isEmpty()) return List.of();
     List<Map<String, Object>> fitting = combos.stream()
         .filter(c -> intOf(c.get("total_cost"), Integer.MAX_VALUE) <= budget).toList();
-    if (fitting.isEmpty()) {
-      combos.sort(Comparator.comparingInt(c -> intOf(c.get("total_cost"), Integer.MAX_VALUE)));
-      return combos.subList(0, Math.min(3, combos.size()));
-    }
     String m = mode == null ? "balanced" : mode;
+    if (fitting.isEmpty()) {
+      // Over budget: still rank by the selected mode (cheapest for saver,
+      // best-rated for comfort) instead of cheapest-for-everyone.
+      List<Map<String, Object>> all = new ArrayList<>(combos);
+      all.sort((a, b) -> {
+        double[] sa = score(a, m);
+        double[] sb = score(b, m);
+        for (int i = 0; i < sa.length; i++) {
+          int cmp = Double.compare(sa[i], sb[i]);
+          if (cmp != 0) return cmp;
+        }
+        return 0;
+      });
+      return all.subList(0, Math.min(3, all.size()));
+    }
     fitting = new ArrayList<>(fitting);
     fitting.sort((a, b) -> {
       double[] sa = score(a, m);
@@ -124,22 +135,71 @@ public class BudgetService {
     return new double[]{balanced, total};
   }
 
-  // Mirrors build_mode_alternatives()
+  // Mirrors build_mode_alternatives() — one DISTINCT pick per mode with a
+  // concrete selection rule each user can verify:
+  //   saver    = cheapest total (fitting if any fit, else cheapest overall)
+  //   balanced = cheapest cost+stops+rating tradeoff (same fitting rule)
+  //   comfort  = highest-rated stay (fitting if any fit, else best-rated overall)
+  // Picks are de-duplicated across modes (walk down the mode ranking past
+  // combos already taken), so identical cards can only happen when the live
+  // data genuinely contains a single flight+hotel combination.
   public List<Map<String, Object>> buildModeAlternatives(List<Map<String, Object>> flights,
       List<Map<String, Object>> hotels, int budget) {
-    List<Map<String, Object>> out = new ArrayList<>();
-    for (String mode : List.of("saver", "balanced", "comfort")) {
-      List<Map<String, Object>> ranked = rankCombinations(flights, hotels, budget, mode);
-      if (!ranked.isEmpty()) {
-        Map<String, Object> choice = ranked.get(0);
-        Map<String, Object> alt = new LinkedHashMap<>();
-        alt.put("mode", mode);
-        alt.putAll(choice);
-        alt.put("fits_budget", intOf(choice.get("total_cost"), Integer.MAX_VALUE) <= budget);
-        out.add(alt);
+    List<Map<String, Object>> combos = new ArrayList<>();
+    for (Map<String, Object> f : flights) {
+      for (Map<String, Object> h : hotels) {
+        combos.add(combo(f, h, totalOf(f, h)));
       }
     }
+    if (combos.isEmpty()) return List.of();
+    List<Map<String, Object>> out = new ArrayList<>();
+    List<String> taken = new ArrayList<>();
+    for (String mode : List.of("saver", "balanced", "comfort")) {
+      List<Map<String, Object>> ranked = new ArrayList<>(combos);
+      final String m = mode;
+      ranked.sort((a, b) -> {
+        double[] sa = score(a, m);
+        double[] sb = score(b, m);
+        for (int i = 0; i < sa.length; i++) {
+          int cmp = Double.compare(sa[i], sb[i]);
+          if (cmp != 0) return cmp;
+        }
+        return 0;
+      });
+      // Prefer a fitting combo the mode hasn't already lost to another tier…
+      Map<String, Object> choice = null;
+      for (Map<String, Object> c : ranked) {
+        if (intOf(c.get("total_cost"), Integer.MAX_VALUE) <= budget && !taken.contains(keyOf(c))) {
+          choice = c;
+          break;
+        }
+      }
+      // …then any untaken combo in mode order (this is what makes the
+      // over-budget tiers differ: cheapest vs best-rated vs tradeoff)…
+      if (choice == null) {
+        for (Map<String, Object> c : ranked) {
+          if (!taken.contains(keyOf(c))) { choice = c; break; }
+        }
+      }
+      // …and only if the data holds a single combination do tiers repeat it.
+      if (choice == null) choice = ranked.get(0);
+      taken.add(keyOf(choice));
+      Map<String, Object> alt = new LinkedHashMap<>();
+      alt.put("mode", mode);
+      alt.putAll(choice);
+      alt.put("fits_budget", intOf(choice.get("total_cost"), Integer.MAX_VALUE) <= budget);
+      out.add(alt);
+    }
     return out;
+  }
+
+  private String keyOf(Map<String, Object> combo) {
+    @SuppressWarnings("unchecked")
+    Map<String, Object> f = (Map<String, Object>) combo.get("flight");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> h = (Map<String, Object>) combo.get("hotel");
+    return String.valueOf(f.get("airline")) + "|" + intOf(f.get("price"), -1)
+        + "|" + String.valueOf(h.get("name")) + "|" + intOf(h.get("total_price"), -1);
   }
 
   private boolean sameHotel(Map<String, Object> a, Map<String, Object> b) {

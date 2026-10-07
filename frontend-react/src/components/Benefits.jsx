@@ -7,33 +7,33 @@ const ITEMS = [
     icon: BadgeIndianRupee,
     title: "Real-time options",
     text: "Current flight and hotel options, checked live for your dates.",
-    color: "var(--coral)",
-    bg: "rgba(255, 114, 94, 0.15)",
+    color: "#FF6B57",
+    bg: "#FFF1EE",
   },
   {
     icon: Layers,
     title: "Budget-first planning",
     text: "Your budget is a constraint from the beginning — not an afterthought.",
-    color: "var(--teal)",
-    bg: "rgba(32, 199, 201, 0.15)",
+    color: "#3B82F6",
+    bg: "#EFF6FF",
   },
   {
     icon: Globe2,
     title: "Everything in one place",
     text: "Flights, hotels, nearby places and your itinerary together.",
-    color: "var(--gold)",
-    bg: "rgba(247, 201, 72, 0.15)",
+    color: "#F59E0B",
+    bg: "#FFFBEB",
   },
   {
     icon: Sparkles,
     title: "Smart discovery",
     text: "Discover destinations based on what you can actually afford.",
-    color: "#B794F4",
-    bg: "rgba(183, 148, 244, 0.15)",
+    color: "#8B5CF6",
+    bg: "#F5F3FF",
   },
 ];
 
-/** Concise trust/benefits strip in dark glass style. */
+/** Concise trust/benefits strip in light card style. */
 export default function Benefits() {
   return (
     <section aria-label="Why GhoomLo">
@@ -45,10 +45,10 @@ export default function Benefits() {
         {ITEMS.map((b, i) => (
           <Reveal key={b.title} delay={i * 70}>
             <div
-              className="glass-card flex h-full gap-3.5 p-5 transition-transform hover:-translate-y-1"
+              className="flex h-full gap-3.5 rounded-[20px] bg-white p-5 transition-transform hover:-translate-y-1"
               style={{
-                background: "rgba(9, 38, 48, 0.80)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                border: "1px solid #E5E7EB",
+                boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
               }}
             >
               <span
@@ -58,10 +58,10 @@ export default function Benefits() {
                 <b.icon className="h-5 w-5" />
               </span>
               <div>
-                <h3 className="font-display text-[15px] font-bold tracking-tight text-white">
+                <h3 className="font-display t-activity text-[#102A43]">
                   {b.title}
                 </h3>
-                <p className="mt-1 text-[13px] leading-relaxed text-slate-300">
+                <p className="mt-1 t-small text-[#52606D]">
                   {b.text}
                 </p>
               </div>

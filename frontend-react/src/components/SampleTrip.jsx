@@ -9,7 +9,7 @@ const DAYS = [
   { day: "Day 3", title: "South Goa & Palolem", cost: "₹2,200" },
 ];
 
-/** Sample trip preview: what a real result looks like in dark glassmorphism. */
+/** Sample trip preview: what a real result looks like in light cards. */
 export default function SampleTrip() {
   return (
     <section aria-label="Sample trip preview">
@@ -20,10 +20,10 @@ export default function SampleTrip() {
       />
       <Reveal className="mt-8">
         <div
-          className="glass-card overflow-hidden"
+          className="overflow-hidden rounded-[20px] bg-white"
           style={{
-            background: "rgba(9, 38, 48, 0.85)",
-            border: "1px solid rgba(255, 255, 255, 0.10)",
+            border: "1px solid #E5E7EB",
+            boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
           }}
         >
           <div className="grid md:grid-cols-2">
@@ -35,53 +35,46 @@ export default function SampleTrip() {
                 loading="lazy"
                 className="absolute inset-0 h-full w-full object-cover"
               />
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: "linear-gradient(to top, rgba(6,27,36,0.7) 0%, transparent 60%)",
-                }}
-              />
               <span
-                className="absolute left-5 top-5 rounded-full px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-white"
-                style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)" }}
+                className="absolute left-5 top-5 rounded-full bg-white/95 px-3.5 py-1.5 t-badge uppercase text-[#102A43]"
+                style={{ border: "1px solid #E5E7EB" }}
               >
                 Sample Goa Trip
               </span>
             </div>
 
             {/* Summary */}
-            <div className="p-7 sm:p-8 text-white">
-              <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-300">
+            <div className="p-7 text-[#102A43] sm:p-8">
+              <div className="flex flex-wrap gap-x-5 gap-y-2 t-meta text-[#52606D]">
                 <span className="inline-flex items-center gap-1.5">
-                  <CalendarDays className="h-4 w-4 text-[var(--coral)]" /> 10 Oct – 13 Oct 2026
+                  <CalendarDays className="h-4 w-4 text-[#FF6B57]" /> 10 Oct – 13 Oct 2026
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Users className="h-4 w-4 text-[var(--teal)]" /> 2 Travelers
+                  <Users className="h-4 w-4 text-[#3B82F6]" /> 2 Travelers
                 </span>
               </div>
-              <p className="font-display mt-3 text-4xl font-extrabold tracking-tight text-white">
-                ₹34,440 <span className="text-base font-semibold text-slate-400">total</span>
+              <p className="font-display mt-3 t-price-lg text-[#102A43]">
+                ₹34,440 <span className="t-card text-[#829AB1]">total</span>
               </p>
               <ul className="mt-5 space-y-2.5">
                 {DAYS.map((d) => (
                   <li
                     key={d.day}
-                    className="flex items-center justify-between gap-3 rounded-xl p-3"
+                    className="flex items-center justify-between gap-3 rounded-xl bg-[#F7F9FC] p-3"
                     style={{
-                      background: "rgba(255, 255, 255, 0.04)",
-                      border: "1px solid rgba(255, 255, 255, 0.06)",
+                      border: "1px solid #EEF2F6",
                     }}
                   >
                     <span className="flex min-w-0 items-center gap-2.5">
-                      <MapPin className="h-4 w-4 shrink-0 text-[var(--coral)]" aria-hidden="true" />
+                      <MapPin className="h-4 w-4 shrink-0 text-[#FF6B57]" aria-hidden="true" />
                       <span className="min-w-0">
-                        <span className="mr-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                        <span className="mr-2 t-day text-[#829AB1]">
                           {d.day}
                         </span>
-                        <span className="text-[13px] font-semibold text-white">{d.title}</span>
+                        <span className="t-nav-active text-[#102A43]">{d.title}</span>
                       </span>
                     </span>
-                    <span className="font-display shrink-0 text-[13px] font-bold text-slate-300">
+                    <span className="font-display shrink-0 t-price-sm text-[#52606D]">
                       {d.cost}
                     </span>
                   </li>
@@ -89,7 +82,7 @@ export default function SampleTrip() {
               </ul>
               <a
                 href="#/trip"
-                className="btn-primary mt-6 flex h-[46px] w-full items-center justify-center gap-2 text-[14px]"
+                className="btn-primary mt-6 flex h-[46px] w-full items-center justify-center gap-2 t-btn"
               >
                 Plan your own trip
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />

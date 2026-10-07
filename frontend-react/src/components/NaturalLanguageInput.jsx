@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
+import { apiRequest, friendlyError } from "../lib/api.js";
+import { ButtonSpinner } from "./Loader.jsx";
+import { InlineError } from "./ErrorState.jsx";
 
 /** Natural-language trip box: "Goa under 50k next weekend, veg food"
  *  -> POST /api/parse-trip -> merges fields into the trip form.
@@ -18,13 +21,11 @@ export default function NaturalLanguageInput({ onFill }) {
     setStatus("");
     setFailed(false);
     try {
-      const res = await fetch("/api/parse-trip", {
+      const data = await apiRequest("/api/parse-trip", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: trimmed }),
+        timeoutMs: 30000,
+        body: { text: trimmed },
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Couldn't parse that trip.");
       const fields = data.fields || {};
       onFill?.(fields);
       const bits = [];
@@ -37,7 +38,7 @@ export default function NaturalLanguageInput({ onFill }) {
       );
     } catch (err) {
       setFailed(true);
-      setStatus(err.message);
+      setStatus(friendlyError(err, "Couldn't parse that trip."));
     } finally {
       setLoading(false);
     }
@@ -45,11 +46,10 @@ export default function NaturalLanguageInput({ onFill }) {
 
   return (
     <div
-      className="mb-0 rounded-[18px] p-2"
+      className="mb-0 rounded-[18px] bg-white p-2"
       style={{
-        background: "rgba(255,255,255,0.07)",
-        border: "1px solid rgba(255,255,255,0.14)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+        border: "1px solid #E5E7EB",
+        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
       }}
     >
       {/* NOTE: plain div + button, NOT a <form> — this component renders
@@ -72,26 +72,35 @@ export default function NaturalLanguageInput({ onFill }) {
           maxLength={500}
           placeholder='Try: "Goa under 50k next weekend, 2 people, veg food"'
           autoComplete="off"
-          className="glass-input h-11 min-w-0 flex-1 px-4 text-sm"
+          className="glass-input h-11 min-w-0 flex-1 px-4 t-input"
         />
         <button
           type="button"
           onClick={fill}
           disabled={loading || !text.trim()}
-          className="btn-primary h-11 shrink-0 px-5 text-sm disabled:opacity-50"
+          className="btn-primary h-11 shrink-0 px-5 t-btn disabled:opacity-50"
         >
-          <Sparkles className="h-4 w-4" aria-hidden="true" />
+          {loading ? (
+            <ButtonSpinner />
+          ) : (
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+          )}
           {loading ? "Reading…" : "Fill form"}
         </button>
       </div>
-      {status && (
+      {status && !failed && (
         <p
-          className="mt-2 text-[13px] font-medium"
+          className="mt-2 t-small"
           role="status"
-          style={{ color: failed ? "var(--coral)" : "var(--teal)" }}
+          style={{ color: "#22C55E" }}
         >
           {status}
         </p>
+      )}
+      {status && failed && (
+        <div className="mt-2">
+          <InlineError message={status} onRetry={fill} retryLabel="Retry" />
+        </div>
       )}
     </div>
   );

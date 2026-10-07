@@ -69,25 +69,25 @@ export default function PackingList({ packing, weather, num_nights, destination 
     <section
       id="packing"
       aria-label="Weather-aware packing checklist"
-      className="glass-panel scroll-mt-24 rounded-[16px] px-4 py-3.5 text-white"
-      style={{ background: "rgba(9, 38, 48, 0.88)", border: "1px solid rgba(255, 255, 255, 0.12)" }}
+      className="scroll-mt-24 rounded-[16px] px-4 py-3.5"
+      style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)", color: "#102A43" }}
     >
       <div className="flex items-center gap-2">
-        <Luggage className="h-4 w-4 shrink-0" style={{ color: "var(--teal)" }} aria-hidden="true" />
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+        <Luggage className="h-4 w-4 shrink-0" style={{ color: "#FF6B57" }} aria-hidden="true" />
+        <p className="t-badge-sm uppercase" style={{ color: "#829AB1" }}>
           Pack for {(destination || "this trip")} · live weather
         </p>
       </div>
       {data.summary && (
-        <p className="mt-1.5 text-[13px] font-semibold leading-snug text-white">{data.summary}</p>
+        <p className="mt-1.5 t-body-strong" style={{ color: "#102A43" }}>{data.summary}</p>
       )}
       {chips.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Weather basis">
           {chips.map((c) => (
             <span
               key={c}
-              className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-              style={{ background: "rgba(32,199,201,0.14)", color: "var(--teal)" }}
+              className="rounded-full px-2 py-0.5 t-badge-sm"
+              style={{ background: "#F1F5F9", color: "#52606D", border: "1px solid #E5E7EB" }}
             >
               {c}
             </span>
@@ -97,7 +97,7 @@ export default function PackingList({ packing, weather, num_nights, destination 
       <div className="mt-2.5 space-y-3">
         {(data.groups || []).map((g) => (
           <div key={g.title}>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{g.title}</p>
+            <p className="t-badge uppercase" style={{ color: "#829AB1" }}>{g.title}</p>
             <ul className="mt-1 space-y-1">
               {(g.items || []).map((it, i) => {
                 const key = `${g.title}-${it.item}-${i}`;
@@ -108,29 +108,32 @@ export default function PackingList({ packing, weather, num_nights, destination 
                       type="button"
                       onClick={() => toggle(key)}
                       aria-pressed={done}
-                      className="tcc-focus flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.05]"
+                      className="tcc-focus flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors"
+                      style={{ background: "transparent" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "#F7F9FC"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                     >
                       <span
                         className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border"
                         style={{
-                          borderColor: done ? "var(--success)" : "rgba(255,255,255,0.25)",
-                          background: done ? "rgba(67,209,124,0.2)" : "transparent",
-                          color: "var(--success)",
+                          borderColor: done ? "#22C55E" : "#E5E7EB",
+                          background: done ? "#ECFDF3" : "#FFFFFF",
+                          color: "#15803D",
                         }}
                         aria-hidden="true"
                       >
                         {done && <Check className="h-3 w-3" />}
                       </span>
                       <span className="min-w-0">
-                        <span className={`block text-[12px] font-semibold ${done ? "text-slate-500 line-through" : "text-slate-100"}`}>
+                        <span className={`block t-label ${done ? "line-through" : ""}`} style={{ color: done ? "#829AB1" : "#102A43" }}>
                           {it.item}
                           {it.essential && !done && (
-                            <span className="ml-1.5 rounded-full px-1.5 py-px text-[9px] font-bold" style={{ background: "rgba(255,114,94,0.15)", color: "var(--coral)" }}>
+                            <span className="ml-1.5 rounded-full px-1.5 py-px t-badge-sm" style={{ background: "#FFF1EE", color: "#F25542", border: "1px solid #FED7AA" }}>
                               must
                             </span>
                           )}
                         </span>
-                        {it.why && <span className="block text-[11px] leading-snug text-slate-400">{it.why}</span>}
+                        {it.why && <span className="block t-meta-sm" style={{ color: "#52606D" }}>{it.why}</span>}
                       </span>
                     </button>
                   </li>
@@ -140,7 +143,7 @@ export default function PackingList({ packing, weather, num_nights, destination 
           </div>
         ))}
       </div>
-      {data.note && <p className="mt-2 text-[10px] leading-relaxed text-slate-500">{data.note}</p>}
+      {data.note && <p className="mt-2 t-meta-sm" style={{ color: "#829AB1" }}>{data.note}</p>}
     </section>
   );
 }

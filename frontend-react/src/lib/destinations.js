@@ -73,11 +73,48 @@ export const DESTINATIONS = [
 /** Extra Goan shots so cards don't repeat one photo. */
 const GOA_POOL = [goa, goaPalolem, goaBogmalo, goaCand1, goaCand2, goaFort, heroGoa];
 
-/** Every bundled photo for a destination. Other cities only have one shot. */
+/** Every bundled photo — used for hash-picked variety on destinations
+ *  without their own shoot (so Paris never shows the Goa fallback). */
+const ALL_PHOTOS = [goa, goaPalolem, goaBogmalo, goaCand1, goaCand2, goaFort, heroGoa, jaipur, manali, mumbai, delhi, london];
+
+function hashString(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+/** Bundled photo for a destination: exact catalogue match, else a stable
+ *  hash-pick so every location gets its own consistent (if generic) shot. */
+export function bundledHeroFor(destination) {
+  const name = String(destination || "").toLowerCase();
+  const match = DESTINATIONS.find((d) => name.includes(d.name.toLowerCase()));
+  if (match) return match.img;
+  return ALL_PHOTOS[hashString(name || "trip") % ALL_PHOTOS.length];
+}
+
+/** Dynamic hero image for a destination + live plan.
+ *  Priority: live hotel photo from this search (real place you may stay) →
+ *  bundled catalogue match → hash-picked bundled photo.
+ *  Returns { src, fallback } — wire fallback into img onError. */
+export function heroImageFor(destination, plan) {
+  const fallback = bundledHeroFor(destination);
+  const live = plan?.best_pick?.hotel?.image;
+  if (typeof live === "string" && /^https?:\/\//i.test(live.trim())) {
+    return { src: live.trim(), fallback };
+  }
+  return { src: fallback, fallback: null };
+}
+
+/** Every bundled photo for a destination. Catalogue cities keep their own
+ *  shot; anywhere else gets a stable hash-rotated slice of all photos so
+ *  different searches look different instead of all falling back to Goa. */
 export function photoPoolFor(destination) {
   const name = String(destination || "").toLowerCase();
   const match = DESTINATIONS.find((d) => name.includes(d.name.toLowerCase()));
-  if (!match) return DESTINATIONS.map((d) => d.img);
+  if (!match) {
+    const start = hashString(name || "trip") % ALL_PHOTOS.length;
+    return [...ALL_PHOTOS.slice(start), ...ALL_PHOTOS.slice(0, start)];
+  }
   return match.name === "Goa" ? GOA_POOL : [match.img];
 }
 

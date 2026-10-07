@@ -4,31 +4,44 @@ export default {
     "./index.html",
     "./src/**/*.{js,jsx}",
   ],
-  // Toggle-driven dark mode: App sets `dark` class + data-theme="dark" on
-  // <html> (class drives the variants; data-theme is the semantic marker).
+  // Light-only theme: no dark mode. `dark:` variants are unused.
   darkMode: "class",
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Plus Jakarta Sans"', "Manrope", "Inter", "sans-serif"],
-        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        display: ['"Inter"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
+        sans: ['"Inter"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
       },
       colors: {
-        cream: "#F7F3EA",
-        sand: "#E7F1F1",
-        ink: "#174A5B",
-        smoke: "#5C7880",
-        // Canonical coral lives in CSS vars (--coral).
-        // The old `clay` palette was dead (no text-clay/bg-clay/etc.
-        // usage in src) and has been removed to keep one coral token.
-        pine: "#0B7285",
-        leaf: "#2A9D8F",
-        line: "#D7E5E6",
+        background: "#F7F9FC",
+        surface: "#FFFFFF",
+        surfacesecondary: "#F1F5F9",
+        navy: "#102A43",
+        secondary: "#52606D",
+        muted: "#829AB1",
+        primary: "#FF6B57",
+        primaryhover: "#F25542",
+        primarylight: "#FFF1EE",
+        success: "#22C55E",
+        successlight: "#ECFDF3",
+        info: "#3B82F6",
+        infolight: "#EFF6FF",
+        warning: "#F59E0B",
+        warninglight: "#FFFBEB",
+        purple: "#8B5CF6",
+        purplelight: "#F5F3FF",
+        cream: "#F7F9FC",
+        sand: "#F1F5F9",
+        ink: "#102A43",
+        smoke: "#52606D",
+        pine: "#0EA5A4",
+        leaf: "#22C55E",
+        line: "#E5E7EB",
       },
       boxShadow: {
-        card: "0 1px 2px 0 rgb(23 32 51 / 0.05)",
-        "card-hover": "0 12px 28px -12px rgb(23 32 51 / 0.22)",
-        pop: "0 20px 45px -18px rgb(23 32 51 / 0.35)",
+        card: "0 4px 20px rgba(15, 23, 42, 0.06)",
+        "card-hover": "0 12px 28px -12px rgb(23 32 51 / 0.14)",
+        pop: "0 20px 45px -18px rgb(23 32 51 / 0.18)",
       },
       borderRadius: {
         card: "18px",

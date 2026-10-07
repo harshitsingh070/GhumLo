@@ -2,58 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Design tokens (Dark Cinematic Glassmorphism) ──────────────────────── */
+/* ─── Design tokens (Light-only premium travel SaaS) ────────────────────── */
 :root {
-  --bg-primary: #061B24;
-  --bg-secondary: #082733;
-  --bg-deep: #04141B;
+  --background: #F7F9FC;
+  --bg-primary: #F7F9FC;
+  --bg-secondary: #FFFFFF;
+  --bg-deep: #EEF2F6;
 
-  --coral: #FF725E;
-  --coral-hover: #FF624D;
-  --coral-soft: rgba(255, 114, 94, 0.15);
+  --surface: #FFFFFF;
+  --surface-secondary: #F1F5F9;
+  --surface-muted: #EEF2F6;
 
-  --teal: #20C7C9;
-  --teal-soft: rgba(32, 199, 201, 0.14);
+  --coral: #FF6B57;
+  --coral-hover: #F25542;
+  --coral-soft: rgba(255, 107, 87, 0.10);
+  --primary: #FF6B57;
+  --primary-hover: #F25542;
+  --primary-light: #FFF1EE;
 
-  --gold: #F7C948;
+  --teal: #0EA5A4;
+  --teal-soft: rgba(14, 165, 164, 0.10);
 
-  --text-primary: #F7FAFC;
-  --text-secondary: #B8C7CC;
-  --text-muted: #7F969E;
+  --gold: #F59E0B;
 
-  --surface-glass: rgba(10, 39, 49, 0.70);
-  --surface-glass-light: rgba(255, 255, 255, 0.08);
-  --surface-card: rgba(9, 38, 48, 0.88);
-  --surface-hover: rgba(255, 255, 255, 0.10);
+  --text-primary: #102A43;
+  --text-secondary: #52606D;
+  --text-muted: #829AB1;
 
-  --border-glass: rgba(255, 255, 255, 0.14);
-  --border-soft: rgba(255, 255, 255, 0.08);
+  --surface-glass: #FFFFFF;
+  --surface-glass-light: #F1F5F9;
+  --surface-card: #FFFFFF;
+  --surface-hover: #F1F5F9;
 
-  --success: #43D17C;
-  --warning: #F7C948;
-  --danger: #FF725E;
-  --info: #48B8FF;
+  --border: #E5E7EB;
+  --border-light: #EEF2F6;
+  --border-glass: #E5E7EB;
+  --border-soft: #EEF2F6;
 
-  /* Legacy aliases for existing code */
-  --tcc-cream: #061B24;
-  --tcc-surface: rgba(10, 39, 49, 0.75);
-  --tcc-ink: #F7FAFC;
-  --tcc-smoke: #B8C7CC;
-  --tcc-clay: #FF725E;
-  --tcc-clay-dark: #FF624D;
-  --tcc-pine: #20C7C9;
-  --tcc-leaf: #43D17C;
-  --tcc-line: rgba(255, 255, 255, 0.12);
-  --tcc-dark: #04141B;
-  --tcc-sand: rgba(255, 255, 255, 0.08);
-  --tcc-glow: rgba(255, 114, 94, 0.18);
+  --success: #22C55E;
+  --success-light: #ECFDF3;
+  --warning: #F59E0B;
+  --warning-light: #FFFBEB;
+  --danger: #F25542;
+  --danger-light: #FFF1EE;
+  --info: #3B82F6;
+  --info-light: #EFF6FF;
+  --purple: #8B5CF6;
+  --purple-light: #F5F3FF;
+
+  /* Legacy aliases — remapped to light values so old var() refs stay light */
+  --tcc-cream: #F7F9FC;
+  --tcc-surface: #FFFFFF;
+  --tcc-ink: #102A43;
+  --tcc-smoke: #52606D;
+  --tcc-clay: #FF6B57;
+  --tcc-clay-dark: #F25542;
+  --tcc-pine: #0EA5A4;
+  --tcc-leaf: #22C55E;
+  --tcc-line: #E5E7EB;
+  --tcc-dark: #102A43;
+  --tcc-sand: #F1F5F9;
+  --tcc-glow: rgba(255, 107, 87, 0.12);
 }
 
 /* ─── Base ──────────────────────────────────────────────────────────────── */
 html {
   scroll-behavior: smooth;
   font-family: "Inter", system-ui, -apple-system, sans-serif;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -63,11 +79,8 @@ html {
 }
 
 body {
-  background-color: var(--bg-primary);
-  background:
-    radial-gradient(circle at 80% 0%, rgba(31, 104, 130, 0.28), transparent 32%),
-    radial-gradient(circle at 10% 20%, rgba(255, 112, 91, 0.10), transparent 30%),
-    #061B24;
+  background-color: var(--background);
+  background: #F7F9FC;
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -75,46 +88,39 @@ body {
   min-height: 100vh;
 }
 
-/* Single panel recipe — used by every dashboard card.
- *  Inline `background`/`border` overrides in components duplicate these
- *  exact values, so dropping them later is a no-op visually. */
+/* Light card recipe — used by every dashboard card.
+ *  White surface, thin light-gray border, subtle shadow. */
 .glass-panel {
-  background: rgba(9, 38, 48, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
 }
 
 .glass-light {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: #F1F5F9;
+  border: 1px solid #E5E7EB;
 }
 
 .glass-card {
-  background: rgba(9, 38, 48, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
   border-radius: 20px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
 }
 
-/* Nested tile inside a glass panel — deliberately border-lighter */
+/* Nested tile inside a light panel */
 .glass-tile {
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: #F7F9FC;
+  border: 1px solid #E5E7EB;
   border-radius: 16px;
-  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .glass-tile:hover {
-  background: rgba(255, 255, 255, 0.075);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: #FFFFFF;
+  border-color: #FF6B57;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  transform: translateY(-2px);
 }
 
 .btn-primary {
@@ -130,14 +136,14 @@ body {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--coral-hover);
+  background: var(--primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(255, 114, 94, 0.35);
+  box-shadow: 0 4px 16px rgba(255, 107, 87, 0.35);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
   color: var(--text-primary);
   border-radius: 12px;
   font-weight: 600;
@@ -149,25 +155,227 @@ body {
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.22);
+  background: #F1F5F9;
+  border-color: #FF6B57;
   transform: translateY(-1px);
 }
 
 .tcc-ai-panel {
-  background: rgba(10, 39, 49, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
 }
 
 .tcc-weather-chip {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #F1F5F9;
+  border: 1px solid #E5E7EB;
 }
 
 .font-display {
-  font-family: "Plus Jakarta Sans", "Manrope", "Inter", sans-serif;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* ─── Typography system (Inter-only SaaS scale) ────────────────────────────
+   Central tokens + reusable classes. Weights capped at 700 per system.
+   Hierarchy: 48 hero → 32 page → 24 section → 20 subsection →
+   16–18 card → 14 body → 13 description → 11–12 meta → 10–11 label. */
+:root {
+  --font-family-base: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --text-hero: 48px;
+  --text-page-title: 32px;
+  --text-section: 24px;
+  --text-subsection: 20px;
+  --text-card: 16px;
+  --text-body: 14px;
+  --text-small: 13px;
+  --text-meta: 12px;
+  --text-label: 11px;
+}
+
+html, body {
+  font-family: var(--font-family-base);
+}
+
+.t-hero {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -1.8px;
+}
+
+.t-page-title {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.8px;
+}
+
+.t-section {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+}
+
+.t-subsection {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.2px;
+}
+
+.t-card {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.t-card-lg {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.t-body {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.t-body-strong {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.t-small {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.t-meta {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.t-meta-sm {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.t-nav {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.t-nav-active {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.t-btn {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.t-btn-sm {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.t-badge {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.6px;
+}
+
+.t-badge-sm {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.6px;
+}
+
+.t-price-lg {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.t-price-md {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+}
+
+.t-price-sm {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.t-input {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.t-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.t-day {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.t-activity {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+@media (max-width: 640px) {
+  .t-hero {
+    font-size: 36px;
+    letter-spacing: -1.2px;
+  }
+  .t-page-title {
+    font-size: 28px;
+    letter-spacing: -0.6px;
+  }
+  .t-section {
+    font-size: 21px;
+    letter-spacing: -0.3px;
+  }
+  .t-subsection {
+    font-size: 18px;
+  }
+  .t-card-lg {
+    font-size: 16px;
+  }
+  .t-card {
+    font-size: 15px;
+  }
+  .t-price-lg {
+    font-size: 26px;
+  }
 }
 
 /* ─── Consistent page container ──────────────────────────────────────────── */
@@ -256,9 +464,9 @@ body {
 .tcc-skeleton {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 25%,
-    rgba(255, 255, 255, 0.11) 50%,
-    rgba(255, 255, 255, 0.05) 75%
+    #EEF2F6 25%,
+    #E5E7EB 50%,
+    #EEF2F6 75%
   );
   background-size: 200% 100%;
   animation: tcc-shimmer 1.5s infinite;
@@ -358,10 +566,10 @@ textarea:focus-visible,
   border-radius: 8px;
 }
 
-/* Standard dark glass input */
+/* Standard light input */
 .glass-input {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
   color: var(--text-primary);
   border-radius: 12px;
   transition: border-color 160ms ease, box-shadow 160ms ease;
@@ -373,11 +581,11 @@ textarea:focus-visible,
 
 .glass-input:focus {
   outline: none;
-  border-color: rgba(255, 114, 94, 0.75);
-  box-shadow: 0 0 0 3px rgba(255, 114, 94, 0.12);
+  border-color: rgba(255, 107, 87, 0.75);
+  box-shadow: 0 0 0 3px rgba(255, 107, 87, 0.12);
 }
 
-/* ─── Leaflet chrome → dark glass frame (tiles stay light, §38) ───────────
+/* ─── Leaflet chrome → light card frame ───────────────────────────────────
    Prefixed with .leaflet-container: leaflet.css is imported after this file,
    so equal-specificity selectors would lose the cascade. */
 .leaflet-container .leaflet-bar {
@@ -388,18 +596,18 @@ textarea:focus-visible,
 }
 
 .leaflet-container .leaflet-bar a {
-  background: rgba(9, 38, 48, 0.94);
-  border-bottom-color: rgba(255, 255, 255, 0.14);
+  background: #FFFFFF;
+  border-bottom-color: #E5E7EB;
   color: var(--text-primary);
 }
 
 .leaflet-container .leaflet-bar a:hover {
-  background: rgba(18, 58, 72, 0.98);
+  background: #F1F5F9;
   color: var(--text-primary);
 }
 
 .leaflet-container .leaflet-bar a.leaflet-disabled {
-  background: rgba(9, 38, 48, 0.55);
+  background: #F1F5F9;
   color: var(--text-muted);
 }
 
@@ -409,7 +617,7 @@ textarea:focus-visible,
 }
 
 .leaflet-container div.leaflet-control-attribution {
-  background: rgba(4, 20, 27, 0.82);
+  background: rgba(255, 255, 255, 0.92);
   color: var(--text-secondary);
   font-size: 10px;
   padding: 1px 7px;

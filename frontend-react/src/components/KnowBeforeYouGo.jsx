@@ -13,25 +13,27 @@ export default function KnowBeforeYouGo({ know, destination }) {
     <section
       id="know"
       aria-label="Know before you go"
-      className="glass-panel scroll-mt-24 rounded-[16px] p-5 text-white"
+      className="scroll-mt-24 rounded-[16px] p-5"
       style={{
-        background: "rgba(9, 38, 48, 0.88)",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
+        background: "#FFFFFF",
+        border: "1px solid #E5E7EB",
+        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
+        color: "#102A43",
       }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px]"
-            style={{ background: "rgba(96, 165, 250, 0.15)", color: "#60A5FA" }}
+            style={{ background: "#EFF6FF", color: "#3B82F6", border: "1px solid #DBEAFE" }}
           >
             <BookOpenCheck className="h-4 w-4" aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <h2 className="font-display text-[15px] font-bold tracking-tight text-white">
+            <h2 className="font-display t-activity" style={{ color: "#102A43" }}>
               Good to Know - {destination || "Destination"}
             </h2>
-            <p className="mt-0.5 text-[11px] text-slate-400">
+            <p className="mt-0.5 t-meta-sm" style={{ color: "#52606D" }}>
               Entry regulations, safety guidelines & local pointers.
             </p>
           </div>
@@ -41,7 +43,10 @@ export default function KnowBeforeYouGo({ know, destination }) {
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="flex shrink-0 items-center gap-1 pt-0.5 text-[11px] font-semibold text-[var(--coral)] hover:underline"
+            className="flex shrink-0 items-center gap-1 pt-0.5 t-btn-sm hover:underline"
+            style={{ color: "#FF6B57" }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "#F25542"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "#FF6B57"; }}
           >
             {expanded ? (
               <>Show less <ChevronUp className="h-3 w-3" /></>
@@ -52,20 +57,27 @@ export default function KnowBeforeYouGo({ know, destination }) {
         )}
       </div>
 
-      <ul className="mt-3 divide-y divide-white/[0.07]">
+      <ul className="mt-3 space-y-2">
         {visibleItems.map((k, i) => (
-          <li key={i} className="py-2.5 first:pt-1 last:pb-0">
+          <li
+            key={i}
+            className="rounded-xl px-3 py-2.5"
+            style={{ background: "#F7F9FC", border: "1px solid #EEF2F6" }}
+          >
             <a
               href={k.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="tcc-focus block truncate text-[12.5px] font-semibold text-white hover:text-[var(--coral)]"
+              className="tcc-focus block truncate t-label"
+              style={{ color: "#102A43" }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#FF6B57"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "#102A43"; }}
               title={k.title}
             >
               {k.title}
             </a>
             {k.snippet && (
-              <p className="mt-0.5 truncate text-[11.5px] leading-relaxed text-slate-400" title={k.snippet}>
+              <p className="mt-0.5 truncate t-meta-sm" style={{ color: "#52606D" }} title={k.snippet}>
                 {k.snippet}
               </p>
             )}

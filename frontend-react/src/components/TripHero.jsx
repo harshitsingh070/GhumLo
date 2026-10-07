@@ -1,27 +1,22 @@
-import { CalendarDays, Users, Wallet } from "lucide-react";
-import heroGoa from "../assets/destinations/hero-goa.jpg";
-import { DESTINATIONS } from "../lib/destinations.js";
+import { CalendarDays, Users, Wallet, Plane, BedDouble, ArrowRight } from "lucide-react";
+import { DESTINATIONS, bundledHeroFor } from "../lib/destinations.js";
 import TripPreviewCard from "./TripPreviewCard.jsx";
 
-/** Resolve a bundled cinematic photo for the current destination —
- *  same dynamic-location image feature as the Explore hero. */
-function heroImageFor(destination) {
-  if (!destination) return heroGoa;
-  const name = String(destination).toLowerCase();
-  const match = DESTINATIONS.find((d) => name.includes(d.name.toLowerCase()));
-  return match ? match.img : heroGoa;
-}
-
-/** Full-screen trip hero — same look as the Explore hero: edge-to-edge
- *  destination photo, gradient overlays, left copy, live trip card floating
- *  above the image on the right (stacked below copy on mobile). */
+/** Light trip hero — destination image card + navy heading, trip facts,
+ *  flight/hotel breakdown and primary CTA. Communicates where / when /
+ *  how many / cost / action at a glance. */
 export default function TripHero({ plan, onViewPlan }) {
   const destination = plan?.destination || "Goa";
-  const img = heroImageFor(plan?.destination);
+  // Bundled location photo only (full-resolution assets): catalogue match
+  // → stable hash-picked photo per location. No live thumbnails here —
+  // small provider images pixelate when stretched full-bleed.
+  const img = bundledHeroFor(plan?.destination || "Goa");
   const known = DESTINATIONS.find((d) =>
     String(destination).toLowerCase().includes(d.name.toLowerCase())
   );
   const total = Number(plan?.best_pick?.total_cost) || 0;
+  const flight = plan?.best_pick?.flight || {};
+  const hotel = plan?.best_pick?.hotel || {};
 
   const pills = plan
     ? [
@@ -29,16 +24,22 @@ export default function TripHero({ plan, onViewPlan }) {
           icon: CalendarDays,
           title: `${plan.departure_date} → ${plan.return_date}`,
           sub: "Trip dates",
+          bg: "#EFF6FF",
+          fg: "#3B82F6",
         },
         {
           icon: Users,
           title: `${plan.travelers} traveler${Number(plan.travelers) === 1 ? "" : "s"}`,
           sub: "Group",
+          bg: "#F5F3FF",
+          fg: "#8B5CF6",
         },
         {
           icon: Wallet,
           title: total > 0 ? `₹${Number(total).toLocaleString("en-IN")}` : "—",
-          sub: "Total",
+          sub: "Total estimated cost",
+          bg: "#ECFDF3",
+          fg: "#22C55E",
         },
       ]
     : [];
@@ -46,132 +47,138 @@ export default function TripHero({ plan, onViewPlan }) {
   return (
     <section
       id="trip-hero"
-      className="relative overflow-hidden scroll-mt-[92px]"
+      className="relative scroll-mt-[92px] overflow-hidden"
       style={{ minHeight: "640px" }}
     >
-      {/* Background image */}
+      {/* Full-background destination image */}
       <img
         src={img}
-        alt={known ? known.alt : "Goa beach with palm trees"}
+        alt={known ? known.alt : `${destination} destination`}
         className="absolute inset-0 h-full w-full object-cover"
         loading="eager"
-        style={{ objectPosition: "center 42%", filter: "brightness(1.16) saturate(1.12)" }}
+        style={{ objectPosition: "center 38%" }}
       />
 
-      {/* Gradient overlay — darkest on the left so copy stays legible */}
+      {/* Sheer light wash — photo visible edge-to-edge, denser on the left
+          where the copy sits */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to right, rgba(4,20,27,0.90) 0%, rgba(4,20,27,0.60) 44%, rgba(4,20,27,0.16) 100%)," +
-            "linear-gradient(to top, rgba(6,27,36,0.94) 0%, rgba(6,27,36,0.30) 22%, transparent 55%)",
+            "linear-gradient(to right, rgba(247,249,252,0.84) 0%, rgba(247,249,252,0.68) 35%, rgba(247,249,252,0.32) 62%, rgba(247,249,252,0.08) 85%, rgba(247,249,252,0.02) 100%)",
         }}
         aria-hidden="true"
       />
 
-      {/* Destination script wordmark — idle state only.
-          Once a plan exists the live trip card owns the right-hand corner. */}
-      {!plan && (
-      <div
-        className="pointer-events-none absolute right-8 top-[150px] hidden text-right lg:block"
-        aria-hidden="true"
-      >
-        <p
-          className="font-display text-[54px] font-extrabold italic leading-none tracking-tight"
-          style={{
-            color: "rgba(255,255,255,0.92)",
-            textShadow: "0 6px 30px rgba(0,0,0,0.5)",
-          }}
-        >
-          {destination}
-        </p>
-        <p className="mt-1 text-[15px] font-semibold tracking-wide" style={{ color: "rgba(255,255,255,0.62)" }}>
-          {known ? known.tag : "India"}
-        </p>
-      </div>
-      )}
-
-      {/* Content */}
-      <div className="tcc-container relative z-10 flex min-h-[640px] items-center pb-44 pt-[112px]">
-        <div className="grid w-full items-start gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="max-w-[720px] animate-fade-rise">
-            {/* Eyebrow */}
+      {/* Content — top-aligned so pills/cards stack under the headline,
+          clear of the overlapping dashboard below */}
+      <div className="tcc-container relative z-10 flex min-h-[640px] items-start pb-44 pt-[118px]" style={{ maxWidth: 1320 }}>
+        <div className="grid w-full items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          {/* Left: heading + facts + breakdown */}
+          <div className="animate-fade-rise">
             <p
-              className="mb-5 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em]"
-              style={{
-                background: "rgba(4,20,27,0.5)",
-                border: "1px solid rgba(255,255,255,0.24)",
-                color: "var(--text-primary)",
-                backdropFilter: "blur(10px)",
-                WebkitBackdropFilter: "blur(10px)",
-              }}
+              className="t-badge mb-4 inline-flex items-center gap-2 rounded-full px-4 py-1.5 uppercase"
+              style={{ background: "#FFF1EE", border: "1px solid #FFD9D1", color: "#F25542" }}
             >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--coral)" }} aria-hidden="true" />
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#FF6B57" }} aria-hidden="true" />
               Plan trip{known ? ` · ${known.tag}` : ""}
             </p>
 
-            {/* Headline */}
             <h1
-              className="font-display font-extrabold leading-[1.0] tracking-[-0.035em]"
-              style={{ fontSize: "clamp(44px, 5.2vw, 76px)", color: "var(--text-primary)" }}
+              className="t-hero font-display"
+              style={{
+                color: "#0B2237",
+                textShadow: "0 0 28px rgba(247,249,252,0.95), 0 1px 0 rgba(255,255,255,0.7)",
+              }}
             >
-              {destination ? (
-                <>
-                  Your {destination}
-                  <br />
-                  trip <span style={{ color: "var(--coral)" }}>plan.</span>
-                </>
-              ) : (
-                <>
-                  Your trip
-                  <br />
-                  <span style={{ color: "var(--coral)" }}>plan.</span>
-                </>
-              )}
+              Your {destination}
+              <br />
+              trip <span style={{ color: "#F25542" }}>plan.</span>
             </h1>
 
-            {/* Sub */}
-            <p
-              className="mt-6 max-w-xl text-[17px] leading-relaxed"
-              style={{ color: "rgba(255,255,255,0.82)" }}
-            >
+            <p className="t-body mt-4 max-w-xl" style={{ color: "#3E5463", textShadow: "0 1px 12px rgba(247,249,252,0.9)" }}>
               {plan
                 ? "Flights, stay and day-by-day details — all below on this page."
                 : "Build your route on the Explore page — the full plan appears here."}
             </p>
 
-            {/* Trip pills */}
+            {/* Trip fact pills */}
             {pills.length > 0 && (
-              <div className="mt-7 flex flex-wrap gap-2.5">
-                {pills.map(({ icon: Icon, title, sub }) => (
+              <div className="mt-6 flex flex-wrap gap-2.5">
+                {pills.map(({ icon: Icon, title, sub, bg, fg }) => (
                   <div
                     key={sub}
                     className="flex items-center gap-2.5 rounded-[14px] px-3 py-2.5"
                     style={{
-                      background: "rgba(255,255,255,0.10)",
-                      border: "1px solid rgba(255,255,255,0.16)",
-                      backdropFilter: "blur(12px)",
-                      WebkitBackdropFilter: "blur(12px)",
+                      background: "rgba(255,255,255,0.94)",
+                      border: "1px solid #E5E7EB",
+                      boxShadow: "0 4px 20px rgba(15, 23, 42, 0.08)",
                     }}
                   >
                     <span
                       className="flex h-8 w-8 items-center justify-center rounded-[10px]"
-                      style={{ background: "rgba(255,114,94,0.20)", color: "var(--coral)" }}
+                      style={{ background: bg, color: fg }}
                       aria-hidden="true"
                     >
                       <Icon className="h-4 w-4" />
                     </span>
                     <div>
-                      <p className="text-[12px] font-bold" style={{ color: "var(--text-primary)" }}>{title}</p>
-                      <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.65)" }}>{sub}</p>
+                      <p className="t-meta whitespace-nowrap" style={{ color: "#0B2237", fontWeight: 600 }}>{title}</p>
+                      <p className="t-meta-sm whitespace-nowrap" style={{ color: "#677F93" }}>{sub}</p>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            {/* Mobile trip summary — same live data as the desktop floating card.
-                TripPreviewCard returns null until a plan exists, so this adds
-                zero layout shift when idle. */}
+
+            {/* Flight / hotel breakdown */}
+            {plan?.best_pick && (
+              <div className="mt-4 grid max-w-xl gap-2.5 sm:grid-cols-2">
+                <div
+                  className="flex items-center gap-3 rounded-[14px] px-4 py-3"
+                  style={{ background: "rgba(255,255,255,0.94)", border: "1px solid #E5E7EB" }}
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-[10px]" style={{ background: "#EFF6FF", color: "#3B82F6" }}>
+                    <Plane className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="t-meta truncate" style={{ color: "#102A43", fontWeight: 600 }}>
+                      {flight.airline || "Flight"} · ₹{Number(flight.price || 0).toLocaleString("en-IN")}
+                    </p>
+                    <p className="t-meta-sm truncate" style={{ color: "#829AB1" }}>
+                      {[flight.duration, flight.stops].filter(Boolean).join(" · ") || "Flight included"}
+                    </p>
+                  </div>
+                </div>
+                <div
+                  className="flex items-center gap-3 rounded-[14px] px-4 py-3"
+                  style={{ background: "rgba(255,255,255,0.94)", border: "1px solid #E5E7EB" }}
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-[10px]" style={{ background: "#F5F3FF", color: "#8B5CF6" }}>
+                    <BedDouble className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="t-meta truncate" style={{ color: "#102A43", fontWeight: 600 }}>
+                      {hotel.name || "Hotel"} · ₹{Number(hotel.total_price || 0).toLocaleString("en-IN")}
+                    </p>
+                    <p className="t-meta-sm truncate" style={{ color: "#829AB1" }}>
+                      {hotel.rating ? `${hotel.rating}★ · ` : ""}{Number(plan.num_nights) || 1} night(s)
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {plan?.best_pick && (
+              <button
+                type="button"
+                onClick={onViewPlan}
+                className="btn-primary t-btn mt-5 inline-flex h-[44px] items-center gap-2 rounded-xl px-6"
+              >
+                View full itinerary <ArrowRight className="h-4 w-4" />
+              </button>
+            )}
+
             {plan?.best_pick && (
               <div className="mt-6 lg:hidden">
                 <TripPreviewCard plan={plan} onViewPlan={onViewPlan} />
@@ -179,17 +186,17 @@ export default function TripHero({ plan, onViewPlan }) {
             )}
           </div>
 
-          {/* Live trip card — floats above the photo once a plan exists (desktop). */}
-          <div className="hidden justify-end pt-6 lg:flex">
+          {/* Right: live trip summary floating over the photo (desktop) */}
+          <div className="hidden justify-end pt-2 lg:flex">
             <TripPreviewCard plan={plan} onViewPlan={onViewPlan} />
           </div>
         </div>
       </div>
 
-      {/* Soft fade into the page background */}
+      {/* Fade into the page background so the dashboard overlaps cleanly */}
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-32"
-        style={{ background: "linear-gradient(to top, var(--bg-primary), transparent)" }}
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-32"
+        style={{ background: "linear-gradient(to top, #F7F9FC 0%, rgba(247,249,252,0) 100%)" }}
         aria-hidden="true"
       />
     </section>
