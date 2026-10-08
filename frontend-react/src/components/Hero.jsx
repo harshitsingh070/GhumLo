@@ -50,7 +50,7 @@ export default function Hero({ plan, onViewPlan }) {
 
       {/* Content — top-aligned so pills/chip sit under the headline,
           clear of the overlapping builder form below */}
-      <div className="tcc-container relative z-10 flex min-h-[700px] items-start pb-56 pt-[118px]" style={{ maxWidth: 1320 }}>
+      <div className="tcc-container relative z-10 flex min-h-[700px] items-start pb-56 pt-[118px]">
         <div className="grid w-full items-start gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="max-w-[720px] animate-fade-rise">
             {/* Eyebrow — kicker label */}

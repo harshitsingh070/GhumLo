@@ -20,7 +20,6 @@ const DEFAULTS = {
   travelers: 2,
   budget: 60000,
   travel_mode: "balanced",
-  force_refresh: false,
 };
 
 /** Trip Builder — light card with NL helper, fields, style/options row.

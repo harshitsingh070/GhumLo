@@ -46,10 +46,10 @@ export default function Header() {
 
   return (
     <header
-      className="no-print fixed inset-x-0 top-0 z-[2000] px-3 pt-3 sm:px-5 sm:pt-4"
+      className="no-print fixed inset-x-0 top-0 z-[2000] pt-3 sm:pt-4"
       style={{ pointerEvents: "none" }}
     >
-      <div className="tcc-container !px-0" style={{ maxWidth: 1320 }}>
+      <div className="tcc-container">
         <div
           className="flex h-[62px] items-center gap-4 rounded-[18px] px-4 sm:px-5"
           style={{

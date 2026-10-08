@@ -16,7 +16,7 @@ export default function Footer() {
         borderTop: "1px solid #E5E7EB",
       }}
     >
-      <div className="tcc-container py-12" style={{ maxWidth: 1320 }}>
+      <div className="tcc-container py-12">
         <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
           {/* Brand */}
           <div>

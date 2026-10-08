@@ -72,7 +72,7 @@ export default function TripHero({ plan, onViewPlan }) {
 
       {/* Content — top-aligned so pills/cards stack under the headline,
           clear of the overlapping dashboard below */}
-      <div className="tcc-container relative z-10 flex min-h-[640px] items-start pb-44 pt-[118px]" style={{ maxWidth: 1320 }}>
+      <div className="tcc-container relative z-10 flex min-h-[640px] items-start pb-44 pt-[118px]">
         <div className="grid w-full items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* Left: heading + facts + breakdown */}
           <div className="animate-fade-rise">

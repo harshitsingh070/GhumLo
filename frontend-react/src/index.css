@@ -310,6 +310,7 @@ html, body {
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
 }
 
 .t-price-md {
@@ -317,12 +318,14 @@ html, body {
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
 }
 
 .t-price-sm {
   font-size: 15px;
   font-weight: 600;
   line-height: 1.3;
+  font-variant-numeric: tabular-nums;
 }
 
 .t-input {
@@ -378,8 +381,17 @@ html, body {
   }
 }
 
-/* ─── Consistent page container ──────────────────────────────────────────── */
+/* ─── Global content container: single source of truth ─────────────────────
+   1320px max, centered, padding included in the width (border-box).
+   Desktop 28px · Tablet (<=1024px) 22px · Mobile (<=640px) 16px. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 .tcc-container {
+  width: 100%;
   max-width: 1320px;
   margin-left: auto;
   margin-right: auto;
@@ -748,8 +760,7 @@ textarea:focus-visible,
   #home,
   #trip-hero,
   section#home,
-  section#trip-hero,
-  nav[aria-label="Trip result sections"] {
+  section#trip-hero {
     display: none !important;
   }
 
@@ -759,10 +770,9 @@ textarea:focus-visible,
     display: none !important;
   }
 
-  /* Kill the dark cinematic theme on paper. The App root div carries an
-     inline backgroundColor: var(--bg-primary) (#061B24) — with
-     print-color-adjust:exact that printed as a solid black page and
-     black-on-black text. !important beats the inline style. */
+  /* Paper reset. The App root div carries an inline light background;
+     these !important rules beat any inline style so nothing screen-only
+     (hero washes, shadows) can bleed onto the voucher. */
   html,
   body,
   #root,
@@ -893,6 +903,8 @@ textarea:focus-visible,
     border-bottom: 2px solid #111;
     padding-bottom: 3px;
     margin: 14px 0 7px !important;
+    break-after: avoid;
+    page-break-after: avoid;
   }
 
   .pt-grid {
