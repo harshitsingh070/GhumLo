@@ -129,16 +129,23 @@ export default function PickCard({
           )}
         </div>
 
-        {/* Live badge */}
+        {/* Live/Cached status — explicit text, never color-only */}
         <span
-          className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 t-badge-sm"
-          style={{ background: "#FFFFFF", color: "#52606D", border: "1px solid #E5E7EB" }}
+          className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 t-badge-sm"
+          role="status"
+          aria-label={live_search ? "Live prices, freshly fetched" : "Cached prices, saved results"}
+          style={
+            live_search
+              ? { background: "#ECFDF3", color: "#15803D", border: "1px solid #A7F3D0" }
+              : { background: "#F1F5F9", color: "#3E5463", border: "1px solid #E5E7EB" }
+          }
         >
           <Circle
             className="h-1.5 w-1.5"
-            style={{ fill: live_search ? "#22C55E" : "#829AB1", color: live_search ? "#22C55E" : "#829AB1" }}
+            aria-hidden="true"
+            style={{ fill: live_search ? "#15803D" : "#5B6B7B", color: live_search ? "#15803D" : "#5B6B7B" }}
           />
-          {live_search ? "Live" : "Cached"}
+          {live_search ? "● Live prices" : "○ Cached prices"}
         </span>
       </div>
 
@@ -178,10 +185,10 @@ export default function PickCard({
           )}
         </div>
 
-        {/* Short description — light quote box */}
+        {/* Short description — quiet box (no side-tab accent) */}
         <p
           className="mt-2.5 rounded-[12px] px-3.5 py-3 t-body"
-          style={{ background: "#F7F9FC", color: "#52606D", border: "1px solid #E5E7EB", borderLeft: "3px solid #FF6B57" }}
+          style={{ background: "#F7F9FC", color: "#3E5463", border: "1px solid #E5E7EB" }}
         >
           {insight || "A curated journey tailored to your preferences, combining prime stays, top sights, and local culture."}
         </p>
@@ -192,7 +199,7 @@ export default function PickCard({
             className="mt-4 rounded-[14px] p-3"
             style={{ background: "#F7F9FC", border: "1px solid #E5E7EB" }}
           >
-            <p className="flex items-center gap-1.5 t-badge uppercase" style={{ color: "#829AB1" }}>
+            <p className="flex items-center gap-1.5 t-badge uppercase" style={{ color: "#5B6B7B" }}>
               <Sparkles className="h-3.5 w-3.5" style={{ color: "#FF6B57" }} />
               Why this trip fits
             </p>
@@ -232,14 +239,14 @@ export default function PickCard({
               >
                 <Plane className="h-4 w-4 shrink-0" />
               </span>
-              <span className="t-badge uppercase" style={{ color: "#829AB1" }}>Flight</span>
+              <span className="t-badge uppercase" style={{ color: "#5B6B7B" }}>Flight</span>
             </div>
           )}
           <div className="px-4 pb-3 pt-2">
             <p className="t-body-strong" style={{ color: "#102A43" }}>
               {best.flight.airline}
             </p>
-            <p className="t-meta" style={{ color: "#829AB1" }}>
+            <p className="t-meta" style={{ color: "#5B6B7B" }}>
               {best.flight.duration}{best.flight.duration ? " · " : ""}{formatStops(best.flight.stops)}
             </p>
             <div className="mt-1.5 flex items-baseline justify-between">
@@ -247,7 +254,7 @@ export default function PickCard({
                 {inr(best.flight.price)}
               </p>
               {people > 1 && (
-                <span className="t-meta-sm" style={{ color: "#829AB1" }}>
+                <span className="t-meta-sm" style={{ color: "#5B6B7B" }}>
                   {inr(Math.round(best.flight.price / people))}/person
                 </span>
               )}
@@ -275,7 +282,7 @@ export default function PickCard({
               >
                 <Hotel className="h-4 w-4 shrink-0" />
               </span>
-              <span className="t-badge uppercase" style={{ color: "#829AB1" }}>Hotel</span>
+              <span className="t-badge uppercase" style={{ color: "#5B6B7B" }}>Hotel</span>
             </div>
           )}
           <div className="px-4 pb-3 pt-2">
@@ -286,14 +293,14 @@ export default function PickCard({
                     className="tcc-focus block truncate t-body-strong hover:underline"
                     style={{ color: "#102A43" }}>
                     {best.hotel.name}
-                    <MapPinned className="ml-1 inline h-3 w-3" style={{ color: "#829AB1" }} />
+                    <MapPinned className="ml-1 inline h-3 w-3" style={{ color: "#5B6B7B" }} />
                   </a>
                 ) : (
                   <p className="truncate t-body-strong" style={{ color: "#102A43" }}>
                     {best.hotel.name}
                   </p>
                 )}
-                <p className="t-meta" style={{ color: "#829AB1" }}>
+                <p className="t-meta" style={{ color: "#5B6B7B" }}>
                   {nights} night{nights !== 1 ? "s" : ""} · {inr(best.hotel.price_per_night)}/night
                 </p>
               </div>
@@ -302,7 +309,7 @@ export default function PickCard({
                   {inr(best.hotel.total_price)}
                 </p>
                 {best.hotel.rating && (
-                  <p className="t-meta-sm" style={{ color: "#829AB1" }}>
+                  <p className="t-meta-sm" style={{ color: "#5B6B7B" }}>
                     <Star className="inline h-3 w-3 fill-amber-400 text-amber-400 mr-0.5" />{best.hotel.rating}
                   </p>
                 )}
@@ -386,7 +393,7 @@ export default function PickCard({
                         </span>
                         <span
                           className="block truncate t-meta-sm"
-                          style={{ color: "#829AB1" }}
+                          style={{ color: "#5B6B7B" }}
                         >
                           {h.rating ? `★ ${h.rating} · ` : ""}
                           {inr(h.price_per_night)}/night
@@ -407,7 +414,7 @@ export default function PickCard({
               })}
             </ul>
             {recomputing && (
-              <p className="mt-2 t-meta-sm" role="status" style={{ color: "#829AB1" }}>Updating trip…</p>
+              <p className="mt-2 t-meta-sm" role="status" style={{ color: "#5B6B7B" }}>Updating trip…</p>
             )}
           </div>
         )}

@@ -37,9 +37,12 @@ export default function PopularPlaces({ places, destination }) {
   };
 
   const scroll = (direction) => {
-    if (!scrollRef.current) return;
-    const offset = direction === "left" ? -320 : 320;
-    scrollRef.current.scrollBy({ left: offset, behavior: "smooth" });
+    const el = scrollRef.current;
+    if (!el) return;
+    // Scroll by one actual card width (not a fixed 320px that overshoots).
+    const card = el.querySelector(":scope > *");
+    const w = card ? card.getBoundingClientRect().width + 12 : 220;
+    el.scrollBy({ left: direction === "left" ? -w : w, behavior: "smooth" });
   };
 
   return (
@@ -63,29 +66,29 @@ export default function PopularPlaces({ places, destination }) {
           Popular Experiences in {destination || "Destination"}
         </h2>
         <div className="flex shrink-0 items-center gap-3">
-          {/* Prev/Next arrows */}
-          <div className="flex items-center gap-1">
+          {/* Prev/Next arrows — 44px touch targets */}
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => scroll("left")}
               aria-label="Previous experiences"
-              className="flex h-7 w-7 items-center justify-center rounded-full transition-colors"
-              style={{ background: "#F1F5F9", border: "1px solid #E5E7EB", color: "#52606D" }}
+              className="tcc-focus tcc-touch flex items-center justify-center rounded-full transition-colors"
+              style={{ background: "#F1F5F9", border: "1px solid #E5E7EB", color: "#3E5463" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#EEF2F6"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "#F1F5F9"; }}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-5 w-5" />
             </button>
             <button
               type="button"
               onClick={() => scroll("right")}
               aria-label="Next experiences"
-              className="flex h-7 w-7 items-center justify-center rounded-full transition-colors"
-              style={{ background: "#F1F5F9", border: "1px solid #E5E7EB", color: "#52606D" }}
+              className="tcc-focus tcc-touch flex items-center justify-center rounded-full transition-colors"
+              style={{ background: "#F1F5F9", border: "1px solid #E5E7EB", color: "#3E5463" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#EEF2F6"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "#F1F5F9"; }}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-5 w-5" />
             </button>
           </div>
         </div>
@@ -121,11 +124,14 @@ export default function PopularPlaces({ places, destination }) {
         })}
       </div>
 
-      {/* ── Carousel Track ── */}
+      {/* ── Carousel Track — snap + natural touch scroll ── */}
       <div
         ref={scrollRef}
-        className="flex gap-3 overflow-x-auto pb-2"
-        style={{ scrollbarWidth: "none" }}
+        className="carousel-snap flex gap-3 overflow-x-auto pb-2"
+        style={{ scrollbarWidth: "thin" }}
+        tabIndex={0}
+        role="region"
+        aria-label="Popular experiences carousel — use arrow keys to scroll"
       >
         {source.length === 0 && (
           <p className="py-3 t-meta" style={{ color: "#52606D" }}>
@@ -174,18 +180,19 @@ export default function PopularPlaces({ places, destination }) {
                   }}
                 />
 
-                {/* Heart Button */}
+                {/* Heart Button — 44px touch target */}
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleFavorite(place.name);
                   }}
-                  aria-label={`Favorite ${place.name}`}
-                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/40 backdrop-blur-md transition-colors hover:bg-black/60"
+                  aria-label={isFav ? `Remove ${place.name} from favorites` : `Save ${place.name} to favorites`}
+                  aria-pressed={isFav}
+                  className="tcc-focus absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full bg-black/40 backdrop-blur-md transition-colors hover:bg-black/60"
                 >
                   <Heart
-                    className="h-3.5 w-3.5 transition-colors"
+                    className="h-4 w-4 transition-colors"
                     style={{ color: isFav ? "#FF6B57" : "#FFFFFF", fill: isFav ? "#FF6B57" : "transparent" }}
                   />
                 </button>
@@ -222,14 +229,14 @@ export default function PopularPlaces({ places, destination }) {
                       aria-hidden="true"
                       title={`${place.address} — view on map`}
                       className="block truncate t-meta-sm transition-colors"
-                      style={{ color: "#829AB1" }}
+                      style={{ color: "#5B6B7B" }}
                       onMouseEnter={(e) => { e.currentTarget.style.color = "#FF6B57"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = "#829AB1"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = "#5B6B7B"; }}
                     >
                       {place.address}
                     </a>
                   ) : (
-                    <p className="truncate t-meta-sm" style={{ color: "#829AB1" }} title={place.address}>
+                    <p className="truncate t-meta-sm" style={{ color: "#5B6B7B" }} title={place.address}>
                       {place.address}
                     </p>
                   )

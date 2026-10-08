@@ -1,5 +1,6 @@
 import { Sparkles, Plane, Wallet, MapPin } from "lucide-react";
 import { DESTINATIONS, bundledHeroFor } from "../lib/destinations.js";
+import { HeroEyebrow, HeroVeil, HeroShell } from "./HeroShared.jsx";
 import TripPreviewCard from "./TripPreviewCard.jsx";
 
 const FEATURES = [
@@ -23,11 +24,7 @@ export default function Hero({ plan, onViewPlan }) {
   );
 
   return (
-    <section
-      id="home"
-      className="relative scroll-mt-[92px] overflow-hidden"
-      style={{ minHeight: "700px" }}
-    >
+    <HeroShell id="home">
       {/* Full-background destination image */}
       <img
         src={img}
@@ -37,34 +34,13 @@ export default function Hero({ plan, onViewPlan }) {
         style={{ objectPosition: "center 38%" }}
       />
 
-      {/* Soft readability veil — gentle blur-like wash on the left where
-          the copy sits, opening to the crisp photo on the right */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(to right, rgba(247,249,252,0.84) 0%, rgba(247,249,252,0.68) 35%, rgba(247,249,252,0.32) 62%, rgba(247,249,252,0.08) 85%, rgba(247,249,252,0.02) 100%)",
-        }}
-        aria-hidden="true"
-      />
+      <HeroVeil />
 
-      {/* Content — top-aligned so pills/chip sit under the headline,
-          clear of the overlapping builder form below */}
-      <div className="tcc-container relative z-10 flex min-h-[700px] items-start pb-56 pt-[118px]">
+      {/* Content — flows naturally on mobile, overlaps cleanly on desktop */}
+      <div className="tcc-container relative z-10 flex min-h-[clamp(560px,80vh,700px)] items-start pb-40 pt-[118px] sm:pb-56">
         <div className="grid w-full items-start gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="max-w-[720px] animate-fade-rise">
-            {/* Eyebrow — kicker label */}
-            <p
-              className="t-badge mb-5 inline-flex items-center gap-2 rounded-full px-4 py-1.5 uppercase"
-              style={{
-                background: "#FFF1EE",
-                border: "1px solid #FFD9D1",
-                color: "#F25542",
-              }}
-            >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#FF6B57" }} aria-hidden="true" />
-              Smart travel planning
-            </p>
+            <HeroEyebrow>Smart travel planning</HeroEyebrow>
 
             {/* Headline */}
             <h1
@@ -152,6 +128,6 @@ export default function Hero({ plan, onViewPlan }) {
       <span className="sr-only">
         <MapPin aria-hidden="true" /> Popular destinations: Goa, Jaipur, Manali, Mumbai, Delhi, London
       </span>
-    </section>
+    </HeroShell>
   );
 }

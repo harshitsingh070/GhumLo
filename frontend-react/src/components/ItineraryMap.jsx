@@ -128,8 +128,8 @@ export default function ItineraryMap({
   // surface an honest note instead (markers/routes still work).
   const [tilesDown, setTilesDown] = useState(false);
   // Local view toggle only — tab state still lives in ItinerarySection.
-  // true = whole trip (all days), false = selected day in isolation.
-  const [showAll, setShowAll] = useState(true);
+  // Default false = selected day dominant (whole-trip available on demand).
+  const [showAll, setShowAll] = useState(false);
 
   // Latest click callback, kept in a ref so the marker effect never re-runs
   // just because the parent re-created its handler.
@@ -378,7 +378,7 @@ export default function ItineraryMap({
   }, [itinerary, activeDay, hotel, destination, showAll, selectedStop]);
 
   if (mapError) {
-    return <p className="t-body" style={{ color: "#829AB1" }}>Map unavailable — see itinerary list below.</p>;
+    return <p className="t-body" style={{ color: "#5B6B7B" }}>Map unavailable — see itinerary list below.</p>;
   }
 
   return (
@@ -403,7 +403,7 @@ export default function ItineraryMap({
               type="button"
               onClick={() => setShowAll(false)}
               aria-pressed={!showAll}
-              className="rounded-full px-2.5 py-1 transition-colors"
+              className="tcc-touch rounded-full px-3 py-2 transition-colors"
               style={
                 !showAll
                   ? { background: "#FF6B57", color: "#FFFFFF", boxShadow: "0 1px 4px rgba(15, 23, 42, 0.12)" }
@@ -416,7 +416,7 @@ export default function ItineraryMap({
               type="button"
               onClick={() => setShowAll(true)}
               aria-pressed={showAll}
-              className="rounded-full px-2.5 py-1 transition-colors"
+              className="tcc-touch rounded-full px-3 py-2 transition-colors"
               style={
                 showAll
                   ? { background: "#FF6B57", color: "#FFFFFF", boxShadow: "0 1px 4px rgba(15, 23, 42, 0.12)" }
@@ -430,7 +430,7 @@ export default function ItineraryMap({
             type="button"
             onClick={resetView}
             title="Zoom back out to all stops"
-            className="rounded-full px-2.5 py-1 t-btn-sm transition-colors"
+            className="tcc-touch rounded-full px-3 t-btn-sm transition-colors"
             style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", color: "#52606D" }}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FF6B57"; e.currentTarget.style.color = "#102A43"; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = "#52606D"; }}
@@ -445,13 +445,34 @@ export default function ItineraryMap({
           only the frame adapts. */}
       <div
         ref={containerRef}
+        id="itinerary-map"
         className={`relative z-0 w-full max-w-full overflow-hidden rounded-xl ${
           mapHeightClass || "h-[360px] sm:h-[480px]"
         }`}
         style={{ border: "1px solid #E5E7EB" }}
-        role="img"
-        aria-label="Map of clustered itinerary stops"
+        role="region"
+        aria-label={`Map of itinerary stops. ${summary}. Full list follows for screen readers.`}
       />
+      {/* Accessible list alternative — map is never the only representation.
+          Visually hidden but available to assistive technology. */}
+      <table className="sr-only">
+        <caption>Itinerary stops by day and visit order</caption>
+        <thead>
+          <tr><th scope="col">Day</th><th scope="col">Order</th><th scope="col">Location</th><th scope="col">Category</th></tr>
+        </thead>
+        <tbody>
+          {days.map((d) => (
+            (Array.isArray(d.places) ? d.places : []).map((p, i) => (
+              <tr key={`${d.day}-${p.name}-${i}`}>
+                <td>{`Day ${d.day}`}</td>
+                <td>{i + 1}</td>
+                <td>{mapLabelFor(p.name, destination, p.category, i)}</td>
+                <td>{p.category || "place"}{p.rating ? `, rating ${p.rating}` : ""}</td>
+              </tr>
+            ))
+          ))}
+        </tbody>
+      </table>
       {tilesDown && !mapError && (
         <p
           className="mt-1.5 rounded-lg px-2.5 py-1.5 t-meta-sm"
@@ -487,7 +508,7 @@ export default function ItineraryMap({
               onClick={() => onSelectDay?.(d.day)}
               aria-pressed={selected}
               title={`Show Day ${d.day} stops`}
-              className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 transition-colors"
+              className="tcc-touch inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 transition-colors"
               style={
                 selected
                   ? { background: "#FFF1EE", color: "#102A43", fontWeight: 600, border: "1px solid #FF6B57" }
@@ -503,7 +524,7 @@ export default function ItineraryMap({
           );
         })}
       </div>
-      <p className="mt-1 t-meta-sm" style={{ color: "#829AB1" }}>
+      <p className="mt-1 t-meta-sm" style={{ color: "#5B6B7B" }}>
         Badge numbers show visit order — hover for names, click for details.
       </p>
     </div>

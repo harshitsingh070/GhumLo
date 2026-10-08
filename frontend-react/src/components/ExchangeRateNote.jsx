@@ -20,14 +20,8 @@ export default function ExchangeRateNote({ exchange_rate: fx, budget }) {
   return (
     <section
       aria-label="Currency context"
-      className="w-full rounded-[20px] p-5"
-      style={{
-        background: "#FFFFFF",
-        border: "1px solid #E5E7EB",
-        borderLeft: "4px solid #22C55E",
-        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
-        color: "#102A43",
-      }}
+      className="card-quiet w-full rounded-[20px] p-5"
+      style={{ color: "#102A43" }}
     >
       <div className="flex items-center gap-3">
         <span
@@ -37,7 +31,7 @@ export default function ExchangeRateNote({ exchange_rate: fx, budget }) {
           <Coins className="h-5 w-5" />
         </span>
         <div>
-          <p className="t-badge uppercase" style={{ color: "#829AB1" }}>
+          <p className="t-badge uppercase" style={{ color: "#5B6B7B" }}>
             Currency conversion · {fx.from_currency} → {fx.to_currency}
           </p>
           <p className="mt-0.5 t-price-sm" style={{ color: "#102A43" }}>

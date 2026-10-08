@@ -150,7 +150,7 @@ export default function DestinationsPage({ onPick }) {
                 <p className="mt-2 t-body text-[#52606D]">
                   {p.blurb}
                 </p>
-                <p className="mt-3 inline-flex items-center gap-1.5 t-meta text-[#829AB1]">
+                <p className="mt-3 inline-flex items-center gap-1.5 t-meta text-[#5B6B7B]">
                   <CalendarDays className="h-4 w-4 text-[#3B82F6]" aria-hidden="true" />
                   {p.season}
                 </p>

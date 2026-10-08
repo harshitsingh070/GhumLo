@@ -54,7 +54,7 @@ export default function SampleTrip() {
                 </span>
               </div>
               <p className="font-display mt-3 t-price-lg text-[#102A43]">
-                ₹34,440 <span className="t-card text-[#829AB1]">total</span>
+                ₹34,440 <span className="t-card text-[#5B6B7B]">total</span>
               </p>
               <ul className="mt-5 space-y-2.5">
                 {DAYS.map((d) => (
@@ -68,7 +68,7 @@ export default function SampleTrip() {
                     <span className="flex min-w-0 items-center gap-2.5">
                       <MapPin className="h-4 w-4 shrink-0 text-[#FF6B57]" aria-hidden="true" />
                       <span className="min-w-0">
-                        <span className="mr-2 t-day text-[#829AB1]">
+                        <span className="mr-2 t-day text-[#5B6B7B]">
                           {d.day}
                         </span>
                         <span className="t-nav-active text-[#102A43]">{d.title}</span>

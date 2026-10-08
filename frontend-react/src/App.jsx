@@ -73,11 +73,23 @@ export default function App() {
     return postPlan(payload, ctrl.signal);
   };
 
+  /** Cancel a long-running plan: abort, invalidate stale, keep form data. */
+  const handleCancel = () => {
+    planAbortRef.current?.abort();
+    reqIdRef.current += 1;
+    setLoading(false);
+    setError("");
+    // Do not clear lastPayloadRef — user returns to planner with data intact.
+    // Cancellation is not an error, so no error state is set.
+  };
+
   const handleSubmit = async (payload) => {
     const id = ++reqIdRef.current;
     lastPayloadRef.current = payload;
     // Load first, redirect after: the button shows "Searching…" on the
     // current page, and we only jump to /trip once details are ready.
+    // Navigate to trip immediately so Cancel + honest progress are visible.
+    if (route !== "trip") navigate("trip");
     setLoading(true);
     setError("");
     setPlan(null);
@@ -237,6 +249,7 @@ export default function App() {
               lastBudget={lastPayloadRef.current?.budget}
               onSelectHotel={selectHotel}
               onSelectAlternative={selectAlternative}
+              onCancel={handleCancel}
             />
             {/* Keep supporting sections under the full trip details */}
             {plan && !loading && <Benefits />}
@@ -246,9 +259,8 @@ export default function App() {
 
         {route === "home" && (
           <>
-            {/* Trip builder on Explore — same form as /trip; submit redirects
-                to the trip page where all details render. */}
-            <div id="plan" className="relative z-20 -mt-28 scroll-mt-28 sm:-mt-32">
+            {/* Trip builder on Explore — flows naturally on mobile. */}
+            <div id="plan" className="relative z-20 -mt-16 scroll-mt-28 sm:-mt-24">
               <TripForm
                 loading={loading}
                 onSubmit={handleSubmit}

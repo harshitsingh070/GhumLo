@@ -67,7 +67,7 @@ export default function Footer() {
           </nav>
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-2 pt-6 t-meta sm:flex-row" style={{ borderTop: "1px solid #EEF2F6", color: "#829AB1" }}>
+        <div className="mt-10 flex flex-col items-center justify-between gap-2 pt-6 t-meta sm:flex-row" style={{ borderTop: "1px solid #EEF2F6", color: "#5B6B7B" }}>
           <p>© 2026 GhoomLo. All rights reserved.</p>
           <p>Plan smarter. Explore more. Spend less.</p>
         </div>

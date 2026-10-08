@@ -115,7 +115,7 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
                 <div>
                   <span
                     className="inline-flex items-center gap-1 t-badge uppercase"
-                    style={{ color: isCurrent ? "#FF6B57" : "#829AB1" }}
+                    style={{ color: isCurrent ? "#FF6B57" : "#5B6B7B" }}
                   >
                     {isCurrent && <Check className="h-3.5 w-3.5" style={{ color: "#FF6B57" }} aria-hidden="true" />}
                     {MODE_LABELS[option.mode] || "Option"}
@@ -130,18 +130,18 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
                   <p className="mt-1 truncate t-label" style={{ color: "#102A43" }}>
                     {option.hotel?.name}
                   </p>
-                  <p className="mt-0.5 t-meta-sm" style={{ color: "#829AB1" }}>
+                  <p className="mt-0.5 t-meta-sm" style={{ color: "#5B6B7B" }}>
                     {option.flight?.airline} · {formatStops(option.flight?.stops) || "—"} · {option.hotel?.rating || "-"}★
                   </p>
-                  <p className="mt-0.5 t-meta-sm" style={{ color: "#829AB1" }}>
+                  <p className="mt-0.5 t-meta-sm" style={{ color: "#5B6B7B" }}>
                     {inr(option.flight?.price)} flight + {inr(option.hotel?.total_price)} hotel
                   </p>
                   <span
                     className="mt-3 inline-flex rounded-full px-2.5 py-0.5 t-badge-sm"
                     style={
                       option.fits_budget
-                        ? { background: "#ECFDF3", color: "#15803D", border: "1px solid #A7F3D0" }
-                        : { background: "#FFF1EE", color: "#F25542", border: "1px solid #FECACA" }
+                        ? { background: "var(--color-success-bg)", color: "var(--color-success)", border: "1px solid var(--color-success-border)" }
+                        : { background: "var(--color-danger-bg)", color: "var(--color-danger)", border: "1px solid var(--color-danger-border)" }
                     }
                   >
                     {option.fits_budget ? "Within budget" : "Over budget"}
@@ -156,7 +156,7 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
                   className="tcc-focus mt-4 w-full rounded-xl py-2 t-btn-sm transition-all"
                   style={
                     isCurrent || noOp
-                      ? { background: "#F1F5F9", color: "#829AB1", border: "1px solid #E5E7EB", cursor: "default" }
+                      ? { background: "#F1F5F9", color: "#5B6B7B", border: "1px solid #E5E7EB", cursor: "default" }
                       : { background: "#FF6B57", color: "#FFFFFF", border: "1px solid transparent" }
                   }
                   onMouseEnter={(e) => { if (!isCurrent && !recomputing) e.currentTarget.style.background = "#F25542"; }}
@@ -170,15 +170,10 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
         </div>
       </div>
 
-      {/* What if budget slider */}
+      {/* What if budget slider — quieter supporting card */}
       <div
-        className="rounded-[24px] p-6 sm:p-7"
-        style={{
-          background: "#FFFFFF",
-          border: "1px solid #E5E7EB",
-          boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
-          color: "#102A43",
-        }}
+        className="card-quiet rounded-[24px] p-6 sm:p-7"
+        style={{ color: "#102A43" }}
       >
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="h-5 w-5" style={{ color: "#FF6B57" }} />
@@ -202,7 +197,7 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
           aria-label="What-if budget"
         />
 
-        <div className="mt-2 flex justify-between t-meta" style={{ color: "#829AB1" }}>
+        <div className="mt-2 flex justify-between t-meta" style={{ color: "#5B6B7B" }}>
           <span>Test budget</span>
           <strong className="t-price-sm" style={{ color: "#102A43" }}>{inr(whatIfBudget)}</strong>
         </div>

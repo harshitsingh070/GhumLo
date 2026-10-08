@@ -73,8 +73,9 @@ export function InlineError({ message, onRetry, retryLabel = "Retry" }) {
   if (!message) return null;
   return (
     <p
-      className="rounded-xl border border-[#FF6B57]/30 bg-[#FFF1EE] p-2.5 t-small text-[#F25542]"
+      className="rounded-xl p-2.5 t-small"
       role="alert"
+      style={{ border: "1px solid var(--color-danger-border)", background: "var(--color-danger-bg)", color: "var(--color-danger)" }}
     >
       {message}{" "}
       {onRetry && (

@@ -77,7 +77,7 @@ export default function EventsSection({ events, destination }) {
                   {e.title}
                   <ExternalLink
                     className="ml-1 inline h-3.5 w-3.5"
-                    style={{ color: "#829AB1" }}
+                    style={{ color: "#5B6B7B" }}
                   />
                 </a>
               ) : (

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { apiRequest, friendlyError } from "../lib/api.js";
+import { fmtDay } from "../lib/format.js";
 import { ButtonSpinner } from "./Loader.jsx";
 import { InlineError } from "./ErrorState.jsx";
 
@@ -31,7 +32,7 @@ export default function NaturalLanguageInput({ onFill }) {
       const bits = [];
       if (fields.destination) bits.push(fields.destination);
       if (fields.budget) bits.push(`₹${Number(fields.budget).toLocaleString("en-IN")}`);
-      if (fields.departure_date) bits.push(fields.departure_date);
+      if (fields.departure_date) bits.push(fmtDay(fields.departure_date) || fields.departure_date);
       if (fields.travelers) bits.push(`${fields.travelers} traveler(s)`);
       setStatus(
         `Filled: ${bits.join(" · ") || "form updated"}${fields.diet ? ` · Food: ${fields.diet}` : ""}${fields.refined_by ? " (AI)" : ""}`
@@ -92,7 +93,7 @@ export default function NaturalLanguageInput({ onFill }) {
         <p
           className="mt-2 t-small"
           role="status"
-          style={{ color: "#22C55E" }}
+          style={{ color: "var(--color-success)" }}
         >
           {status}
         </p>

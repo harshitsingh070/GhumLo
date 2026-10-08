@@ -59,7 +59,7 @@ export default function SavingsSuggestions({ suggestions }) {
                 </span>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="t-badge uppercase" style={{ color: "#829AB1" }}>
+                    <span className="t-badge uppercase" style={{ color: "#5B6B7B" }}>
                       {meta.label}
                     </span>
                     <span
@@ -76,7 +76,7 @@ export default function SavingsSuggestions({ suggestions }) {
               </div>
 
               <div className="mt-4 flex items-center justify-between border-t pt-3" style={{ borderColor: "#EEF2F6" }}>
-                <span className="t-meta-sm" style={{ color: "#829AB1" }}>Calculated savings</span>
+                <span className="t-meta-sm" style={{ color: "#5B6B7B" }}>Calculated savings</span>
                 <a
                   href="#trip-builder"
                   className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 t-btn-sm transition-colors"

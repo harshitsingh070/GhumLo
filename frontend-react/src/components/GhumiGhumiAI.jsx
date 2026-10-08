@@ -136,7 +136,7 @@ export default function GhumiGhumiAI({ plan }) {
             <Bot className="h-5 w-5" aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <p className="t-badge uppercase text-[#829AB1]">
+            <p className="t-badge uppercase text-[#5B6B7B]">
               Ghoomlo Beta
             </p>
             <h2 className="font-display mt-0.5 truncate t-card-lg text-[#102A43]">
@@ -150,7 +150,7 @@ export default function GhumiGhumiAI({ plan }) {
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Minimize Ghumi Ghumi AI chat"
-            className="tcc-focus flex h-8 w-8 items-center justify-center rounded-full text-[#829AB1] hover:bg-[#F1F5F9] hover:text-[#102A43]"
+            className="tcc-focus flex h-8 w-8 items-center justify-center rounded-full text-[#5B6B7B] hover:bg-[#F1F5F9] hover:text-[#102A43]"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -186,7 +186,7 @@ export default function GhumiGhumiAI({ plan }) {
         style={{ border: "1px solid #EEF2F6" }}
       >
         {messages.length === 0 && !loading && (
-          <p className="t-small text-[#829AB1]" style={{ lineHeight: 1.5 }}>
+          <p className="t-small text-[#5B6B7B]" style={{ lineHeight: 1.5 }}>
             Hi! I know your {plan.destination || "trip"} plan — pick a suggestion above or ask me anything.
           </p>
         )}
@@ -229,7 +229,7 @@ export default function GhumiGhumiAI({ plan }) {
           onChange={(event) => setInput(event.target.value)}
           maxLength={600}
           placeholder="Ask anything about flights, itinerary, budget, restaurants..."
-          className="tcc-focus h-11 min-w-0 flex-1 rounded-xl bg-[#F7F9FC] px-3.5 t-input text-[#102A43] placeholder-[#829AB1] outline-none focus:border-[#FF6B57]"
+          className="tcc-focus h-11 min-w-0 flex-1 rounded-xl bg-[#F7F9FC] px-3.5 t-input text-[#102A43] placeholder-[#5B6B7B] outline-none focus:border-[#FF6B57]"
           style={{
             border: "1px solid #E5E7EB",
           }}

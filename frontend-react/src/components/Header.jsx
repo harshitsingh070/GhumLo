@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Menu, Search, X } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import { navigate, useHashRoute } from "../lib/router.js";
 
 const NAV = [
@@ -129,7 +129,7 @@ export default function Header() {
               }}
               role="search"
             >
-              <Search className="h-4 w-4 shrink-0" style={{ color: "#829AB1" }} aria-hidden="true" />
+              <Search className="h-4 w-4 shrink-0" style={{ color: "#5B6B7B" }} aria-hidden="true" />
               <label htmlFor="nav-search" className="sr-only">
                 Search destinations, hotels, experiences
               </label>
@@ -143,29 +143,6 @@ export default function Header() {
                 style={{ color: "#102A43" }}
               />
             </form>
-
-            {/* Bell */}
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="hidden h-9 w-9 items-center justify-center rounded-full transition-colors lg:flex"
-              style={{
-                background: "#F1F5F9",
-                border: "1px solid #E5E7EB",
-                color: "#52606D",
-              }}
-            >
-              <Bell className="h-4 w-4" />
-            </button>
-
-            {/* Avatar */}
-            <div
-              className="hidden h-8 w-8 items-center justify-center overflow-hidden rounded-full lg:flex"
-              style={{ background: "#FF6B57", color: "#fff", fontSize: 13, fontWeight: 700 }}
-              aria-hidden="true"
-            >
-              G
-            </div>
 
             {/* CTA */}
             <button
@@ -209,7 +186,7 @@ export default function Header() {
             <form onSubmit={submitSearch} className="mb-2 flex items-center gap-2 rounded-full px-3.5 py-2.5"
               style={{ background: "#F1F5F9", border: "1px solid #E5E7EB" }}
               role="search">
-              <Search className="h-4 w-4 shrink-0" style={{ color: "#829AB1" }} aria-hidden="true" />
+              <Search className="h-4 w-4 shrink-0" style={{ color: "#5B6B7B" }} aria-hidden="true" />
               <label htmlFor="nav-search-m" className="sr-only">Search destinations</label>
               <input
                 id="nav-search-m"

@@ -74,7 +74,7 @@ export default function PackingList({ packing, weather, num_nights, destination 
     >
       <div className="flex items-center gap-2">
         <Luggage className="h-4 w-4 shrink-0" style={{ color: "#FF6B57" }} aria-hidden="true" />
-        <p className="t-badge-sm uppercase" style={{ color: "#829AB1" }}>
+        <p className="t-badge-sm uppercase" style={{ color: "#5B6B7B" }}>
           Pack for {(destination || "this trip")} · live weather
         </p>
       </div>
@@ -97,7 +97,7 @@ export default function PackingList({ packing, weather, num_nights, destination 
       <div className="mt-2.5 space-y-3">
         {(data.groups || []).map((g) => (
           <div key={g.title}>
-            <p className="t-badge uppercase" style={{ color: "#829AB1" }}>{g.title}</p>
+            <p className="t-badge uppercase" style={{ color: "#5B6B7B" }}>{g.title}</p>
             <ul className="mt-1 space-y-1">
               {(g.items || []).map((it, i) => {
                 const key = `${g.title}-${it.item}-${i}`;
@@ -125,7 +125,7 @@ export default function PackingList({ packing, weather, num_nights, destination 
                         {done && <Check className="h-3 w-3" />}
                       </span>
                       <span className="min-w-0">
-                        <span className={`block t-label ${done ? "line-through" : ""}`} style={{ color: done ? "#829AB1" : "#102A43" }}>
+                        <span className={`block t-label ${done ? "line-through" : ""}`} style={{ color: done ? "#5B6B7B" : "#102A43" }}>
                           {it.item}
                           {it.essential && !done && (
                             <span className="ml-1.5 rounded-full px-1.5 py-px t-badge-sm" style={{ background: "#FFF1EE", color: "#F25542", border: "1px solid #FED7AA" }}>
@@ -143,7 +143,7 @@ export default function PackingList({ packing, weather, num_nights, destination 
           </div>
         ))}
       </div>
-      {data.note && <p className="mt-2 t-meta-sm" style={{ color: "#829AB1" }}>{data.note}</p>}
+      {data.note && <p className="mt-2 t-meta-sm" style={{ color: "#5B6B7B" }}>{data.note}</p>}
     </section>
   );
 }

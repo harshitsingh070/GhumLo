@@ -46,7 +46,7 @@ export default function DestinationVlogs({ videos, destination }) {
                   alt=""
                   className="h-full w-full object-cover"
                   fallback={
-                    <span className="flex h-full w-full items-center justify-center bg-[#F1F5F9] text-[#829AB1]">
+                    <span className="flex h-full w-full items-center justify-center bg-[#F1F5F9] text-[#5B6B7B]">
                       <Play className="h-5 w-5" />
                     </span>
                   }
@@ -69,7 +69,7 @@ export default function DestinationVlogs({ videos, destination }) {
                   {v.title}
                 </span>
                 {(v.channel || v.duration) && (
-                  <span className="mt-1 block truncate t-meta-sm text-[#829AB1]">
+                  <span className="mt-1 block truncate t-meta-sm text-[#5B6B7B]">
                     {[v.channel, v.duration].filter(Boolean).join(" • ")} ›
                   </span>
                 )}

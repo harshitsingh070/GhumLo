@@ -1,5 +1,7 @@
 import { CalendarDays, Users, Wallet, Plane, BedDouble, ArrowRight } from "lucide-react";
 import { DESTINATIONS, bundledHeroFor } from "../lib/destinations.js";
+import { fmtDateRange, inr } from "../lib/format.js";
+import { HeroEyebrow, HeroVeil, HeroShell } from "./HeroShared.jsx";
 import TripPreviewCard from "./TripPreviewCard.jsx";
 
 /** Light trip hero — destination image card + navy heading, trip facts,
@@ -22,7 +24,7 @@ export default function TripHero({ plan, onViewPlan }) {
     ? [
         {
           icon: CalendarDays,
-          title: `${plan.departure_date} → ${plan.return_date}`,
+          title: fmtDateRange(plan.departure_date, plan.return_date) || "Trip dates",
           sub: "Trip dates",
           bg: "#EFF6FF",
           fg: "#3B82F6",
@@ -36,20 +38,16 @@ export default function TripHero({ plan, onViewPlan }) {
         },
         {
           icon: Wallet,
-          title: total > 0 ? `₹${Number(total).toLocaleString("en-IN")}` : "—",
+          title: total > 0 ? inr(total) : "—",
           sub: "Total estimated cost",
-          bg: "#ECFDF3",
-          fg: "#22C55E",
+          bg: "var(--color-success-bg)",
+          fg: "var(--color-success)",
         },
       ]
     : [];
 
   return (
-    <section
-      id="trip-hero"
-      className="relative scroll-mt-[92px] overflow-hidden"
-      style={{ minHeight: "640px" }}
-    >
+    <HeroShell id="trip-hero" minHeight="clamp(520px, 75vh, 640px)">
       {/* Full-background destination image */}
       <img
         src={img}
@@ -59,30 +57,14 @@ export default function TripHero({ plan, onViewPlan }) {
         style={{ objectPosition: "center 38%" }}
       />
 
-      {/* Soft readability veil — gentle blur-like wash on the left where
-          the copy sits, opening to the crisp photo on the right */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(to right, rgba(247,249,252,0.84) 0%, rgba(247,249,252,0.68) 35%, rgba(247,249,252,0.32) 62%, rgba(247,249,252,0.08) 85%, rgba(247,249,252,0.02) 100%)",
-        }}
-        aria-hidden="true"
-      />
+      <HeroVeil />
 
-      {/* Content — top-aligned so pills/cards stack under the headline,
-          clear of the overlapping dashboard below */}
-      <div className="tcc-container relative z-10 flex min-h-[640px] items-start pb-44 pt-[118px]">
+      {/* Content — flows naturally on mobile */}
+      <div className="tcc-container relative z-10 flex min-h-[clamp(520px,75vh,640px)] items-start pb-32 pt-[118px] sm:pb-44">
         <div className="grid w-full items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* Left: heading + facts + breakdown */}
           <div className="animate-fade-rise">
-            <p
-              className="t-badge mb-4 inline-flex items-center gap-2 rounded-full px-4 py-1.5 uppercase"
-              style={{ background: "#FFF1EE", border: "1px solid #FFD9D1", color: "#F25542" }}
-            >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#FF6B57" }} aria-hidden="true" />
-              Plan trip{known ? ` · ${known.tag}` : ""}
-            </p>
+            <HeroEyebrow>Plan trip{known ? ` · ${known.tag}` : ""}</HeroEyebrow>
 
             <h1
               className="t-hero font-display"
@@ -142,7 +124,7 @@ export default function TripHero({ plan, onViewPlan }) {
                     <p className="t-meta truncate" style={{ color: "#102A43", fontWeight: 600 }}>
                       {flight.airline || "Flight"} · ₹{Number(flight.price || 0).toLocaleString("en-IN")}
                     </p>
-                    <p className="t-meta-sm truncate" style={{ color: "#829AB1" }}>
+                    <p className="t-meta-sm truncate" style={{ color: "#5B6B7B" }}>
                       {[flight.duration, flight.stops].filter(Boolean).join(" · ") || "Flight included"}
                     </p>
                   </div>
@@ -158,7 +140,7 @@ export default function TripHero({ plan, onViewPlan }) {
                     <p className="t-meta truncate" style={{ color: "#102A43", fontWeight: 600 }}>
                       {hotel.name || "Hotel"} · ₹{Number(hotel.total_price || 0).toLocaleString("en-IN")}
                     </p>
-                    <p className="t-meta-sm truncate" style={{ color: "#829AB1" }}>
+                    <p className="t-meta-sm truncate" style={{ color: "#5B6B7B" }}>
                       {hotel.rating ? `${hotel.rating}★ · ` : ""}{Number(plan.num_nights) || 1} night(s)
                     </p>
                   </div>
@@ -196,6 +178,6 @@ export default function TripHero({ plan, onViewPlan }) {
         style={{ background: "linear-gradient(to top, #F7F9FC 0%, rgba(247,249,252,0) 100%)" }}
         aria-hidden="true"
       />
-    </section>
+    </HeroShell>
   );
 }

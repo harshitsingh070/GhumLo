@@ -1,29 +1,28 @@
 import { CalendarDays, MapPin, Users } from "lucide-react";
 import { fmtDateRange, inr } from "../lib/format.js";
+import { getBudgetState } from "../lib/budget.js";
 import PrintTripButton from "./PrintTripButton.jsx";
 
 /** Compact sticky trip-status strip above the dashboard.
- *  Single source of truth for "where / when / how many / budget state" —
- *  it replaces the old separate results nav so budget is never repeated.
- *  Props: plan (full /api/plan response). */
+ *  Consumes the canonical budget model — never computes its own totals.
+ *  Props: plan + optional overrides (all routed through getBudgetState). */
 export default function StickyBudgetSummary({ plan, total_cost, budget, fits_budget }) {
-  const total = total_cost ?? plan?.best_pick?.total_cost ?? 0;
-  const cap = budget ?? plan?.budget ?? 0;
-  const fits = fits_budget ?? plan?.fits_budget;
-  const over = !fits;
-  const near = !over && cap > 0 && cap - total <= cap * 0.1;
-  const accent = over ? "#F25542" : near ? "#F59E0B" : "#22C55E";
-  const accentBg = over ? "#FFF1EE" : near ? "#FFFBEB" : "#ECFDF3";
-  const accentBorder = over ? "#FECACA" : near ? "#FDE68A" : "#A7F3D0";
-  const diff = Math.abs(total - cap);
-  const pct = cap > 0 ? Math.round((diff / cap) * 100) : 0;
+  const state = getBudgetState({
+    total: total_cost ?? plan?.best_pick?.total_cost ?? 0,
+    cap: budget ?? plan?.budget ?? 0,
+    fits_budget: fits_budget ?? plan?.fits_budget,
+  });
+  const { total, cap, over, near, diff, pct } = state;
+  const accent = over ? "var(--color-danger)" : near ? "var(--color-warning)" : "var(--color-success)";
+  const accentBg = over ? "var(--color-danger-bg)" : near ? "var(--color-warning-bg)" : "var(--color-success-bg)";
+  const accentBorder = over ? "var(--color-danger-border)" : near ? "var(--color-warning-border)" : "var(--color-success-border)";
 
   // Human dates ("10 Oct – 13 Oct 2026") — never raw ISO in the strip.
   const dates = fmtDateRange(plan?.departure_date, plan?.return_date) || null;
 
   return (
     <div
-      className="sticky top-[86px] z-[60] flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[16px] px-4 py-2.5 sm:px-5"
+      className="sticky top-[76px] z-[60] flex max-h-[32vh] flex-wrap items-center gap-x-4 gap-y-2 overflow-y-auto rounded-[16px] px-4 py-2.5 sm:top-[86px] sm:max-h-none sm:overflow-visible sm:px-5"
       style={{
         background: "#FFFFFF",
         border: "1px solid #E5E7EB",
@@ -71,10 +70,11 @@ export default function StickyBudgetSummary({ plan, total_cost, budget, fits_bud
           {plan.live_search != null && (
             <span
               className="whitespace-nowrap rounded-full px-2.5 py-0.5 t-badge"
+              role="status"
               style={
                 plan.live_search
-                  ? { background: "#ECFDF3", color: "#22C55E", border: "1px solid #A7F3D0" }
-                  : { background: "#F1F5F9", color: "#829AB1", border: "1px solid #E5E7EB" }
+                  ? { background: "var(--color-success-bg)", color: "var(--color-success)", border: "1px solid var(--color-success-border)" }
+                  : { background: "#F1F5F9", color: "#3E5463", border: "1px solid #E5E7EB" }
               }
             >
               {plan.live_search ? "● Live prices" : "○ Saved results"}
@@ -100,7 +100,7 @@ export default function StickyBudgetSummary({ plan, total_cost, budget, fits_bud
           >
             {inr(total)}
           </span>
-          <span className="t-small" style={{ color: "#829AB1" }}>/ {inr(cap)}</span>
+          <span className="t-small" style={{ color: "#5B6B7B" }}>/ {inr(cap)}</span>
         </span>
         <span className="no-print hidden sm:block">
           <PrintTripButton />

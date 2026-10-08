@@ -24,7 +24,7 @@ export default function WeatherSnapshot({ weather, destination }) {
         color: "#102A43",
       }}
     >
-      <p className="t-badge-sm uppercase" style={{ color: "#829AB1" }}>
+      <p className="t-badge-sm uppercase" style={{ color: "#5B6B7B" }}>
         {String(place).toUpperCase()} • Current weather
       </p>
       <div className="mt-1.5 flex items-center justify-between gap-3">

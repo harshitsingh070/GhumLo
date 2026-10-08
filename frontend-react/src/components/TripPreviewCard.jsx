@@ -1,21 +1,17 @@
 import { ArrowRight, Plane, Moon, Star } from "lucide-react";
 import { inr, fmtDateRange } from "../lib/format.js";
+import { budgetFromPlan } from "../lib/budget.js";
 
-/** Destination summary card — live snapshot of the planned trip.
- *  Purely presentational: every number comes from the plan response.
+/** Destination summary card — consumes canonical budget, never recomputes.
+ *  Purely presentational: every number comes from getBudgetState(plan).
  *  Props: plan, onViewPlan. Returns null until a plan exists. */
 export default function TripPreviewCard({ plan, onViewPlan }) {
   if (!plan?.best_pick) return null;
 
-  const total = plan.best_pick.total_cost ?? 0;
-  const budget = plan.budget ?? 0;
+  const { total, cap: budget, over, near, diff, pct, pctUsed } = budgetFromPlan(plan);
   const flight = plan.best_pick.flight?.price ?? 0;
   const hotel = plan.best_pick.hotel?.total_price ?? 0;
-  const over = !plan.fits_budget;
-  const near = !over && budget > 0 && budget - total <= budget * 0.1;
-  const diff = Math.abs(total - budget);
-  const pct = budget > 0 ? Math.round((diff / budget) * 100) : 0;
-  const fill = budget > 0 ? Math.min(1, total / budget) : 0;
+  const fill = pctUsed;
   const rating = plan.best_pick.hotel?.rating;
 
   return (
@@ -30,7 +26,7 @@ export default function TripPreviewCard({ plan, onViewPlan }) {
       <div className="flex items-center justify-between gap-2">
         <p
           className="t-badge-sm uppercase"
-          style={{ color: "#829AB1" }}
+          style={{ color: "#5B6B7B" }}
         >
           {plan.destination || "Your destination"}
         </p>
@@ -47,7 +43,7 @@ export default function TripPreviewCard({ plan, onViewPlan }) {
       <p className="mt-2 t-body-strong" style={{ color: "#102A43" }}>
         {fmtDateRange(plan.departure_date, plan.return_date)}
       </p>
-      <p className="t-meta" style={{ color: "#829AB1" }}>
+      <p className="t-meta" style={{ color: "#5B6B7B" }}>
         {plan.travelers} traveler{Number(plan.travelers) === 1 ? "" : "s"}
       </p>
 
@@ -58,35 +54,36 @@ export default function TripPreviewCard({ plan, onViewPlan }) {
         >
           {inr(total)}
         </span>
-        <span className="pb-0.5 t-meta" style={{ color: "#829AB1" }}>
+        <span className="pb-0.5 t-meta" style={{ color: "#5B6B7B" }}>
           of {inr(budget)}
         </span>
       </div>
 
-      {/* Budget meter */}
+      {/* Budget meter — text below carries meaning, bar is decorative */}
       <div
         className="mt-3 h-2 w-full overflow-hidden rounded-full"
         style={{ background: "#EEF2F6" }}
-        role="img"
-        aria-label={`${inr(total)} of ${inr(budget)} budget`}
+        role="presentation"
+        aria-hidden="true"
       >
         <div
           className="h-full rounded-full transition-[width] duration-500"
           style={{
             width: `${Math.max(4, Math.round(fill * 100))}%`,
-            background: over ? "#FF6B57" : near ? "#F59E0B" : "#22C55E",
+            background: over ? "var(--color-danger)" : near ? "var(--color-warning)" : "var(--color-success)",
           }}
         />
       </div>
 
       <p
         className="mt-2 rounded-lg px-2.5 py-1.5 t-meta"
+        role="status"
         style={
           over
-            ? { background: "#FFF1EE", color: "#F25542" }
+            ? { background: "var(--color-danger-bg)", color: "var(--color-danger)" }
             : near
-              ? { background: "#FFFBEB", color: "#F59E0B" }
-              : { background: "#ECFDF3", color: "#22C55E" }
+              ? { background: "var(--color-warning-bg)", color: "var(--color-warning)" }
+              : { background: "var(--color-success-bg)", color: "var(--color-success)" }
         }
       >
         {over

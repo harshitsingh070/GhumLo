@@ -31,7 +31,7 @@ export default function SafeImage({ src, alt = "", className = "", fallback = nu
     return (
       fallback ?? (
         <span
-          className={`flex items-center justify-center bg-[#F1F5F9] text-[#829AB1] ${className}`}
+          className={`flex items-center justify-center bg-[#F1F5F9] text-[#5B6B7B] ${className}`}
           aria-label={alt || "Image unavailable"}
         >
           <svg

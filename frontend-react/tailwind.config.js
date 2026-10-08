@@ -9,7 +9,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Inter"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
+        display: ['"Fraunces"', "Georgia", '"Times New Roman"', "serif"],
         sans: ['"Inter"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
       },
       colors: {
