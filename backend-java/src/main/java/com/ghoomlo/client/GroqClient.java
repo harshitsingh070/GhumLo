@@ -47,6 +47,30 @@ public class GroqClient {
     return m;
   }
 
+  /** True for transport-level blips worth one retry (RST on a stale pooled
+   *  keep-alive, closed channel, aborted connection) — never for API-level
+   *  errors (bad key, quota, bad params), which would fail identically. */
+  private static boolean isTransientTransportError(Throwable e) {
+    for (Throwable t = e; t != null; t = t.getCause()) {
+      String cls = t.getClass().getName();
+      if (cls.contains("WebClientRequestException")) return true;
+      if (t instanceof java.net.SocketException
+          || t instanceof java.net.SocketTimeoutException
+          || t instanceof java.net.ConnectException
+          || t instanceof java.nio.channels.ClosedChannelException
+          || t instanceof java.util.concurrent.TimeoutException
+          || t instanceof io.netty.handler.timeout.ReadTimeoutException
+          || t instanceof reactor.netty.channel.AbortedException
+          || t instanceof reactor.netty.http.client.PrematureCloseException) {
+        return true;
+      }
+      String m = String.valueOf(t.getMessage()).toLowerCase();
+      if (m.contains("connection reset") || m.contains("connection closed")
+          || m.contains("prematureclose") || m.contains("broken pipe")) return true;
+    }
+    return false;
+  }
+
   @SuppressWarnings("unchecked")
   private String chat(String system, String user, String model, double temperature, int maxTokens) {
     Map<String, Object> body = Map.of(
@@ -55,15 +79,37 @@ public class GroqClient {
         "max_tokens", maxTokens,
         "messages", List.of(Map.of("role", "system", "content", system),
             Map.of("role", "user", "content", user)));
-    String json;
-    try {
-      json = groqWebClient.post().uri("/chat/completions")
-          .header("Authorization", "Bearer " + apiKey())
-          .bodyValue(body).retrieve().bodyToMono(String.class)
-          .block(Duration.ofSeconds(30));
-    } catch (Exception e) {
-      log.error("Groq call failed: {}", e.toString());
-      throw new RuntimeException(e);
+    String json = null;
+    Exception lastError = null;
+    // One retry: a "Connection reset" is almost always a dead pooled socket,
+    // and the fresh retry succeeds. No response was received, so no duplicate
+    // side effects — same policy as the SerpApi client's transport retries.
+    for (int attempt = 1; attempt <= 2; attempt++) {
+      try {
+        json = groqWebClient.post().uri("/chat/completions")
+            .header("Authorization", "Bearer " + apiKey())
+            .bodyValue(body).retrieve().bodyToMono(String.class)
+            .block(Duration.ofSeconds(30));
+        lastError = null;
+        break;
+      } catch (Exception e) {
+        if (!isTransientTransportError(e)) {
+          log.error("Groq call failed: {}", e.toString());
+          throw new RuntimeException(e);
+        }
+        lastError = e;
+        if (attempt < 2) {
+          log.warn("Groq transient failure (attempt 1/2): {} — retrying", e.getMessage());
+          try { Thread.sleep(500L); } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+          }
+        }
+      }
+    }
+    if (lastError != null) {
+      log.error("Groq call failed after retry: {}", lastError.toString());
+      throw new RuntimeException(lastError);
     }
     try {
       Map<String, Object> resp = mapper.readValue(json, new TypeReference<Map<String, Object>>() {});

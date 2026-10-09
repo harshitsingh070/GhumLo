@@ -68,8 +68,16 @@ public class AppConfig {
   @Bean
   public WebClient groqWebClient() {
     // Same OS-DNS fix as SerpApi: api.groq.com hits the identical
-    // Netty UDP-DNS timeout on restricted networks.
-    HttpClient httpClient = HttpClient.create()
+    // Netty UDP-DNS timeout on restricted networks. Same pool hygiene too:
+    // Groq's edge RSTs stale keep-alive sockets ("Connection reset" on read),
+    // so evict idle connections aggressively like the SerpApi pool.
+    ConnectionProvider groqProvider = ConnectionProvider.builder("groq")
+        .maxConnections(20)
+        .maxIdleTime(Duration.ofSeconds(20))
+        .maxLifeTime(Duration.ofMinutes(5))
+        .evictInBackground(Duration.ofSeconds(30))
+        .build();
+    HttpClient httpClient = HttpClient.create(groqProvider)
         .resolver(DefaultAddressResolverGroup.INSTANCE)
         .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
         .responseTimeout(Duration.ofSeconds(30));
