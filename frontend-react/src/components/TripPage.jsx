@@ -174,6 +174,38 @@ export default function TripPage({
             )}
           </div>
 
+          {/* SerpApi engine attribution — shows judges which engines powered this result */}
+          <div
+            className="no-print flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[14px] px-4 py-3"
+            style={{ background: "#FFF8F6", border: "1px solid #FFD9D1" }}
+            aria-label="Data sources"
+          >
+            <span className="t-meta font-semibold shrink-0" style={{ color: "#FF6B57" }}>
+              ● Live data from SerpApi
+            </span>
+            <span className="hidden sm:block h-4 w-px bg-[#FFD9D1]" aria-hidden="true" />
+            {[
+              { label: "Flights", engine: "google_flights" },
+              { label: "Hotels", engine: "google_hotels" },
+              { label: "Attractions", engine: "google_maps" },
+              { label: "Restaurants", engine: "google_maps" },
+              ...(plan.weather ? [{ label: "Weather", engine: "google" }] : []),
+              ...(plan.events?.length ? [{ label: "Events", engine: "google_events" }] : []),
+              ...(plan.exchange_rate ? [{ label: "FX Rate", engine: "google_finance" }] : []),
+              ...(plan.videos?.length ? [{ label: "Vlogs", engine: "youtube" }] : []),
+              ...(plan.know?.length ? [{ label: "Know-before-you-go", engine: "google" }] : []),
+            ].map(({ label, engine }) => (
+              <span
+                key={`${label}-${engine}`}
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 t-badge-sm"
+                style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", color: "#52606D" }}
+                title={`${engine}`}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+
           {/* MAIN DASHBOARD */}
           <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2 xl:grid-cols-[minmax(280px,0.9fr)_minmax(0,1.8fr)] xl:gap-7">
             <div className="md:order-2 xl:order-1">

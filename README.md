@@ -59,6 +59,38 @@ Navigate to **`http://localhost:8000`** in your browser.
 
 ---
 
+## 🎯 For Judges — Quick Evaluation Guide
+
+> **No API key? No problem.** Click **"Try demo trip (no key needed)"** on the homepage. The full UI, itinerary, map, weather, vlogs, and AI assistant all work immediately with zero quota.
+
+### Where to Look to Verify SerpApi Integration
+
+| What to Check | Where to Find It |
+|---|---|
+| **Engines used per search** | Results page → orange `● Live data from SerpApi` bar lists every engine invoked |
+| **Quota guarantee** | Server logs: `[live API] flights`, `[live API] hotels`, `[live API] places_attractions`, `[live API] places_restaurants` — exactly 4 lines per plan |
+| **Optional engines (weather, events, FX, vlogs)** | Visible sections in trip results; `[live API] weather` / `[live API] events` etc in server log |
+| **Lazy review expansion** | Click any hotel or place card → reviews load on demand (`[live API] reviews`) |
+| **Demo = 0 quota** | `GET /api/demo` → `live_search: false`, no SerpApi log lines |
+
+### Feature Showcase (in 3 minutes)
+
+1. **Demo Mode** → Click "Try demo trip" → see full trip: map, itinerary, weather, vlogs, packing list.
+2. **Live Plan** → Enter `DEL → Goa, 2 travelers, ₹60,000, balanced` → click Find → watch 4-search pipeline resolve in ~5s.
+3. **Hotel Re-plan** → Click "More stays" → pick any hotel → itinerary re-anchors instantly.
+4. **Travel Modes** → Smart Options → Switch Saver/Balanced/Comfort → prices update without new API calls.
+5. **Natural Language** → Type *"Goa next weekend under 50k for 2"* in the NL bar → form auto-fills.
+6. **AI Assistant** → After a live plan, ask the Ghumi Ghumi AI: *"What's the cheapest flight in my plan?"* — it answers from real numbers.
+7. **Print** → Click Print / Save PDF in the results header → clean printable itinerary.
+
+### Run the Tests
+```bash
+cd backend-java
+mvn test   # 23 tests — 0 failures
+```
+
+---
+
 ## 🏗️ Architecture & Orchestration Pipeline
 
 GhoomLo employs a high-performance concurrent fan-out pipeline designed to minimize latency and guarantee quota efficiency.

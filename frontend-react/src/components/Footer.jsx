@@ -7,7 +7,7 @@ const LINKS = [
   { label: "About", action: () => go("home", "about") },
 ];
 
-/** Clean white/light footer. */
+/** Clean white/light footer with hackathon attribution. */
 export default function Footer() {
   return (
     <footer
@@ -31,6 +31,13 @@ export default function Footer() {
             <p className="mt-3 max-w-xs t-body" style={{ color: "#52606D" }}>
               Plan smarter. Explore more. Spend less.
             </p>
+            {/* Hackathon identity */}
+            <span
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 t-meta"
+              style={{ background: "#FFF1EE", border: "1px solid #FFD9D1", color: "#FF6B57" }}
+            >
+              ✦ SerpApi India Hackathon 2026 — Travel &amp; Local Discovery
+            </span>
           </div>
 
           {/* Nav */}
@@ -64,9 +71,30 @@ export default function Footer() {
           </nav>
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-2 pt-6 t-meta sm:flex-row" style={{ borderTop: "1px solid #EEF2F6", color: "#5B6B7B" }}>
+        <div className="mt-10 flex flex-col items-center justify-between gap-3 pt-6 t-meta sm:flex-row" style={{ borderTop: "1px solid #EEF2F6", color: "#5B6B7B" }}>
           <p>© 2026 GhoomLo. All rights reserved.</p>
-          <p>Plan smarter. Explore more. Spend less.</p>
+          <p className="flex items-center gap-1.5">
+            Live data powered by{" "}
+            <a
+              href="https://serpapi.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold transition-colors"
+              style={{ color: "#FF6B57" }}
+            >
+              SerpApi
+            </a>
+            {" "}· AI by{" "}
+            <a
+              href="https://groq.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold transition-colors"
+              style={{ color: "#FF6B57" }}
+            >
+              Groq
+            </a>
+          </p>
         </div>
       </div>
     </footer>
