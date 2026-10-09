@@ -6,6 +6,7 @@ import jakarta.annotation.PostConstruct;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -22,13 +23,97 @@ import org.springframework.stereotype.Service;
 public class AirportResolver {
   private static final Logger log = LoggerFactory.getLogger(AirportResolver.class);
 
-  private static final Map<String, String> OVERRIDES = Map.of(
-      "london", "LHR",
-      "new york", "JFK",
-      "paris", "CDG",
-      "tokyo", "NRT",
-      "moscow", "SVO",
-      "goa", "GOI");
+  // Curated aliases: multi-airport cities, tourist islands/regions whose
+  // dataset city differs (Bali -> Denpasar, Male -> "MalAc"), and whole
+  // countries mapped to their main international gateway (Thailand -> BKK).
+  // Every code below is verified present in airports.json; an unknown code
+  // safely resolves to null via the containsKey guard at lookup time.
+  private static final Map<String, String> OVERRIDES = Map.ofEntries(
+      Map.entry("london", "LHR"),
+      Map.entry("new york", "JFK"),
+      Map.entry("paris", "CDG"),
+      Map.entry("tokyo", "NRT"),
+      Map.entry("japan", "NRT"),
+      Map.entry("moscow", "SVO"),
+      Map.entry("goa", "GOI"),
+      // Islands / regions (dataset city names differ or collide, e.g. Bali
+      // exact-matches BLC Cameroon without this alias).
+      Map.entry("bali", "DPS"),
+      Map.entry("phuket", "HKT"),
+      Map.entry("maldives", "MLE"),
+      Map.entry("male", "MLE"),
+      Map.entry("santorini", "JTR"),
+      Map.entry("mykonos", "JMK"),
+      Map.entry("ibiza", "IBZ"),
+      Map.entry("mallorca", "PMI"),
+      Map.entry("tenerife", "TFS"),
+      Map.entry("hawaii", "HNL"),
+      Map.entry("manali", "KUU"),
+      Map.entry("shimla", "SLV"),
+      // Countries -> main gateway hub.
+      Map.entry("thailand", "BKK"),
+      Map.entry("malaysia", "KUL"),
+      Map.entry("singapore", "SIN"),
+      Map.entry("indonesia", "DPS"),
+      Map.entry("vietnam", "SGN"),
+      Map.entry("south korea", "ICN"),
+      Map.entry("korea", "ICN"),
+      Map.entry("china", "PEK"),
+      Map.entry("hong kong", "HKG"),
+      Map.entry("macau", "MFM"),
+      Map.entry("taiwan", "TPE"),
+      Map.entry("philippines", "MNL"),
+      Map.entry("sri lanka", "CMB"),
+      Map.entry("nepal", "KTM"),
+      Map.entry("bhutan", "PBH"),
+      Map.entry("bangladesh", "DAC"),
+      Map.entry("myanmar", "RGN"),
+      Map.entry("laos", "VTE"),
+      Map.entry("mali", "BKO"),
+      Map.entry("australia", "SYD"),
+      Map.entry("new zealand", "AKL"),
+      Map.entry("fiji", "NAN"),
+      Map.entry("usa", "JFK"),
+      Map.entry("united states", "JFK"),
+      Map.entry("uk", "LHR"),
+      Map.entry("united kingdom", "LHR"),
+      Map.entry("england", "LHR"),
+      Map.entry("france", "CDG"),
+      Map.entry("italy", "FCO"),
+      Map.entry("spain", "MAD"),
+      Map.entry("germany", "FRA"),
+      Map.entry("netherlands", "AMS"),
+      Map.entry("switzerland", "ZRH"),
+      Map.entry("austria", "VIE"),
+      Map.entry("greece", "ATH"),
+      Map.entry("turkey", "IST"),
+      Map.entry("egypt", "CAI"),
+      Map.entry("south africa", "JNB"),
+      Map.entry("kenya", "NBO"),
+      Map.entry("mauritius", "MRU"),
+      Map.entry("seychelles", "SEZ"),
+      Map.entry("canada", "YYZ"),
+      Map.entry("mexico", "MEX"),
+      Map.entry("brazil", "GRU"),
+      Map.entry("argentina", "EZE"),
+      Map.entry("uae", "DXB"),
+      Map.entry("dubai", "DXB"),
+      Map.entry("abu dhabi", "AUH"),
+      Map.entry("qatar", "DOH"),
+      Map.entry("doha", "DOH"),
+      Map.entry("oman", "MCT"),
+      Map.entry("kuwait", "KWI"),
+      Map.entry("bahrain", "BAH"),
+      Map.entry("israel", "TLV"),
+      Map.entry("jordan", "AMM"));
+
+  // Spaceless-normalized view ("thai land" -> "thailand") built once.
+  private static final Map<String, String> NORMALIZED_OVERRIDES = new HashMap<>();
+  static {
+    for (Map.Entry<String, String> e : OVERRIDES.entrySet()) {
+      NORMALIZED_OVERRIDES.put(e.getKey().replaceAll("[\\s\\-]+", ""), e.getValue());
+    }
+  }
 
   private final Map<String, Map<String, String>> airports = new TreeMap<>();
   private final Map<String, List<String>> byCity = new HashMap<>();
@@ -64,12 +149,38 @@ public class AirportResolver {
   // Mirrors resolve_city_to_airport()
   public synchronized String resolveCityToAirport(String input) {
     if (input == null || input.isBlank()) return null;
-    String v = input.strip();
+    String v = normalizeLocation(input);
     String q = v.toLowerCase(Locale.ROOT);
     if (v.length() == 3 && v.equals(v.toUpperCase()) && airports.containsKey(v)) return v;
     if (OVERRIDES.containsKey(q)) {
       String code = OVERRIDES.get(q);
       return airports.containsKey(code) ? code : null;
+    }
+    // Spaceless alias ("thai land" -> "thailand"). Runs before city-exact
+    // so curated aliases win over coincidental dataset hits (Bali/BLC).
+    String compact = q.replaceAll("[\\s\\-]+", "");
+    if (NORMALIZED_OVERRIDES.containsKey(compact)) {
+      String code = NORMALIZED_OVERRIDES.get(compact);
+      return airports.containsKey(code) ? code : null;
+    }
+    // Typo-tolerant alias match ("baali" -> "bali", ratio 0.89): same
+    // difflib >= 0.8 rule as city fuzzy, over the short alias keys only.
+    if (q.length() >= 4) {
+      String bestAlias = null;
+      double bestAliasScore = 0.8;
+      boolean hasAliasBest = false;
+      for (String alias : OVERRIDES.keySet()) {
+        double s = difflibRatio(q, alias);
+        if (s >= 0.8 && (!hasAliasBest || s > bestAliasScore)) {
+          bestAliasScore = s;
+          bestAlias = alias;
+          hasAliasBest = true;
+        }
+      }
+      if (bestAlias != null) {
+        String code = OVERRIDES.get(bestAlias);
+        return airports.containsKey(code) ? code : null;
+      }
     }
     if (v.length() == 3 && airports.containsKey(v.toUpperCase())) return v.toUpperCase();
     List<String> exact = byCity.getOrDefault(q, List.of()).stream().filter(airports::containsKey).toList();
@@ -109,6 +220,30 @@ public class AirportResolver {
       }
     }
     return null;
+  }
+
+  /**
+   * Returns the airport dataset's city for a resolved location. Downstream
+   * searches use this value so flights, hotels, and local content all target
+   * the same place, while the original user label can still be shown in the UI.
+   */
+  public synchronized String canonicalSearchLocation(String input) {
+    String normalized = normalizeLocation(input);
+    // Keep named destinations such as Goa and Bali intact: airport metadata
+    // often uses a nearby airport locality (for example, Dabolim for Goa).
+    // Expand only explicit IATA input, where the city name is the useful
+    // search term for hotels and local content.
+    if (normalized.length() != 3 || !normalized.equals(normalized.toUpperCase(Locale.ROOT))) {
+      return normalized;
+    }
+    String code = resolveCityToAirport(normalized);
+    if (code == null) return normalized;
+    String city = airports.getOrDefault(code, Map.of()).getOrDefault("city", "").strip();
+    return city.isEmpty() ? normalized : city;
+  }
+
+  private static String normalizeLocation(String input) {
+    return input == null ? "" : input.strip().replaceAll("\\s+", " ");
   }
 
   /**
@@ -187,6 +322,46 @@ public class AirportResolver {
       bestsize++;
     }
     return new int[]{besti, bestj, bestsize};
+  }
+
+  /**
+   * "Did you mean?" candidates for an unresolvable location: top difflib
+   * matches over dataset cities plus alias keys (mapped to their codes),
+   * de-duplicated by airport code. Pure offline computation — safe to call
+   * from error paths. Each entry: {code, city, name}.
+   */
+  public List<Map<String, String>> suggestAirports(String input, int n) {
+    String q = input == null ? "" : input.strip().toLowerCase(Locale.ROOT);
+    List<Map<String, String>> out = new ArrayList<>();
+    if (q.isEmpty() || n <= 0) return out;
+    List<String[]> scored = new ArrayList<>(); // [score, code]
+    java.util.Set<String> seen = new java.util.HashSet<>();
+    for (Map.Entry<String, List<String>> e : byCity.entrySet()) {
+      if (e.getKey().isEmpty()) continue;
+      double s = difflibRatio(q, e.getKey());
+      for (String code : e.getValue()) {
+        if (!airports.containsKey(code) || !seen.add(code)) continue;
+        scored.add(new String[]{String.valueOf(s), code});
+      }
+    }
+    for (Map.Entry<String, String> e : OVERRIDES.entrySet()) {
+      double s = difflibRatio(q, e.getKey());
+      if (airports.containsKey(e.getValue()) && seen.add(e.getValue())) {
+        scored.add(new String[]{String.valueOf(s), e.getValue()});
+      }
+    }
+    scored.sort((a, b) -> Double.compare(Double.parseDouble(b[0]), Double.parseDouble(a[0])));
+    for (String[] s : scored) {
+      if (out.size() >= n) break;
+      if (Double.parseDouble(s[0]) < 0.6) break;
+      Map<String, String> ap = airports.getOrDefault(s[1], Map.of());
+      Map<String, String> entry = new LinkedHashMap<>();
+      entry.put("code", s[1]);
+      entry.put("city", ap.getOrDefault("city", ""));
+      entry.put("name", ap.getOrDefault("name", ""));
+      out.add(entry);
+    }
+    return out;
   }
 
   // Mirrors country_for_city()

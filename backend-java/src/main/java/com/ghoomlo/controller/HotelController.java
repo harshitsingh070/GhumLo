@@ -2,6 +2,7 @@ package com.ghoomlo.controller;
 
 import com.ghoomlo.client.SerpApiClient;
 import com.ghoomlo.dto.HotelsReq;
+import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
@@ -38,10 +39,15 @@ public class HotelController {
   }
 
   @PostMapping("/hotels")
-  public ResponseEntity<?> hotels(@RequestBody HotelsReq req) {
+  public ResponseEntity<?> hotels(@Valid @RequestBody HotelsReq req) {
+    // Rate limiting runs at the edge (RateLimitFilter, before validation).
     try {
-      int travelers = req.travelers() <= 0 ? 1 : req.travelers();
+      int travelers = Math.min(20, Math.max(1, req.travelers()));
       int nights = numNights(req.check_in(), req.check_out());
+      if (nights > 90) {
+        return ResponseEntity.status(422).body(Map.of("error",
+            "Trip length must be 90 nights or fewer — try a shorter date range."));
+      }
       Map<String, Object> raw = serp.fetchHotelsRaw(req.destination(), req.check_in(),
           req.check_out(), travelers, req.force_refresh());
       List<Map<String, Object>> hotels = serp.parseHotels(raw, nights);

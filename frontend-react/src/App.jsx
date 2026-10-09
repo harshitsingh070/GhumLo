@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { navigate, useHashRoute } from "./lib/router.js";
-import { apiRequest, friendlyError } from "./lib/api.js";
+import { apiRequest, friendlyError, isLocationError } from "./lib/api.js";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import Header from "./components/Header.jsx";
 import Hero from "./components/Hero.jsx";
@@ -26,6 +26,9 @@ export default function App() {
   const [demoLoading, setDemoLoading] = useState(false);
   const [recomputing, setRecomputing] = useState(false);
   const [error, setError] = useState("");
+  // Field-level location error (unresolvable origin/destination): rendered
+  // inline on the form with "did you mean" picks instead of the trip page.
+  const [locationError, setLocationError] = useState(null);
   // Last submitted form values (without selected_hotel_name). Kept so the
   // hotel picker can re-POST the identical trip plus a chosen hotel name.
   const lastPayloadRef = useRef(null);
@@ -79,6 +82,7 @@ export default function App() {
     reqIdRef.current += 1;
     setLoading(false);
     setError("");
+    setLocationError(null);
     // Do not clear lastPayloadRef — user returns to planner with data intact.
     // Cancellation is not an error, so no error state is set.
   };
@@ -92,6 +96,7 @@ export default function App() {
     if (route !== "trip") navigate("trip");
     setLoading(true);
     setError("");
+    setLocationError(null);
     setPlan(null);
     try {
       // Fresh trip: auto-selection path (no selected_hotel_name), so any
@@ -109,9 +114,25 @@ export default function App() {
       }
     } catch (err) {
       if (reqIdRef.current === id && !err?.aborted) {
-        setError(friendlyError(err));
-        // Errors render on the trip page, so still redirect there.
-        if (route !== "trip") navigate("trip");
+        if (isLocationError(err)) {
+          // Unknown origin/destination: stay on the planner and flag the
+          // exact field with suggestions — the trip page's generic
+          // budget/date hints would mislead here. Form data is preserved.
+          setLocationError({
+            field: err.field,
+            message: friendlyError(err),
+            suggestions: err.suggestions,
+          });
+          if (route !== "home") navigate("home");
+          setTimeout(
+            () => document.getElementById("plan")?.scrollIntoView({ behavior: "smooth" }),
+            200
+          );
+        } else {
+          setError(friendlyError(err));
+          // Errors render on the trip page, so still redirect there.
+          if (route !== "trip") navigate("trip");
+        }
       }
     } finally {
       if (reqIdRef.current === id) setLoading(false);
@@ -174,12 +195,17 @@ export default function App() {
 
   const handleDemo = async () => {
     const id = ++reqIdRef.current;
-    // Same load-then-redirect flow as a manual search.
+    // Same supersede semantics as a manual search: abort anything in flight
+    // first so Search + Demo can never burn quota concurrently, and only the
+    // latest request may touch UI state (guarded by reqId + aborted flag).
+    planAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    planAbortRef.current = ctrl;
     setDemoLoading(true);
     setError("");
     setPlan(null);
     try {
-      const data = await apiRequest("/api/demo", { timeoutMs: 30000 });
+      const data = await apiRequest("/api/demo", { timeoutMs: 30000, signal: ctrl.signal });
       if (reqIdRef.current === id) {
         lastPayloadRef.current = {
           origin: data.origin,
@@ -199,7 +225,7 @@ export default function App() {
         );
       }
     } catch (err) {
-      if (reqIdRef.current === id) {
+      if (reqIdRef.current === id && !err?.aborted) {
         setError(friendlyError(err, "Demo unavailable."));
         if (route !== "trip") navigate("trip");
       }
@@ -267,6 +293,8 @@ export default function App() {
                 prefillDestination={prefillDestination}
                 onDemo={handleDemo}
                 demoLoading={demoLoading}
+                locationError={locationError}
+                onClearLocationError={() => setLocationError(null)}
               />
             </div>
             {/* Landing story */}
@@ -287,7 +315,14 @@ export default function App() {
 
       {/* Ghumi Ghumi AI — floating right-side chat box (with suggestions),
           mounted once per trip instead of the old full-width section. */}
-      {plan && !loading && <GhumiGhumiAI key={plan.destination} plan={plan} />}
+      {/* Remount per distinct trip (not just destination) so a new plan's
+          prices never sit under a previous trip's transcript. */}
+      {plan && !loading && (
+        <GhumiGhumiAI
+          key={[plan.destination, plan.departure_date, plan.return_date, plan.budget, plan.travel_mode].join("|")}
+          plan={plan}
+        />
+      )}
     </div>
     </ErrorBoundary>
   );

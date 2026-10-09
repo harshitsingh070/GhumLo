@@ -13,22 +13,13 @@ import {
 } from "lucide-react";
 import CategoryPanel from "./CategoryPanel.jsx";
 import SafeImage from "./SafeImage.jsx";
-import { buildMapUrl, formatStops, inr, placeMapUrl } from "../lib/format.js";
+import { buildMapUrl, fmtDateRange, formatStops, inr, placeMapUrl } from "../lib/format.js";
 import { buildReasons } from "../lib/reasons.js";
 import { DESTINATIONS, heroImageFor } from "../lib/destinations.js";
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-function fmtDay(iso) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
-  if (!m) return String(iso || "");
-  return `${Number(m[3])} ${MONTHS[Number(m[2]) - 1] || ""}`;
-}
-
-function fmtRange(d1, d2) {
-  const y = String(d2 || "").slice(0, 4);
-  return `${fmtDay(d1)} – ${fmtDay(d2)}${y ? ` ${y}` : ""}`;
-}
+// Date range uses the shared validated formatter (bad input renders "" —
+// never raw ISO or "undefined" text like the old local fork did).
+const fmtRange = fmtDateRange;
 
 /** "Your Trip" card — left panel of 3-column dashboard.
  *  Destination image, meta chips, flight+hotel summary, hotel picker.
@@ -40,6 +31,7 @@ export default function PickCard({
   budget,
   num_nights,
   live_search,
+  stale,
   insight,
   destination,
   departure_date,
@@ -129,23 +121,35 @@ export default function PickCard({
           )}
         </div>
 
-        {/* Live/Cached status — explicit text, never color-only */}
+        {/* Live/Cached/Stale status — explicit text, never color-only.
+            Stale (outage fallback) is never labeled Live. */}
         <span
           className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 t-badge-sm"
           role="status"
-          aria-label={live_search ? "Live prices, freshly fetched" : "Cached prices, saved results"}
+          aria-label={
+            stale
+              ? "Stale cached prices from an earlier search"
+              : live_search
+                ? "Live prices, freshly fetched"
+                : "Cached prices, saved results"
+          }
           style={
-            live_search
-              ? { background: "#ECFDF3", color: "#15803D", border: "1px solid #A7F3D0" }
-              : { background: "#F1F5F9", color: "#3E5463", border: "1px solid #E5E7EB" }
+            stale
+              ? { background: "var(--color-warning-bg)", color: "var(--color-warning)", border: "1px solid var(--color-warning-border)" }
+              : live_search
+                ? { background: "#ECFDF3", color: "#15803D", border: "1px solid #A7F3D0" }
+                : { background: "#F1F5F9", color: "#3E5463", border: "1px solid #E5E7EB" }
           }
         >
           <Circle
             className="h-1.5 w-1.5"
             aria-hidden="true"
-            style={{ fill: live_search ? "#15803D" : "#5B6B7B", color: live_search ? "#15803D" : "#5B6B7B" }}
+            style={{
+              fill: stale ? "#92400E" : live_search ? "#15803D" : "#5B6B7B",
+              color: stale ? "#92400E" : live_search ? "#15803D" : "#5B6B7B",
+            }}
           />
-          {live_search ? "● Live prices" : "○ Cached prices"}
+          {stale ? "○ Stale prices" : live_search ? "● Live prices" : "○ Cached prices"}
         </span>
       </div>
 

@@ -7,14 +7,22 @@ import com.ghoomlo.service.BudgetService;
 import com.ghoomlo.service.InsightService;
 import com.ghoomlo.service.ItineraryService;
 import com.ghoomlo.service.PackingService;
+import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,16 +37,28 @@ public class PlanController {
   private final InsightService insight;
   private final AirportResolver resolver;
   private final PackingService packing;
+  private final Executor searchExec;
 
   public PlanController(SerpApiClient serp, BudgetService budget,
       ItineraryService itinerarySvc, InsightService insight, AirportResolver resolver,
-      PackingService packing) {
+      PackingService packing, @Qualifier("searchExecutor") Executor searchExec) {
     this.serp = serp;
     this.budget = budget;
     this.itinerarySvc = itinerarySvc;
     this.insight = insight;
     this.resolver = resolver;
     this.packing = packing;
+    this.searchExec = searchExec;
+  }
+
+  /** Unwrap future failures so unresolvable-city 400s keep their shape
+   *  instead of collapsing into a generic 502. */
+  private static RuntimeException unwrapFuture(String what, Throwable e) {
+    Throwable cause = e instanceof ExecutionException ee && ee.getCause() != null ? ee.getCause()
+        : e instanceof CompletionException ce && ce.getCause() != null ? ce.getCause() : e;
+    if (cause instanceof IllegalArgumentException iae) return iae;
+    if (cause instanceof RuntimeException re) return re;
+    return new RuntimeException(what + " failed: " + cause);
   }
 
   private int numNights(String d1, String d2) {
@@ -70,22 +90,56 @@ public class PlanController {
     try { return Integer.parseInt(String.valueOf(v)); } catch (Exception e) { return def; }
   }
 
-  @PostMapping("/plan")
-  public ResponseEntity<?> plan(@RequestBody PlanReq req) {
-    try {
-      int travelers = req.travelers() <= 0 ? 1 : req.travelers();
-      int nights = numNights(req.departure_date(), req.return_date());
-      boolean fr = req.force_refresh();
+  // Generous upper bound: prevents absurd date ranges from exploding
+  // hotel math and itinerary sizing before any paid call runs.
+  private static final int MAX_TRIP_NIGHTS = 90;
 
-      Map<String, Object> rawF = serp.fetchFlightsRaw(req.origin(), req.destination(),
-          req.departure_date(), req.return_date(), travelers, fr);
+  @PostMapping("/plan")
+  public ResponseEntity<?> plan(@Valid @RequestBody PlanReq req) {
+    // Rate limiting runs at the edge (RateLimitFilter, before validation),
+    // so it covers invalid payloads and force_refresh floods too.
+    try {
+      int travelers = Math.min(20, Math.max(1, req.travelers()));
+      int nights = numNights(req.departure_date(), req.return_date());
+      if (nights > MAX_TRIP_NIGHTS) {
+        return ResponseEntity.status(422).body(Map.of("error",
+            "Trip length must be " + MAX_TRIP_NIGHTS + " nights or fewer — try a shorter date range."));
+      }
+      boolean fr = req.force_refresh();
+      // Flights resolve aliases and airport codes. Use the same resolved city
+      // for all destination searches so the trip cannot mix locations.
+      String destinationSearch = resolver.canonicalSearchLocation(req.destination());
+
+      // STAGE 1 — flights + hotels run CONCURRENTLY on the search pool.
+      // Sequential core was the dominant latency: 2 x (3 attempts x 20s)
+      // worst case back-to-back. Wall time is now the slower of the two.
+      CompletableFuture<Map<String, Object>> flightF = CompletableFuture.supplyAsync(
+          () -> serp.fetchFlightsRaw(req.origin(), req.destination(),
+              req.departure_date(), req.return_date(), travelers, fr),
+          searchExec);
+      CompletableFuture<Map<String, Object>> hotelF = CompletableFuture.supplyAsync(
+          () -> serp.fetchHotelsRaw(destinationSearch, req.departure_date(),
+              req.return_date(), travelers, fr),
+          searchExec);
+      Map<String, Object> rawF;
+      Map<String, Object> rawH;
+      try {
+        CompletableFuture.allOf(flightF, hotelF).get(60, TimeUnit.SECONDS);
+        rawF = flightF.getNow(null);
+        rawH = hotelF.getNow(null);
+      } catch (TimeoutException te) {
+        flightF.cancel(true);
+        hotelF.cancel(true);
+        log.warn("core flight+hotel fan-out timed out");
+        return ResponseEntity.status(502).body(Map.of("error", "Search temporarily failed. Please try again in a moment."));
+      } catch (Exception e) {
+        throw unwrapFuture("flight/hotel search", e);
+      }
       List<Map<String, Object>> flights = serp.parseFlights(rawF, travelers);
       if (flights.isEmpty()) {
         return ResponseEntity.status(404).body(Map.of("error", "No flights found. Try different airports or dates."));
       }
 
-      Map<String, Object> rawH = serp.fetchHotelsRaw(req.destination(), req.departure_date(),
-          req.return_date(), travelers, fr);
       List<Map<String, Object>> hotels = serp.parseHotels(rawH, nights);
       if (hotels.isEmpty()) {
         return ResponseEntity.status(404).body(Map.of("error", "No hotels found. Try a broader destination name."));
@@ -142,7 +196,8 @@ public class PlanController {
           match.put("fits_budget", fits);
           match.put("best_pick", bestPick);
           match.put("candidates", ranked);
-          match.put("remaining_budget", Math.max(0, req.budget() - intOf(selected.get("total_cost"), req.budget())));
+          // Honest overspend: negative remaining means over budget (canonical).
+          match.put("remaining_budget", req.budget() - intOf(selected.get("total_cost"), req.budget()));
         } else {
           match = budget.findBestCombination(flights, List.of(chosen), req.budget());
         }
@@ -162,7 +217,8 @@ public class PlanController {
           m2.put("fits_budget", fits);
           m2.put("best_pick", bestPick);
           m2.put("candidates", ranked);
-          m2.put("remaining_budget", Math.max(0, req.budget() - intOf(selected.get("total_cost"), req.budget())));
+          // Honest overspend: negative remaining means over budget (canonical).
+          m2.put("remaining_budget", req.budget() - intOf(selected.get("total_cost"), req.budget()));
           match = m2;
         }
       }
@@ -172,23 +228,41 @@ public class PlanController {
       @SuppressWarnings("unchecked")
       Map<String, Object> bestHotel = (Map<String, Object>) best.get("hotel");
       String hotelName = String.valueOf(bestHotel.get("name"));
-      String anchor = hotelName + ", " + req.destination();
+      String anchor = hotelName + ", " + destinationSearch;
       Double hotelLat = bestHotel.get("lat") instanceof Number ? ((Number) bestHotel.get("lat")).doubleValue() : null;
       Double hotelLng = bestHotel.get("lng") instanceof Number ? ((Number) bestHotel.get("lng")).doubleValue() : null;
 
-      List<Map<String, Object>> attractions = new ArrayList<>();
-      List<Map<String, Object>> restaurants = new ArrayList<>();
+      // STAGE 2 — attractions + restaurants run CONCURRENTLY. Same wall-time
+      // logic: the slower of the two, not the sum. Each isolated: failure
+      // only empties its own list, never the trip.
+      CompletableFuture<Map<String, Object>> attrF = CompletableFuture.supplyAsync(
+          () -> serp.fetchPlacesRaw(anchor, "attractions", fr), searchExec);
+      CompletableFuture<Map<String, Object>> restF = CompletableFuture.supplyAsync(
+          () -> serp.fetchPlacesRaw(anchor, "restaurants", fr), searchExec);
       Map<String, Object> rawA = Map.of();
       Map<String, Object> rawR = Map.of();
+      List<Map<String, Object>> attractions = new ArrayList<>();
+      List<Map<String, Object>> restaurants = new ArrayList<>();
       try {
-        rawA = serp.fetchPlacesRaw(anchor, "attractions", fr);
-        attractions = serp.parsePlaces(rawA, "attractions");
+        CompletableFuture.allOf(attrF, restF).get(45, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        log.warn("places fan-out timed out/failed — using partial results: {}", e.toString());
+      }
+      try {
+        Map<String, Object> r = attrF.getNow(null);
+        if (r != null) {
+          rawA = r;
+          attractions = serp.parsePlaces(rawA, "attractions");
+        }
       } catch (Exception e) {
         log.warn("attractions lookup failed: {}", e.toString());
       }
       try {
-        rawR = serp.fetchPlacesRaw(anchor, "restaurants", fr);
-        restaurants = serp.parsePlaces(rawR, "restaurants");
+        Map<String, Object> r = restF.getNow(null);
+        if (r != null) {
+          rawR = r;
+          restaurants = serp.parsePlaces(rawR, "restaurants");
+        }
       } catch (Exception e) {
         log.warn("restaurants lookup failed: {}", e.toString());
       }
@@ -202,41 +276,78 @@ public class PlanController {
       if (rawA.isEmpty() && rawR.isEmpty()) {
         anyLive = !Boolean.TRUE.equals(rawF.get("_from_cache")) || !Boolean.TRUE.equals(rawH.get("_from_cache"));
       }
+      // Stale fallback (outage snapshot) is tracked separately: it must
+      // never be presented as live prices downstream.
+      boolean anyStale = false;
+      for (Map<String, Object> r : List.of(rawF, rawH, rawA, rawR)) {
+        if (r != null && Boolean.TRUE.equals(r.get("_stale"))) { anyStale = true; break; }
+      }
 
-      Map<String, Object> weather = null;
-      try { weather = serp.fetchWeatherSnapshot(req.destination(), fr); }
-      catch (Exception e) { log.warn("weather snapshot failed (omitted): {}", e.toString()); }
-
-      List<Map<String, Object>> events = new ArrayList<>();
+      // Optional enrichments run CONCURRENTLY (each isolated — failure only
+      // omits its field, never a 502). Sequential + retried optionals were
+      // the long-tail bottleneck: 5 x (3 attempts x 20s) worst case.
+      // Single-attempt fetchers (see SerpApiClient) + parallel fan-out make
+      // the wall time the slowest single enrichment instead of the sum.
+      CompletableFuture<Map<String, Object>> weatherF =
+          CompletableFuture.supplyAsync(() -> {
+              try { return serp.fetchWeatherSnapshot(destinationSearch, fr); }
+            catch (Exception e) { log.warn("weather snapshot failed (omitted): {}", e.toString()); return null; }
+          }, searchExec);
+      CompletableFuture<List<Map<String, Object>>> eventsF =
+          CompletableFuture.supplyAsync(() -> {
+            try {
+              Map<String, Object> rawEv = serp.fetchEventsRaw(destinationSearch, req.departure_date(), req.return_date(), fr);
+              return serp.parseEvents(rawEv, req.departure_date(), req.return_date());
+            } catch (Exception e) { log.warn("events lookup failed (omitted): {}", e.toString()); return new ArrayList<>(); }
+          }, searchExec);
+      CompletableFuture<Map<String, Object>> exchangeF =
+          CompletableFuture.supplyAsync(() -> {
+            try {
+              String originCountry = resolver.countryForCity(req.origin());
+              String destCountry = resolver.countryForCity(req.destination());
+              if (originCountry != null && destCountry != null && !originCountry.equals(destCountry)) {
+                String fromCur = SerpApiClient.COUNTRY_CURRENCY.get(originCountry);
+                String toCur = SerpApiClient.COUNTRY_CURRENCY.get(destCountry);
+                if (fromCur != null && toCur != null && !fromCur.equals(toCur)) {
+                  return serp.fetchExchangeRate(fromCur, toCur, fr);
+                }
+              }
+              return null;
+            } catch (Exception e) { log.warn("exchange rate lookup failed (omitted): {}", e.toString()); return null; }
+          }, searchExec);
+      CompletableFuture<List<Map<String, Object>>> knowF =
+          CompletableFuture.supplyAsync(() -> {
+            try {
+              Map<String, Object> rawKnow = serp.fetchKnowRaw(destinationSearch, fr);
+              if (rawKnow != null) return serp.parseKnow(rawKnow, 5);
+              return new ArrayList<>();
+            } catch (Exception e) { log.warn("know lookup failed (omitted): {}", e.toString()); return new ArrayList<>(); }
+          }, searchExec);
+      CompletableFuture<List<Map<String, Object>>> videosF =
+          CompletableFuture.supplyAsync(() -> {
+            try {
+              Map<String, Object> rawVid = serp.fetchVideosRaw(destinationSearch, fr);
+              if (rawVid != null) return serp.parseVideos(rawVid, 3);
+              return new ArrayList<>();
+            } catch (Exception e) { log.warn("videos lookup failed (omitted): {}", e.toString()); return new ArrayList<>(); }
+          }, searchExec);
+      // Bounded fan-out: one hung enrichment must not stall the trip.
+      // Optionals already fail fast at 8s each (see SerpApiClient), so 15s
+      // covers the whole set running concurrently. On timeout the completed
+      // futures keep their values, the rest fall back to omitted/empty.
       try {
-        Map<String, Object> rawEv = serp.fetchEventsRaw(req.destination(), req.departure_date(), req.return_date(), fr);
-        events = serp.parseEvents(rawEv, req.departure_date(), req.return_date());
-      } catch (Exception e) { log.warn("events lookup failed (omitted): {}", e.toString()); }
-
-      Map<String, Object> exchangeRate = null;
-      try {
-        String originCountry = resolver.countryForCity(req.origin());
-        String destCountry = resolver.countryForCity(req.destination());
-        if (originCountry != null && destCountry != null && !originCountry.equals(destCountry)) {
-          String fromCur = SerpApiClient.COUNTRY_CURRENCY.get(originCountry);
-          String toCur = SerpApiClient.COUNTRY_CURRENCY.get(destCountry);
-          if (fromCur != null && toCur != null && !fromCur.equals(toCur)) {
-            exchangeRate = serp.fetchExchangeRate(fromCur, toCur, fr);
-          }
-        }
-      } catch (Exception e) { log.warn("exchange rate lookup failed (omitted): {}", e.toString()); }
-
-      List<Map<String, Object>> know = new ArrayList<>();
-      try {
-        Map<String, Object> rawKnow = serp.fetchKnowRaw(req.destination(), fr);
-        if (rawKnow != null) know = serp.parseKnow(rawKnow, 5);
-      } catch (Exception e) { log.warn("know lookup failed (omitted): {}", e.toString()); }
-
-      List<Map<String, Object>> videos = new ArrayList<>();
-      try {
-        Map<String, Object> rawVid = serp.fetchVideosRaw(req.destination(), fr);
-        if (rawVid != null) videos = serp.parseVideos(rawVid, 3);
-      } catch (Exception e) { log.warn("videos lookup failed (omitted): {}", e.toString()); }
+        CompletableFuture.allOf(weatherF, eventsF, exchangeF, knowF, videosF).get(15, TimeUnit.SECONDS);
+      } catch (TimeoutException te) {
+        log.warn("enrichment fan-out timed out after 15s — using partial results");
+        for (CompletableFuture<?> f : List.of(weatherF, eventsF, exchangeF, knowF, videosF)) f.cancel(true);
+      } catch (Exception e) {
+        log.warn("enrichment fan-out failed (omitted): {}", e.toString());
+      }
+      Map<String, Object> weather = weatherF.getNow(null);
+      List<Map<String, Object>> events = eventsF.getNow(new ArrayList<>());
+      Map<String, Object> exchangeRate = exchangeF.getNow(null);
+      List<Map<String, Object>> know = knowF.getNow(new ArrayList<>());
+      List<Map<String, Object>> videos = videosF.getNow(new ArrayList<>());
 
       @SuppressWarnings("unchecked")
       List<Map<String, Object>> candidates = (List<Map<String, Object>>) match.getOrDefault("candidates", List.of());
@@ -267,7 +378,8 @@ public class PlanController {
       counts.put("attractions", attractions.size());
       counts.put("restaurants", restaurants.size());
       resp.put("counts", counts);
-      resp.put("live_search", anyLive);
+      resp.put("live_search", anyLive && !anyStale);
+      if (anyStale) resp.put("stale", true);
       if (weather != null) resp.put("weather", weather);
       try {
         // Zero-search rule engine on the live snapshot above (or a
@@ -299,8 +411,14 @@ public class PlanController {
       String msg = String.valueOf(e.getMessage());
       if (msg.startsWith("unresolvable ")) {
         String bad = msg.contains(": ") ? msg.split(": ", 2)[1] : "that city";
-        return ResponseEntity.status(400).body(Map.of("error",
-            "Couldn\u2019t find an airport for \u2018" + bad + "\u2019 — try the 3-letter airport code instead (e.g. DEL, LHR, JFK)"));
+        String field = msg.startsWith("unresolvable origin") ? "origin" : "destination";
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error",
+            "Couldn\u2019t find an airport for \u2018" + bad + "\u2019 — try the 3-letter airport code instead (e.g. DEL, LHR, JFK)");
+        body.put("field", field);
+        body.put("value", bad);
+        body.put("suggestions", resolver.suggestAirports(bad, 3));
+        return ResponseEntity.status(400).body(body);
       }
       log.error("plan failed", e);
       return ResponseEntity.status(502).body(Map.of("error", friendlyError(e)));

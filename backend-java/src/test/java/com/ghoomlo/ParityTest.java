@@ -25,6 +25,18 @@ class ParityTest {
     assertEquals("LKO", resolver.resolveCityToAirport("lucnknow"));
     assertNull(resolver.resolveCityToAirport("XyzqwvNoCity"));
     assertEquals("IN", resolver.countryForCity("Goa"));
+    // Tourist islands / countries -> gateway hubs (not dataset city names).
+    assertEquals("DPS", resolver.resolveCityToAirport("Bali"));
+    assertEquals("DPS", resolver.resolveCityToAirport("baali"));
+    assertEquals("BKK", resolver.resolveCityToAirport("Thailand"));
+    assertEquals("BKK", resolver.resolveCityToAirport("thai land"));
+    assertEquals("HKT", resolver.resolveCityToAirport("Phuket"));
+    assertEquals("MLE", resolver.resolveCityToAirport("Maldives"));
+    assertEquals("DXB", resolver.resolveCityToAirport("Dubai"));
+    assertEquals("TH", resolver.countryForCity("Thailand"));
+    assertEquals("Bali", resolver.canonicalSearchLocation("Bali"));
+    assertEquals("Dabolim", resolver.canonicalSearchLocation(" GOI "));
+    assertEquals("New Delhi", resolver.canonicalSearchLocation("  New   Delhi  "));
   }
 
   @Test

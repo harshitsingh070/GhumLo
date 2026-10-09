@@ -4,6 +4,7 @@ import SafeImage from "./SafeImage.jsx";
 import CategoryPanel from "./CategoryPanel.jsx";
 import { photoFor } from "../lib/destinations.js";
 import { placeMapUrl } from "../lib/format.js";
+import { placeIdentity } from "../lib/places.js";
 
 /** Popular Experiences in Destination — Horizontal carousel matching reference design.
  *  4:3 image cards, heart button, title, category, rating, address + map link.
@@ -27,11 +28,14 @@ export default function PopularPlaces({ places, destination }) {
           : p.category === "restaurants"
     );
 
-  const toggleFavorite = (name) => {
+  // Favorites keyed by stable identity (provider ID or name+coords) —
+  // never bare name, so same-named places favorite independently.
+  const toggleFavorite = (place) => {
+    const id = placeIdentity(place);
     setFavorites((prev) => {
       const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -139,7 +143,7 @@ export default function PopularPlaces({ places, destination }) {
           </p>
         )}
         {source.slice(0, 10).map((place, idx) => {
-          const isFav = favorites.has(place.name);
+          const isFav = favorites.has(placeIdentity(place));
           const rating = place.rating;
           const isRestaurant = place.category === "restaurants";
           const categoryName = isRestaurant ? "Dining" : "Attraction";
@@ -151,7 +155,7 @@ export default function PopularPlaces({ places, destination }) {
 
           return (
             <div
-              key={`${place.name}-${idx}`}
+              key={`${placeIdentity(place)}-${idx}`}
               className="group relative flex w-[200px] sm:w-[220px] shrink-0 flex-col overflow-hidden rounded-[18px] transition-all hover:-translate-y-1"
               style={{
                 background: "#FFFFFF",
@@ -185,7 +189,7 @@ export default function PopularPlaces({ places, destination }) {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleFavorite(place.name);
+                    toggleFavorite(place);
                   }}
                   aria-label={isFav ? `Remove ${place.name} from favorites` : `Save ${place.name} to favorites`}
                   aria-pressed={isFav}

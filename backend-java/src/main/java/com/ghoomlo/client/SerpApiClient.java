@@ -11,7 +11,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -35,7 +35,16 @@ public class SerpApiClient {
   private final FileCacheService cache;
   private final AirportResolver airports;
   private final ObjectMapper mapper = new ObjectMapper();
-  private final ConcurrentHashMap<String, Long> failUntil = new ConcurrentHashMap<>();
+  // Bounded negative-backoff registry: attacker-controlled param cardinality
+  // must not grow memory without limit. Access-ordered + capped; expired
+  // entries purged on write. Guarded by method-level synchronization.
+  private static final int MAX_BACKOFF_KEYS = 2000;
+  private final Map<String, Long> failUntil = new LinkedHashMap<>(256, 0.75f, true) {
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<String, Long> e) {
+      return size() > MAX_BACKOFF_KEYS;
+    }
+  };
 
   @Value("${serpapi.api-key:}")
   private String apiKeyProp;
@@ -43,10 +52,37 @@ public class SerpApiClient {
   @Value("${serpapi.timeout-seconds:20}")
   private int timeoutProp;
 
-  public SerpApiClient(@Qualifier("serpApiWebClient") WebClient serpApiWebClient, FileCacheService cache, AirportResolver airports) {
+  @Value("${serpapi.timeout-optional-seconds:8}")
+  private int timeoutOptionalProp;
+
+  private final GroqClient groq;
+
+  public SerpApiClient(@Qualifier("serpApiWebClient") WebClient serpApiWebClient, FileCacheService cache, AirportResolver airports, GroqClient groq) {
     this.serpApiWebClient = serpApiWebClient;
     this.cache = cache;
     this.airports = airports;
+    this.groq = groq;
+  }
+
+  /** Offline resolution first; when that fails, ask the AI for the nearest
+   *  IATA code and re-validate it against the offline dataset (so a hallu-
+   *  cinated code can never reach the flight search). Null when unresolvable. */
+  private String resolveWithAiFallback(String raw) {
+    String offline = airports.resolveCityToAirport(raw == null ? "" : raw);
+    if (offline != null) return offline;
+    String loc = raw == null ? "" : raw.strip();
+    if (loc.isEmpty()) return null;
+    String guess;
+    try {
+      guess = groq.resolveAirportCode(loc);
+    } catch (Exception e) {
+      log.warn("AI airport fallback errored for '{}': {}", loc, e.toString());
+      return null;
+    }
+    if (guess == null) return null;
+    String validated = airports.resolveCityToAirport(guess);
+    if (validated != null) log.info("AI resolved '{}' to airport {}", loc, validated);
+    return validated;
   }
 
   private String apiKey() {
@@ -65,22 +101,55 @@ public class SerpApiClient {
     return Math.max(5, t);
   }
 
+  /** Short budget for optional enrichments (weather/events/fx/know/videos):
+   *  they must fail fast and never stall the trip. Overridable via
+   *  SERPAPI_TIMEOUT_OPTIONAL_SECONDS (min 4, default 8). */
+  private int timeoutOptionalSeconds() {
+    String env = System.getenv("SERPAPI_TIMEOUT_OPTIONAL_SECONDS");
+    int t = timeoutOptionalProp;
+    try { if (env != null) t = Integer.parseInt(env.strip()); } catch (Exception ignored) {}
+    return Math.max(4, Math.min(t, timeoutSeconds()));
+  }
+
+  /** One-line body excerpt for 4xx diagnostics (e.g. events 400): the
+   *  status line alone never says which param SerpApi rejected. */
+  private static String errorBody(Throwable e) {
+    for (Throwable t = e; t != null; t = t.getCause()) {
+      if (t instanceof org.springframework.web.reactive.function.client.WebClientResponseException w) {
+        String body = w.getResponseBodyAsString();
+        if (body != null && !body.isBlank()) {
+          String flat = body.strip().replaceAll("\\s+", " ");
+          return flat.substring(0, Math.min(300, flat.length()));
+        }
+      }
+    }
+    return "";
+  }
+
   private String optKey(String cacheName, Map<String, Object> params) {
     try {
       return cacheName + ":" + mapper.writeValueAsString(new java.util.TreeMap<>(params));
     } catch (Exception e) { return cacheName + ":" + params.toString(); }
   }
 
-  private boolean optInBackoff(String cacheName, Map<String, Object> params) {
+  private synchronized boolean optInBackoff(String cacheName, Map<String, Object> params) {
     Long until = failUntil.get(optKey(cacheName, params));
-    return until != null && System.currentTimeMillis() < until;
+    if (until == null) return false;
+    if (System.currentTimeMillis() >= until) {
+      failUntil.remove(optKey(cacheName, params));
+      return false;
+    }
+    return true;
   }
 
-  private void optMarkFailed(String cacheName, Map<String, Object> params) {
-    failUntil.put(optKey(cacheName, params), System.currentTimeMillis() + BACKOFF_SECONDS * 1000L);
+  private synchronized void optMarkFailed(String cacheName, Map<String, Object> params) {
+    long now = System.currentTimeMillis();
+    // Opportunistic expiry purge so dead keys don't linger until eviction.
+    failUntil.entrySet().removeIf(e -> now >= e.getValue());
+    failUntil.put(optKey(cacheName, params), now + BACKOFF_SECONDS * 1000L);
   }
 
-  private void optMarkOk(String cacheName, Map<String, Object> params) {
+  private synchronized void optMarkOk(String cacheName, Map<String, Object> params) {
     failUntil.remove(optKey(cacheName, params));
   }
 
@@ -108,6 +177,26 @@ public class SerpApiClient {
   @SuppressWarnings("unchecked")
   private Map<String, Object> search(Map<String, Object> params, String cacheName,
       boolean skipCache, Long ttlSeconds) {
+    return search(params, cacheName, skipCache, ttlSeconds, 3);
+  }
+
+  /** maxAttempts=1 for optional enrichments (fail fast, never stall the
+   *  trip); 3 for core flight/hotel/places searches worth retrying. */
+  @SuppressWarnings("unchecked")
+  private Map<String, Object> search(Map<String, Object> params, String cacheName,
+      boolean skipCache, Long ttlSeconds, int maxAttempts) {
+    return search(params, cacheName, skipCache, ttlSeconds, maxAttempts, timeoutSeconds());
+  }
+
+  @SuppressWarnings("unchecked")
+  private Map<String, Object> searchOptional(Map<String, Object> params, String cacheName,
+      boolean skipCache, Long ttlSeconds) {
+    return search(params, cacheName, skipCache, ttlSeconds, 1, timeoutOptionalSeconds());
+  }
+
+  @SuppressWarnings("unchecked")
+  private Map<String, Object> search(Map<String, Object> params, String cacheName,
+      boolean skipCache, Long ttlSeconds, int maxAttempts, int timeoutSecs) {
     if (!skipCache) {
       Map<String, Object> cached = cache.get(cacheName, params, ttlSeconds);
       if (cached != null) {
@@ -124,30 +213,32 @@ public class SerpApiClient {
     withKey.put("api_key", apiKey());
     // SerpApi sits behind an edge that intermittently resets connections
     // (stale pooled keep-alive, network blips). Transport failures get
-    // 3 attempts with growing backoff; a final failure falls back to any
-    // cached snapshot so one blip can't 502 the whole trip.
+    // `maxAttempts` attempts with growing backoff; a final failure falls
+    // back to any cached snapshot so one blip can't 502 the whole trip.
     String json = null;
     Exception lastError = null;
-    for (int attempt = 1; attempt <= 3; attempt++) {
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         json = serpApiWebClient.get().uri(uri -> {
           var b = uri.path("/search.json");
           withKey.forEach((k, v) -> b.queryParam(k, String.valueOf(v)));
           return b.build();
-        }).retrieve().bodyToMono(String.class).block(Duration.ofSeconds(timeoutSeconds()));
+        }).retrieve().bodyToMono(String.class).block(Duration.ofSeconds(timeoutSecs));
         lastError = null;
         break;
       } catch (Exception e) {
         if (!isTransientTransportError(e)) {
-          log.error("SerpApi {} failed: {}: {}", cacheName, e.getClass().getSimpleName(), e.getMessage());
+          String body = errorBody(e);
+          log.error("SerpApi {} failed: {}: {}{}", cacheName, e.getClass().getSimpleName(),
+              e.getMessage(), body.isEmpty() ? "" : " body=" + body);
           throw new RuntimeException(e);
         }
         lastError = e;
-        if (attempt < 3) {
-          log.warn("SerpApi {} transient failure (attempt {}/3): {} — retrying",
-              cacheName, attempt, e.getMessage());
+        if (attempt < maxAttempts) {
+          log.warn("SerpApi {} transient failure (attempt {}/{}): {} — retrying",
+              cacheName, attempt, maxAttempts, e.getMessage());
           try {
-            Thread.sleep(800L * attempt);
+            Thread.sleep(400L * attempt);
           } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
@@ -186,8 +277,8 @@ public class SerpApiClient {
   // ---------- raw fetchers ----------
   public Map<String, Object> fetchFlightsRaw(String origin, String destination,
       String departureDate, String returnDate, int travelers, boolean forceRefresh) {
-    String dep = airports.resolveCityToAirport(origin == null ? "" : origin);
-    String arr = airports.resolveCityToAirport(destination == null ? "" : destination);
+    String dep = resolveWithAiFallback(origin == null ? "" : origin);
+    String arr = resolveWithAiFallback(destination == null ? "" : destination);
     if (dep == null) throw new IllegalArgumentException("unresolvable origin: " + String.valueOf(origin).strip());
     if (arr == null) throw new IllegalArgumentException("unresolvable destination: " + String.valueOf(destination).strip());
     Map<String, Object> params = new LinkedHashMap<>();
@@ -226,6 +317,13 @@ public class SerpApiClient {
   }
 
   // ---------- shared parser helpers ----------
+  /** Saturating multiply: huge counts/prices clamp at MAX_VALUE instead of
+   *  wrapping negative and inverting cheapest-first sorts. */
+  public static int safeTotal(int unit, int count) {
+    long t = (long) unit * Math.max(0, count);
+    return t > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) t;
+  }
+
   public static Integer toInrNumber(Object value) {
     if (value == null) return null;
     if (value instanceof Number n) return n.intValue();
@@ -270,7 +368,10 @@ public class SerpApiClient {
     if (groups.isEmpty() && raw.get("flights_results") instanceof List) {
       groups.addAll((List<Map<String, Object>>) raw.get("flights_results"));
     }
-    int mult = Math.max(1, travelers);
+    // Defense in depth (DTOs already cap 1..20): clamp the multiplier and
+    // multiply in long space so hostile/huge input can never wrap negative
+    // and invert the cheapest-first sort below.
+    int mult = Math.min(20, Math.max(1, travelers));
     for (Map<String, Object> g : groups.subList(0, Math.min(15, groups.size()))) {
       try {
         List<Map<String, Object>> legs = List.of();
@@ -306,7 +407,7 @@ public class SerpApiClient {
         else nStops = legs.size() > 1 ? legs.size() - 1 : 0;
         Map<String, Object> flight = new LinkedHashMap<>();
         flight.put("airline", airline);
-        flight.put("price", price * mult);
+        flight.put("price", safeTotal(price, mult));
         flight.put("price_per_person", price);
         flight.put("duration", duration);
         flight.put("stops", nStops);
@@ -355,7 +456,7 @@ public class SerpApiClient {
         Integer nightly = toInrNumber(nightlyRaw);
         Integer total = toInrNumber(totalRaw);
         if (nightly == null && total != null && numNights > 0) nightly = (int) Math.round(total * 1.0 / numNights);
-        if (total == null && nightly != null) total = nightly * numNights;
+        if (total == null && nightly != null) total = safeTotal(nightly, numNights);
         if (nightly == null) continue;
         double[] ll = latLng(h);
         Map<String, Object> hotel = new LinkedHashMap<>();
@@ -491,7 +592,7 @@ public class SerpApiClient {
       return null;
     }
     try {
-      Map<String, Object> raw = search(params, "weather", forceRefresh, TTL_WEATHER);
+      Map<String, Object> raw = searchOptional(params, "weather", forceRefresh, TTL_WEATHER);
       optMarkOk("weather", params);
       Map<String, Object> snap = parseWeather(raw);
       if (snap == null) log.info("weather: no answer box for {} (omitted)", dest);
@@ -518,14 +619,24 @@ public class SerpApiClient {
     return null;
   }
 
-  private boolean inTripWindow(int[] md, String startIso, String endIso) {
+  // Year-aware trip-window check: Google gives event dates without a year,
+  // so each candidate is tested against every year the trip spans (handles
+  // Dec 30 -> Jan 3 rollovers that month/day-only math can never satisfy).
+  boolean inTripWindow(int[] md, String startIso, String endIso) {
     try {
       LocalDate s = LocalDate.parse(startIso);
       LocalDate e = LocalDate.parse(endIso);
-      int[] lo = {s.getMonthValue(), s.getDayOfMonth()};
-      int[] hi = {e.getMonthValue(), e.getDayOfMonth()};
-      return (lo[0] < md[0] || (lo[0] == md[0] && lo[1] <= md[1]))
-          && (md[0] < hi[0] || (md[0] == hi[0] && md[1] <= hi[1]));
+      if (e.isBefore(s) || md == null || md.length < 2) return false;
+      for (int year = s.getYear(); year <= e.getYear(); year++) {
+        LocalDate cand;
+        try {
+          cand = LocalDate.of(year, md[0], md[1]);
+        } catch (Exception invalidDay) {
+          continue; // e.g. Feb 29 in a non-leap year
+        }
+        if (!cand.isBefore(s) && !cand.isAfter(e)) return true;
+      }
+      return false;
     } catch (Exception ex) { return false; }
   }
 
@@ -540,7 +651,7 @@ public class SerpApiClient {
     params.put("gl", "in");
     if (optInBackoff("events", params)) throw new RuntimeException("events in failure backoff — skipping live call");
     try {
-      Map<String, Object> raw = search(params, "events", forceRefresh, null);
+      Map<String, Object> raw = searchOptional(params, "events", forceRefresh, null);
       optMarkOk("events", params);
       return raw;
     } catch (Exception e) {
@@ -671,7 +782,7 @@ public class SerpApiClient {
       return null;
     }
     try {
-      Map<String, Object> raw = search(params, "exchange_rate", forceRefresh, TTL_EXCHANGE);
+      Map<String, Object> raw = searchOptional(params, "exchange_rate", forceRefresh, TTL_EXCHANGE);
       optMarkOk("exchange_rate", params);
       Double rate = parseExchangeRate(raw);
       if (rate == null) { log.info("exchange rate: no rate for {}-{} (omitted)", fr, t); return null; }
@@ -724,7 +835,7 @@ public class SerpApiClient {
       return null;
     }
     try {
-      Map<String, Object> raw = search(params, "know", forceRefresh, null);
+      Map<String, Object> raw = searchOptional(params, "know", forceRefresh, null);
       optMarkOk("know", params);
       return raw;
     } catch (Exception e) {
@@ -772,7 +883,7 @@ public class SerpApiClient {
       return null;
     }
     try {
-      Map<String, Object> raw = search(params, "videos", forceRefresh, null);
+      Map<String, Object> raw = searchOptional(params, "videos", forceRefresh, null);
       optMarkOk("videos", params);
       return raw;
     } catch (Exception e) {

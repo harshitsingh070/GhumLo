@@ -7,8 +7,23 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const parseISO = (iso) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
   if (!m) return null;
-  return { y: Number(m[1]), m: Number(m[2]), d: Number(m[3]) };
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  // Real calendar dates only: "2026-13-40" must not render "undefined".
+  if (mo < 1 || mo > 12 || d < 1 || d > new Date(y, mo, 0).getDate()) return null;
+  return { y, m: mo, d };
 };
+
+/** Add n days to a YYYY-MM-DD date (UTC math, no timezone drift); "" when invalid. */
+export function addDaysISO(iso, n) {
+  const p = parseISO(iso);
+  if (!p) return "";
+  const dt = new Date(Date.UTC(p.y, p.m - 1, p.d));
+  dt.setUTCDate(dt.getUTCDate() + Number(n || 0));
+  const pad = (v) => String(v).padStart(2, "0");
+  return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`;
+}
 
 /** "2026-10-10" -> "10 Oct"; returns "" for unusable input. */
 export function fmtDay(iso) {
@@ -21,8 +36,16 @@ export function fmtDay(iso) {
 export function fmtWeekday(iso) {
   const p = parseISO(iso);
   if (!p) return "";
-  const wd = WEEKDAYS[new Date(`${iso}T12:00:00`).getDay()];
-  return `${wd}, ${p.d} ${MONTHS_SHORT[p.m - 1]}`;
+  const dt = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(dt.getTime())) return `${p.d} ${MONTHS_SHORT[p.m - 1]}`;
+  return `${WEEKDAYS[dt.getDay()]}, ${p.d} ${MONTHS_SHORT[p.m - 1]}`;
+}
+
+/** "2026-10-12" -> "12 Oct 2026"; returns "" for unusable input. */
+export function fmtDayYear(iso) {
+  const p = parseISO(iso);
+  if (!p) return "";
+  return `${p.d} ${MONTHS_SHORT[p.m - 1]} ${p.y}`;
 }
 
 /** 0 -> "Non-stop", 1 -> "1 stop", n -> "n stops"; "" when unknown. */

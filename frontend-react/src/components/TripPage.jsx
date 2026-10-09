@@ -37,6 +37,7 @@ export default function TripPage({
   const { total, cap, over } = budget;
   const [saved, setSaved] = useState(false);
   const [shared, setShared] = useState(false);
+  const [shareError, setShareError] = useState("");
 
   const saveTrip = () => {
     if (!plan) return;
@@ -44,7 +45,9 @@ export default function TripPage({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ghoomlo-trip-${plan.destination || "plan"}.json`;
+    // Sanitize: destination text must not produce odd/path-like filenames.
+    const safe = String(plan.destination || "plan").replace(/[^a-z0-9-_]+/gi, "_").slice(0, 40) || "plan";
+    a.download = `ghoomlo-trip-${safe}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -56,6 +59,7 @@ export default function TripPage({
   const shareTrip = async () => {
     if (!plan) return;
     const text = `${plan.destination} trip ${plan.departure_date} to ${plan.return_date}\n${inr(total)} total / ${inr(cap)} budget\n${plan.best_pick?.flight?.airline || "Flight"} + ${plan.best_pick?.hotel?.name || "Hotel"}\n${(plan.itinerary || []).length}-day itinerary via GhoomLo`;
+    setShareError("");
     try {
       if (navigator.share) {
         await navigator.share({ title: `${plan.destination} trip plan`, text });
@@ -66,6 +70,7 @@ export default function TripPage({
       window.setTimeout(() => setShared(false), 1800);
     } catch {
       setShared(false);
+      setShareError("Sharing failed — copy the summary manually.");
     }
   };
 
@@ -143,7 +148,7 @@ export default function TripPage({
           {/* Persistent next actions — only supported actions (Save/Share).
               No fake booking. Share carries the real trip summary, not an
               opaque hash that cannot restore the plan. */}
-          <div className="flex flex-wrap gap-2.5" role="group" aria-label="Trip actions">
+          <div className="flex flex-wrap items-center gap-2.5" role="group" aria-label="Trip actions">
             <button
               type="button"
               onClick={saveTrip}
@@ -162,6 +167,11 @@ export default function TripPage({
               {shared ? <Check className="h-4 w-4" style={{ color: "var(--color-success)" }} /> : <Share2 className="h-4 w-4" />}
               {shared ? "Shared" : "Share"}
             </button>
+            {shareError && (
+              <p className="t-meta-sm" role="alert" style={{ color: "var(--color-danger)" }}>
+                {shareError}
+              </p>
+            )}
           </div>
 
           {/* MAIN DASHBOARD */}
@@ -174,6 +184,7 @@ export default function TripPage({
                 budget={cap}
                 num_nights={plan.num_nights}
                 live_search={plan.live_search}
+                stale={plan.stale}
                 insight={plan.insight}
                 destination={plan.destination}
                 departure_date={plan.departure_date}

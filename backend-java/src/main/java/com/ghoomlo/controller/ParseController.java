@@ -34,6 +34,7 @@ public class ParseController {
 
   @PostMapping("/parse-trip")
   public ResponseEntity<?> parse(@Valid @RequestBody ParseTripReq req) {
+    // Rate limiting runs at the edge (RateLimitFilter, before validation).
     String text = req.text() == null ? "" : req.text();
     if (text.strip().length() < 2 || text.length() > 500) {
       return ResponseEntity.status(422).body(Map.of("error",

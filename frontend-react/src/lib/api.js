@@ -4,12 +4,22 @@
  *  Backend logic/routes are untouched; this only wraps fetch. */
 
 export class ApiError extends Error {
-  constructor(message, { status = 0, path = "" } = {}) {
+  constructor(message, { status = 0, path = "", field = null, value = null, suggestions = [] } = {}) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.path = path;
+    // Structured location-error detail (400 unresolvable city): which form
+    // field failed + "did you mean" airport candidates. Absent otherwise.
+    this.field = field;
+    this.value = value;
+    this.suggestions = Array.isArray(suggestions) ? suggestions : [];
   }
+}
+
+/** True when the error is an unresolvable origin/destination with structured detail. */
+export function isLocationError(err) {
+  return err instanceof ApiError && err.status === 400 && (err.field === "origin" || err.field === "destination");
 }
 
 /** Map an HTTP status + server payload to a human-readable message. */
@@ -58,6 +68,9 @@ export async function apiRequest(path, { method = "GET", body, timeoutMs = 12000
       throw new ApiError(messageForStatus(res.status, data?.error, path), {
         status: res.status,
         path,
+        field: data?.field ?? null,
+        value: data?.value ?? null,
+        suggestions: data?.suggestions ?? [],
       });
     }
     return data ?? {};

@@ -64,11 +64,13 @@ public class BudgetService {
     }
     Map<String, Object> cheapest = combos.get(0);
     Map<String, Object> bestPick = new LinkedHashMap<>(cheapest);
-    bestPick.put("over_by", intOf(cheapest.get("total_cost"), 0) - budget);
+    int cheapestTotal = intOf(cheapest.get("total_cost"), 0);
+    bestPick.put("over_by", cheapestTotal - budget);
     out.put("fits_budget", false);
     out.put("best_pick", bestPick);
     out.put("candidates", List.of());
-    out.put("remaining_budget", 0);
+    // Negative remaining = over budget (canonical; never clamp to zero).
+    out.put("remaining_budget", budget - cheapestTotal);
     return out;
   }
 

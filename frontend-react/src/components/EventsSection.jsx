@@ -1,5 +1,6 @@
 import { CalendarDays, ExternalLink } from "lucide-react";
 import { buildMapUrl } from "../lib/format.js";
+import { sanitizeExternalUrl } from "../lib/urls.js";
 
 /** "Local events" list (google_events via backend) — placed near the
  *  itinerary. Honest framing: events Google listed with dates inside the
@@ -64,9 +65,9 @@ export default function EventsSection({ events, destination }) {
               <CalendarDays className="h-4 w-4" />
             </span>
             <div className="min-w-0">
-              {e.link ? (
+              {sanitizeExternalUrl(e.link) ? (
                 <a
-                  href={e.link}
+                  href={sanitizeExternalUrl(e.link)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="tcc-focus t-card underline-offset-2 hover:underline"

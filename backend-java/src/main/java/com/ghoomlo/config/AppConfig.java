@@ -19,12 +19,30 @@ public class AppConfig {
   @Value("${serpapi.timeout-seconds:20}")
   private int serpApiTimeoutSeconds;
 
+  /** Dedicated pool for blocking SerpApi fan-out. Never use the common
+   *  ForkJoinPool for blocking .block() calls — it starves parallel
+   *  searches and serializes the whole trip. */
+  @Bean("searchExecutor")
+  public java.util.concurrent.Executor searchExecutor() {
+    java.util.concurrent.ThreadPoolExecutor exec =
+        new java.util.concurrent.ThreadPoolExecutor(
+            10, 20, 60L, java.util.concurrent.TimeUnit.SECONDS,
+            new java.util.concurrent.LinkedBlockingQueue<>(100),
+            r -> {
+              Thread t = new Thread(r, "search-" + r.hashCode());
+              t.setDaemon(true);
+              return t;
+            },
+            new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+    return exec;
+  }
+
   @Bean
   public WebClient serpApiWebClient() {
     // SerpApi's edge intermittently RSTs reused keep-alive connections
     // ("Connection reset" on read). Short idle eviction + bounded lifetime
     // keeps the pool from serving dead sockets, and explicit timeouts stop
-    // one hung socket from parking a search past the 20s call budget.
+    // one hung socket from parking a search past the call budget.
     ConnectionProvider provider = ConnectionProvider.builder("serpapi")
         .maxConnections(50)
         .maxIdleTime(Duration.ofSeconds(20))
@@ -32,8 +50,8 @@ public class AppConfig {
         .evictInBackground(Duration.ofSeconds(30))
         .build();
     HttpClient httpClient = HttpClient.create(provider)
-        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
-        .responseTimeout(Duration.ofSeconds(25));
+        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+        .responseTimeout(Duration.ofSeconds(15));
     return WebClient.builder()
         .baseUrl("https://serpapi.com")
         .clientConnector(new ReactorClientHttpConnector(httpClient))

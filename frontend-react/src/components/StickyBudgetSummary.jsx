@@ -71,13 +71,22 @@ export default function StickyBudgetSummary({ plan, total_cost, budget, fits_bud
             <span
               className="whitespace-nowrap rounded-full px-2.5 py-0.5 t-badge"
               role="status"
+              aria-label={
+                plan.stale
+                  ? "Stale cached prices from an earlier search"
+                  : plan.live_search
+                    ? "Live prices, freshly fetched"
+                    : "Cached prices, saved results"
+              }
               style={
-                plan.live_search
-                  ? { background: "var(--color-success-bg)", color: "var(--color-success)", border: "1px solid var(--color-success-border)" }
-                  : { background: "#F1F5F9", color: "#3E5463", border: "1px solid #E5E7EB" }
+                plan.stale
+                  ? { background: "var(--color-warning-bg)", color: "var(--color-warning)", border: "1px solid var(--color-warning-border)" }
+                  : plan.live_search
+                    ? { background: "var(--color-success-bg)", color: "var(--color-success)", border: "1px solid var(--color-success-border)" }
+                    : { background: "#F1F5F9", color: "#3E5463", border: "1px solid #E5E7EB" }
               }
             >
-              {plan.live_search ? "● Live prices" : "○ Saved results"}
+              {plan.stale ? "○ Stale prices" : plan.live_search ? "● Live prices" : "○ Saved results"}
             </span>
           )}
           {plan.demo && (

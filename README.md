@@ -38,6 +38,9 @@ No database, no auth — everything is per-request. The UI is React + Tailwind, 
   - exact code passthrough (`DEL` → `DEL`; `GOA` stays Genoa, Italy),
   - multi-airport overrides (`London` → `LHR`, `New York` → `JFK`, `Paris` → `CDG`, `Tokyo` → `NRT`, `Moscow` → `SVO`),
   - `Goa` → `GOI` alias (dataset lists it under "Dabolim"),
+  - island/region aliases (`Bali` → `DPS`, `Phuket` → `HKT`, `Maldives`/`Male` → `MLE`, `Manali` → `KUU`),
+  - country → gateway hub (`Thailand` → `BKK`, `Singapore` → `SIN`, `Dubai`/`UAE` → `DXB`, `USA` → `JFK`, plus 40 more),
+  - spaceless + typo-tolerant aliases (`thai land` → `BKK`, `baali` → `DPS`, same ≥ 0.8 fuzzy rule),
   - substring fallback over city then airport name (`Delhi` → `New Delhi`/`DEL`, `Bengaluru` via airport name),
   - typo tolerance with the same difflib ≥ 0.8 algorithm as the original (`lucnknow` → `LKO`, `Mumbay` → `BOM`, `Jaipor` → `JAI`).
   - Unresolvable cities return **HTTP 400 with a friendly message** before any SerpApi call (no quota burned).

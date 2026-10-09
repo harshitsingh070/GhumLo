@@ -2,6 +2,8 @@ package com.ghoomlo.controller;
 
 import com.ghoomlo.client.SerpApiClient;
 import com.ghoomlo.dto.FlightsReq;
+import com.ghoomlo.service.AirportResolver;
+import jakarta.validation.Valid;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,8 +18,11 @@ import org.springframework.web.bind.annotation.*;
 public class FlightController {
   private static final Logger log = LoggerFactory.getLogger(FlightController.class);
   private final SerpApiClient serp;
+  private final AirportResolver resolver;
 
-  public FlightController(SerpApiClient serp) { this.serp = serp; }
+  public FlightController(SerpApiClient serp, AirportResolver resolver) {
+    this.serp = serp; this.resolver = resolver;
+  }
 
   private String friendlyError(Exception e) {
     String msg = String.valueOf(e.getMessage());
@@ -29,9 +34,10 @@ public class FlightController {
   }
 
   @PostMapping("/flights")
-  public ResponseEntity<?> flights(@RequestBody FlightsReq req) {
+  public ResponseEntity<?> flights(@Valid @RequestBody FlightsReq req) {
+    // Rate limiting runs at the edge (RateLimitFilter, before validation).
     try {
-      int travelers = req.travelers() <= 0 ? 1 : req.travelers();
+      int travelers = Math.min(20, Math.max(1, req.travelers()));
       Map<String, Object> raw = serp.fetchFlightsRaw(req.origin(), req.destination(),
           req.departure_date(), req.return_date(), travelers, req.force_refresh());
       List<Map<String, Object>> flights = serp.parseFlights(raw, travelers);
@@ -49,8 +55,14 @@ public class FlightController {
       String msg = String.valueOf(e.getMessage());
       if (msg.startsWith("unresolvable ")) {
         String bad = msg.contains(": ") ? msg.split(": ", 2)[1] : "that city";
-        return ResponseEntity.status(400).body(Map.of("error",
-            "Couldn\u2019t find an airport for \u2018" + bad + "\u2019 — try the 3-letter airport code instead (e.g. DEL, LHR, JFK)"));
+        String field = msg.startsWith("unresolvable origin") ? "origin" : "destination";
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error",
+            "Couldn\u2019t find an airport for \u2018" + bad + "\u2019 — try the 3-letter airport code instead (e.g. DEL, LHR, JFK)");
+        body.put("field", field);
+        body.put("value", bad);
+        body.put("suggestions", resolver.suggestAirports(bad, 3));
+        return ResponseEntity.status(400).body(body);
       }
       log.error("flights failed", e);
       return ResponseEntity.status(502).body(Map.of("error", friendlyError(e)));

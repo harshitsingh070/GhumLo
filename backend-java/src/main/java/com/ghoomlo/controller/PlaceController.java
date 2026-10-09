@@ -2,6 +2,7 @@ package com.ghoomlo.controller;
 
 import com.ghoomlo.client.SerpApiClient;
 import com.ghoomlo.dto.PlacesReq;
+import jakarta.validation.Valid;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +30,8 @@ public class PlaceController {
   }
 
   @PostMapping("/places")
-  public ResponseEntity<?> places(@RequestBody PlacesReq req) {
+  public ResponseEntity<?> places(@Valid @RequestBody PlacesReq req) {
+    // Rate limiting runs at the edge (RateLimitFilter, before validation).
     try {
       String cat = req.category() == null ? "" : req.category().toLowerCase().strip();
       if (!cat.equals("attractions") && !cat.equals("restaurants")) {

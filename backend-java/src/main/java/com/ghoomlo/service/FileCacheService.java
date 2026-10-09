@@ -23,6 +23,10 @@ import org.springframework.stereotype.Service;
 public class FileCacheService {
   private static final Logger log = LoggerFactory.getLogger(FileCacheService.class);
   private static final long DEFAULT_TTL = 24 * 3600L;
+  // Bounded retention: unique queries must not fill the disk (or an
+  // accidentally committed .cache/) without limit. Oldest files pruned
+  // past the cap on every write; corrupted entries already read as null.
+  private static final int MAX_CACHE_FILES = 1000;
   private final ObjectMapper mapper = new ObjectMapper();
 
   @Value("${app.use-cache:true}")
@@ -184,8 +188,26 @@ public class FileCacheService {
       Files.createDirectories(dir);
       Path p = keyPath(name, params);
       Files.writeString(p, mapper.writeValueAsString(data), StandardCharsets.UTF_8);
+      pruneOldest(dir);
     } catch (Exception e) {
       log.warn("[cache] write failed: {}", e.toString());
+    }
+  }
+
+  private void pruneOldest(Path dir) {
+    try (var stream = Files.list(dir)) {
+      var files = stream.filter(Files::isRegularFile)
+          .sorted((a, b) -> {
+            try {
+              return Files.getLastModifiedTime(a).compareTo(Files.getLastModifiedTime(b));
+            } catch (Exception e) { return 0; }
+          }).toList();
+      for (int i = 0; i + MAX_CACHE_FILES < files.size(); i++) {
+        try { Files.deleteIfExists(files.get(i)); }
+        catch (Exception ignored) { break; }
+      }
+    } catch (Exception e) {
+      log.warn("[cache] prune failed: {}", e.toString());
     }
   }
 }

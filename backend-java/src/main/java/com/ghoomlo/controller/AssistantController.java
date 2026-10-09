@@ -2,12 +2,9 @@ package com.ghoomlo.controller;
 
 import com.ghoomlo.client.GroqClient;
 import com.ghoomlo.dto.AssistantReq;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,11 +19,8 @@ public class AssistantController {
   private static final String SCOPE_MSG = "I can only help with this trip — flights and prices in your plan, "
       + "itinerary changes, timing, food near your stops, packing, weather, or transport "
       + "between stops. What would you like to adjust?";
-  private static final int RATE_MAX = 15;
-  private static final long RATE_WINDOW_MS = 600_000L;
 
   private final GroqClient groq;
-  private final ConcurrentHashMap<String, List<Long>> hits = new ConcurrentHashMap<>();
 
   private static final List<Pattern> OFF_TOPIC = List.of(
       Pattern.compile("ignor(e|ing)\\s+(all\\s+|previous\\s+|prior\\s+|above\\s+)?(instructions|rules|prompts)", Pattern.CASE_INSENSITIVE),
@@ -41,37 +35,67 @@ public class AssistantController {
 
   public AssistantController(GroqClient groq) { this.groq = groq; }
 
-  private synchronized boolean rateOk(String ip) {
-    long now = System.currentTimeMillis();
-    List<Long> list = hits.getOrDefault(ip, new ArrayList<>());
-    List<Long> recent = new ArrayList<>();
-    for (Long t : list) if (now - t < RATE_WINDOW_MS) recent.add(t);
-    if (recent.size() >= RATE_MAX) {
-      hits.put(ip, recent);
-      return false;
-    }
-    recent.add(now);
-    hits.put(ip, recent);
-    if (hits.size() > 5000) hits.clear();
-    return true;
-  }
-
   private boolean offTopic(String text) {
     if (text == null) return false;
     for (Pattern p : OFF_TOPIC) if (p.matcher(text).find()) return true;
     return false;
   }
 
-  @PostMapping("/assistant")
-  public ResponseEntity<?> assistant(@Valid @RequestBody AssistantReq req, HttpServletRequest http) {
-    String ip = http.getRemoteAddr() == null ? "unknown" : http.getRemoteAddr();
-    if (http.getHeader("X-Forwarded-For") != null) ip = http.getHeader("X-Forwarded-For").split(",")[0].strip();
-    if (!rateOk(ip)) {
-      return ResponseEntity.status(429).body(Map.of("error",
-          "Too many assistant requests — please wait a few minutes and try again."));
+  private static String capped(Object v, int max) {
+    String s = String.valueOf(v);
+    return s.length() > max ? s.substring(0, max) + "…" : s;
+  }
+
+  private static List<Map<String, Object>> boundItinerary(List<Map<String, Object>> itin) {
+    List<Map<String, Object>> out = new java.util.ArrayList<>();
+    if (itin == null) return out;
+    for (Map<String, Object> e : itin.subList(0, Math.min(30, itin.size()))) {
+      if (e == null) continue;
+      Map<String, Object> c = new java.util.LinkedHashMap<>();
+      for (Map.Entry<String, Object> en : e.entrySet()) {
+        if (c.size() >= 12) break;
+        Object v = en.getValue();
+        c.put(en.getKey(), v instanceof String ? capped(v, 300) : v);
+      }
+      out.add(c);
     }
-    if (offTopic(req.request())) {
+    return out;
+  }
+
+  private static Map<String, Object> boundWeather(Map<String, Object> weather) {
+    Map<String, Object> out = new java.util.LinkedHashMap<>();
+    if (weather == null) return out;
+    for (Map.Entry<String, Object> en : weather.entrySet()) {
+      if (out.size() >= 25) break;
+      Object v = en.getValue();
+      out.put(en.getKey(), v instanceof String ? capped(v, 400) : v);
+    }
+    return out;
+  }
+
+  @PostMapping("/assistant")
+  public ResponseEntity<?> assistant(@Valid @RequestBody AssistantReq req) {
+    // Rate limiting runs at the edge (RateLimitFilter, before validation).
+    if (offTopic(req.request()) || offTopic(req.destination())
+        || (req.dates() != null && offTopic(req.dates()))) {
       return ResponseEntity.status(400).body(Map.of("error", SCOPE_MSG));
+    }
+    // Bound every user-controlled blob before it becomes model context:
+    // per-entry string caps, key-count caps, and a total size cap. Oversize
+    // input is rejected (422) rather than billed to our Groq key.
+    List<Map<String, Object>> boundedItin = boundItinerary(req.itinerary());
+    Map<String, Object> boundedWeather = boundWeather(req.weather());
+    Object tripPrices = req.tripPrices();
+    if (tripPrices != null && String.valueOf(tripPrices).length() > 8000) {
+      return ResponseEntity.status(422).body(Map.of("error",
+          "Trip context too large — ask about a smaller part of the trip."));
+    }
+    int totalCtx = String.valueOf(boundedItin).length()
+        + String.valueOf(boundedWeather).length()
+        + (tripPrices == null ? 0 : String.valueOf(tripPrices).length());
+    if (totalCtx > 20000) {
+      return ResponseEntity.status(422).body(Map.of("error",
+          "Trip context too large — ask about a smaller part of the trip."));
     }
     String key = groq.apiKey();
     if (key.isEmpty() || key.equals("your_groq_key_here")) {
@@ -92,8 +116,7 @@ public class AssistantController {
     try {
       Map<String, Object> out = groq.askAssistant(req.destination(),
           req.dates() == null ? "" : req.dates(), req.request(),
-          req.itinerary() == null ? List.of() : req.itinerary(),
-          req.weather() == null ? Map.of() : req.weather(),
+          boundedItin, boundedWeather,
           req.tripPrices());
       return ResponseEntity.ok(out);
     } catch (Exception e) {

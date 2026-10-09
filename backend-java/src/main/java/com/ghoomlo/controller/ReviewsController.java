@@ -3,6 +3,7 @@ package com.ghoomlo.controller;
 import com.ghoomlo.client.SerpApiClient;
 import com.ghoomlo.dto.HotelReviewsReq;
 import com.ghoomlo.dto.PlaceReviewsReq;
+import jakarta.validation.Valid;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +43,8 @@ public class ReviewsController {
   }
 
   @PostMapping("/hotels/reviews")
-  public ResponseEntity<?> hotelReviews(@RequestBody HotelReviewsReq req) {
+  public ResponseEntity<?> hotelReviews(@Valid @RequestBody HotelReviewsReq req) {
+    // Rate limiting runs at the edge (RateLimitFilter, before validation).
     try {
       String token = req == null || req.property_token() == null ? "" : req.property_token().strip();
       if (token.isEmpty()) {
@@ -75,7 +77,8 @@ public class ReviewsController {
   }
 
   @PostMapping("/places/reviews")
-  public ResponseEntity<?> placeReviews(@RequestBody PlaceReviewsReq req) {
+  public ResponseEntity<?> placeReviews(@Valid @RequestBody PlaceReviewsReq req) {
+    // Rate limiting runs at the edge (RateLimitFilter, before validation).
     try {
       String pid = req == null || req.place_id() == null ? "" : req.place_id().strip();
       String did = req == null || req.data_id() == null ? "" : req.data_id().strip();

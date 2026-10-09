@@ -45,6 +45,14 @@ export default function GhumiGhumiAI({ plan }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const scrollRef = useRef(null);
+  // Same-tick double-submit guard (`loading` only flips after re-render) +
+  // in-flight abort so only the latest request updates the conversation.
+  const submittingRef = useRef(false);
+  const abortRef = useRef(null);
+
+  useEffect(() => {
+    return () => abortRef.current?.abort();
+  }, []);
 
   // External "AI Guide" entry points dispatch `open-ghumi-chat` to bring
   // the box back. (Fresh trips remount via key={plan.destination} in App,
@@ -62,7 +70,11 @@ export default function GhumiGhumiAI({ plan }) {
 
   const ask = useCallback(async (prompt) => {
     const trimmed = String(prompt ?? "").trim();
-    if (!trimmed || loading || !plan) return;
+    if (!trimmed || loading || submittingRef.current || !plan) return;
+    submittingRef.current = true;
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     setInput("");
     setError("");
     setMessages((prev) => [...prev, { role: "user", text: trimmed }]);
@@ -71,6 +83,7 @@ export default function GhumiGhumiAI({ plan }) {
       const data = await apiRequest("/api/assistant", {
         method: "POST",
         timeoutMs: 60000,
+        signal: ctrl.signal,
         body: {
           destination: plan.destination,
           dates: `${plan.departure_date} to ${plan.return_date}`,
@@ -88,10 +101,18 @@ export default function GhumiGhumiAI({ plan }) {
           request: trimmed,
         },
       });
-      setMessages((prev) => [...prev, { role: "assistant", text: data.answer || "No answer returned." }]);
+      if (!ctrl.signal.aborted) {
+        setMessages((prev) => [...prev, { role: "assistant", text: data.answer || "No answer returned." }]);
+      }
     } catch (err) {
-      setError(friendlyError(err, "Assistant request failed. Please try again."));
+      if (!ctrl.signal.aborted) {
+        setError(friendlyError(err, "Assistant request failed. Please try again."));
+      }
     } finally {
+      if (abortRef.current === ctrl) {
+        abortRef.current = null;
+        submittingRef.current = false;
+      }
       setLoading(false);
     }
   }, [loading, plan]);

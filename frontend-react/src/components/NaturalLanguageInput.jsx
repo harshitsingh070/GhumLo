@@ -73,13 +73,19 @@ export default function NaturalLanguageInput({ onFill }) {
           maxLength={500}
           placeholder='Try: "Goa under 50k next weekend, 2 people, veg food"'
           autoComplete="off"
-          className="glass-input h-11 min-w-0 flex-1 px-4 t-input"
+          className="glass-input h-12 min-w-0 flex-1 px-4"
+          style={{ fontSize: 14 }}
         />
         <button
           type="button"
           onClick={fill}
           disabled={loading || !text.trim()}
-          className="btn-primary h-11 shrink-0 px-5 t-btn disabled:opacity-50"
+          className="tcc-focus h-12 shrink-0 px-6 t-btn disabled:cursor-not-allowed"
+          style={
+            loading || !text.trim()
+              ? { background: "#F1F5F9", color: "#5B6B7B", border: "1px solid #E5E7EB", borderRadius: 12 }
+              : { background: "var(--color-brand)", color: "#fff", borderRadius: 12 }
+          }
         >
           {loading ? (
             <ButtonSpinner />

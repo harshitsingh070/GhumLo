@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Share2, SlidersHorizontal } from "lucide-react";
-import { formatStops, inr } from "../lib/format.js";
+import { fmtDateRange, formatStops, inr } from "../lib/format.js";
+import { friendlyError } from "../lib/api.js";
 
 const MODE_LABELS = { saver: "Saver", balanced: "Balanced", comfort: "Comfort" };
 const MODE_WHY = {
@@ -12,6 +13,13 @@ const MODE_WHY = {
 export default function SmartOptions({ plan, onSelectAlternative, recomputing }) {
   const [whatIfBudget, setWhatIfBudget] = useState(Number(plan?.budget) || 60000);
   const [copied, setCopied] = useState(false);
+  const [shareError, setShareError] = useState("");
+  // Resync the slider when a new plan loads — otherwise the thumb position
+  // (clamped in render) disagrees with the label (raw state).
+  useEffect(() => {
+    setWhatIfBudget(Number(plan?.budget) || 60000);
+    setShareError("");
+  }, [plan?.budget, plan?.destination, plan?.departure_date]);
   const alternatives = Array.isArray(plan?.plan_alternatives) ? plan.plan_alternatives : [];
   const alternativeTotals = alternatives.map((option) => Number(option.total_cost) || 0).filter(Boolean);
   const minimumOption = alternativeTotals.length ? Math.min(...alternativeTotals) : Number(plan?.best_pick?.total_cost) || 10000;
@@ -26,19 +34,23 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
   if (!plan) return null;
 
   const share = async () => {
+    // Text-only summary (same as TripPage): the app URL can carry hash
+    // queries, so it is never pasted into shared text.
     const best = plan.best_pick;
-    const text = `${plan.destination} trip | ${plan.departure_date} to ${plan.return_date}\n${inr(best.total_cost)} total for ${plan.travelers} traveler(s)\n${best.flight.airline} + ${best.hotel.name}\n${(plan.itinerary || []).length}-day itinerary planned by GhoomLo`;
-    const shareData = { title: `${plan.destination} trip plan`, text, url: window.location.href };
+    const dates = fmtDateRange(plan.departure_date, plan.return_date) || "dates";
+    const text = `${plan.destination} trip (${dates})\n${inr(best.total_cost)} total for ${plan.travelers} traveler(s)\n${best.flight.airline} + ${best.hotel.name}\n${(plan.itinerary || []).length}-day itinerary planned by GhoomLo`;
+    setShareError("");
     try {
       if (navigator.share) {
-        await navigator.share(shareData);
+        await navigator.share({ title: `${plan.destination} trip plan`, text });
       } else {
-        await navigator.clipboard.writeText(`${text}\n\n${window.location.href}`);
+        await navigator.clipboard.writeText(text);
       }
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
-    } catch {
+    } catch (err) {
       setCopied(false);
+      setShareError(friendlyError(err, "Sharing failed — copy the summary manually."));
     }
   };
 
@@ -68,18 +80,25 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
                 : "Saver = cheapest total · Balanced = cost–comfort mix · Comfort = highest-rated stay."}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={share}
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3.5 t-btn-sm transition-colors"
-            style={{ background: "#F1F5F9", border: "1px solid #E5E7EB", color: "#102A43" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "#EEF2F6"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#F1F5F9"; }}
-            title="Copy trip summary"
-          >
-            {copied ? <Check className="h-3.5 w-3.5" style={{ color: "#22C55E" }} /> : <Share2 className="h-3.5 w-3.5" />}
-            {copied ? "Copied" : "Share"}
-          </button>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <button
+              type="button"
+              onClick={share}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3.5 t-btn-sm transition-colors"
+              style={{ background: "#F1F5F9", border: "1px solid #E5E7EB", color: "#102A43" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#EEF2F6"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#F1F5F9"; }}
+              title="Copy trip summary"
+            >
+              {copied ? <Check className="h-3.5 w-3.5" style={{ color: "#22C55E" }} /> : <Share2 className="h-3.5 w-3.5" />}
+              {copied ? "Copied" : "Share"}
+            </button>
+            {shareError && (
+              <p className="t-meta-sm" role="alert" style={{ color: "var(--color-danger)" }}>
+                {shareError}
+              </p>
+            )}
+          </div>
         </div>
 
         {allSameTier && (

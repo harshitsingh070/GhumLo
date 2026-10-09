@@ -1,41 +1,10 @@
 /** Print-only travel voucher: full trip sheet for Print / Save-as-PDF.
  *  Screen: display:none. Print: A4 voucher with header, cost table,
  *  flight+hotel cards, day-wise sheets, good-to-know and terms.
- *  Pure presentation of the live plan — no invented data. */
-import { formatStops } from "../lib/format.js";
-
-const inr = (n) => `\u20B9${Number(n || 0).toLocaleString("en-IN")}`;
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-function parseISO(iso) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
-  if (!m) return null;
-  return { y: Number(m[1]), m: Number(m[2]), d: Number(m[3]) };
-}
-
-function addDaysISO(iso, n) {
-  const p = parseISO(iso);
-  if (!p) return "";
-  const dt = new Date(Date.UTC(p.y, p.m - 1, p.d));
-  dt.setUTCDate(dt.getUTCDate() + n);
-  const pad = (v) => String(v).padStart(2, "0");
-  return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`;
-}
-
-function fmtLong(iso) {
-  const p = parseISO(iso);
-  if (!p) return String(iso || "");
-  const wd = WEEKDAYS[new Date(`${iso}T12:00:00`).getDay()];
-  return `${wd}, ${p.d} ${MONTHS[p.m - 1]} ${p.y}`;
-}
-
-function fmtShort(iso) {
-  const p = parseISO(iso);
-  if (!p) return String(iso || "");
-  return `${p.d} ${MONTHS[p.m - 1]} ${p.y}`;
-}
+ *  Pure presentation of the live plan — no invented data. Budget numbers
+ *  come from the canonical budgetFromPlan model, identical to the screen. */
+import { addDaysISO, fmtDateRange, fmtDayYear, fmtWeekday, formatStops, inr } from "../lib/format.js";
+import { budgetFromPlan } from "../lib/budget.js";
 
 function bookingRef(plan) {
   const dest = String(plan?.destination || "TRIP").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "TRP";
@@ -65,12 +34,12 @@ export default function PrintableTrip({ plan }) {
   const hotel = best.hotel || {};
   const travelers = Number(plan.travelers) || 1;
   const nights = Number(plan.num_nights) || Math.max(1, days.length);
-  const total = Number(best.total_cost) || 0;
-  const budget = Number(plan.budget) || 0;
-  const fits = !!plan.fits_budget;
-  const diff = fits
-    ? Number(plan.remaining_budget) || Math.max(0, budget - total)
-    : Number(best.over_by) || Math.max(0, total - budget);
+  // Canonical budget — same total/budget/remaining/over state as the screen.
+  const state = budgetFromPlan(plan);
+  const total = state.total;
+  const budget = state.cap;
+  const fits = state.fits;
+  const diff = state.diff;
   const perPersonFlight = flight.price_per_person ?? (travelers > 0 ? Math.round(Number(flight.price || 0) / travelers) : null);
   const generatedOn = new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
   const ref = bookingRef(plan);
@@ -89,7 +58,7 @@ export default function PrintableTrip({ plan }) {
         <div>
           <div className="pt-brand">GhoomLo · Travel Itinerary Cum Voucher</div>
           <div className="pt-title">
-            {plan.origin || ""} → {plan.destination || "Trip"} · {fmtShort(plan.departure_date)} – {fmtShort(plan.return_date)}
+            {plan.origin || ""} → {plan.destination || "Trip"} · {fmtDateRange(plan.departure_date, plan.return_date)}
           </div>
           <div className="pt-sub">
             Booking Ref {ref} · Generated {generatedOn} · {plan.live_search ? "Live SerpApi prices" : "Cached prices"} · {plan.travel_mode ? `${String(plan.travel_mode).toUpperCase()} mode` : ""}
@@ -105,7 +74,7 @@ export default function PrintableTrip({ plan }) {
         <tbody>
           <tr>
             <td><span>Route</span><strong>{plan.origin || "—"} → {plan.destination || "—"}</strong></td>
-            <td><span>Travel dates</span><strong>{fmtLong(plan.departure_date)} → {fmtLong(plan.return_date)}</strong></td>
+            <td><span>Travel dates</span><strong>{fmtDayYear(plan.departure_date)} → {fmtDayYear(plan.return_date)}</strong></td>
           </tr>
           <tr>
             <td><span>Travellers · Nights · Stops</span><strong>{travelers} traveller{travelers !== 1 ? "s" : ""} · {nights} night{nights !== 1 ? "s" : ""} · {days.length} day{days.length !== 1 ? "s" : ""} · {stopsTotal} stops</strong></td>
@@ -158,7 +127,7 @@ export default function PrintableTrip({ plan }) {
             </td>
             <td>
               <span>🏨 Hotel — {hotel.name || "—"}</span>
-              <strong>{hotel.rating ? `${hotel.rating}★ · ` : ""}Check-in {fmtShort(plan.departure_date)} → Check-out {fmtShort(plan.return_date)}</strong>
+              <strong>{hotel.rating ? `${hotel.rating}★ · ` : ""}Check-in {fmtDayYear(plan.departure_date)} → Check-out {fmtDayYear(plan.return_date)}</strong>
               <div className="pt-small">{inr(hotel.price_per_night)}/night × {nights} = {inr(hotel.total_price)} · Carry a valid Govt ID at check-in.</div>
               {Array.isArray(hotel.amenities) && hotel.amenities.length > 0 && (
                 <div className="pt-small">Amenities: {hotel.amenities.slice(0, 6).join(" · ")}</div>
@@ -176,7 +145,7 @@ export default function PrintableTrip({ plan }) {
         return (
           <div key={d.day} className="pt-day">
             <div className="pt-dayhead">
-              <strong>Day {d.day} — {fmtLong(iso)}</strong>
+              <strong>Day {d.day} — {fmtDayYear(iso)}</strong>
               <span>{places.length} stop{places.length !== 1 ? "s" : ""}{d.distance_km ? ` · ~${d.distance_km} km between stops` : ""}</span>
             </div>
             {places.length === 0 ? (
@@ -285,7 +254,7 @@ export default function PrintableTrip({ plan }) {
       <div className="pt-terms">
         Terms: flight/hotel prices were live at generation and can change till ticketed · entry tickets, meals not in room plan, and local transport are extra unless listed above · distances are straight-line estimates for grouping, follow driver/maps on road · verify visa, ID and airline rules before travel.
       </div>
-      <p className="pt-foot">GhoomLo travel sheet · Ref {ref} · {plan.origin} → {plan.destination} · {fmtShort(plan.departure_date)} – {fmtShort(plan.return_date)} · Page generated {generatedOn}</p>
+      <p className="pt-foot">GhoomLo travel sheet · Ref {ref} · {plan.origin} → {plan.destination} · {fmtDayYear(plan.departure_date)} – {fmtDayYear(plan.return_date)} · Page generated {generatedOn}</p>
     </div>
   );
 }

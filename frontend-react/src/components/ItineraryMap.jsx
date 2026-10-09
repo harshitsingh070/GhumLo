@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { placeKey } from "../lib/places.js";
 
 /* Per-day marker palette (cycles if >6 days). Module-local: the legend below
  * reads the same constants, so marker and legend colors can't drift apart. */
@@ -293,8 +294,15 @@ export default function ItineraryMap({
       for (const d of visible) {
         const color = colorForDay(d.day);
         const isActive = Number(d.day) === Number(activeDay);
-        const stops = (Array.isArray(d.places) ? d.places : []).filter(hasCoords);
-        stops.forEach((p, i) => {
+        // NOTE: iterate ORIGINAL places (coord-less skipped in place) so the
+        // identity key uses the same day+index as the itinerary list.
+        const rawStops = Array.isArray(d.places) ? d.places : [];
+        const stops = rawStops.filter(hasCoords);
+        let badgeNum = 0;
+        rawStops.forEach((p, i) => {
+          if (!hasCoords(p)) return;
+          badgeNum += 1;
+          const stopId = placeKey(p, d.day, i);
           // Numbered badge on EVERY stop (visit order within the day at a
           // glance). Permanent name pills are reserved for focus contexts —
           // the selected stop, or the whole active day when isolated via
@@ -302,24 +310,24 @@ export default function ItineraryMap({
           // other under overlapping pills (hover still names every badge).
           // Pills alternate above/below so kept labels don't overlap.
           // Inactive days: badge + name-on-hover only.
-          const above = i % 2 === 0;
+          const above = (badgeNum - 1) % 2 === 0;
           const size = isActive ? 28 : 22;
-          const isSel = selectedStop != null && String(selectedStop) === String(p.name);
+          const isSel = selectedStop != null && String(selectedStop) === stopId;
           const showLabel = isActive && (!showAll || isSel);
           // Display name: cleaned for the map (suffix stripped, casing
           // fixed, placeholders swapped for a category fallback).
-          const label = esc(mapLabelFor(p.name, destination, p.category, i));
+          const label = esc(mapLabelFor(p.name, destination, p.category, badgeNum - 1));
           const marker = L.marker([p.lat, p.lng], {
             icon: L.divIcon({
               className: "stop-badge-wrap",
-              html: `<div class="${isActive ? "stop-badge stop-badge-active" : "stop-badge"}" style="background:${color}">${i + 1}</div>`,
+              html: `<div class="${isActive ? "stop-badge stop-badge-active" : "stop-badge"}" style="background:${color}">${badgeNum}</div>`,
               iconSize: [size, size],
               iconAnchor: [size / 2, size / 2],
             }),
             zIndexOffset: isActive ? 400 : 0,
           })
             .bindPopup(
-              `<strong>${i + 1}. ${label}</strong><br/>Day ${esc(d.day)} · ${esc(p.category || "")}` +
+              `<strong>${badgeNum}. ${label}</strong><br/>Day ${esc(d.day)} · ${esc(p.category || "")}` +
                 (p.rating != null && p.rating !== "" ? `<br/>Rating: ${esc(p.rating)}` : "")
             )
             .bindTooltip(label, {
@@ -329,9 +337,9 @@ export default function ItineraryMap({
               className: showLabel ? "stop-label stop-active" : "stop-label",
               interactive: false,
             });
-          marker.on("click", () => onSelectStopRef.current?.(p.name));
+          marker.on("click", () => onSelectStopRef.current?.(stopId));
           layers.addLayer(marker);
-          markersRef.current.set(String(p.name), marker);
+          markersRef.current.set(stopId, marker);
           bounds.push([p.lat, p.lng]);
         });
         // One polyline per consecutive pair. Distance chips render only for

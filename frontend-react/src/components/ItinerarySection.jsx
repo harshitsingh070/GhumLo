@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Plus, Maximize2, X } from "lucide-react";
+import { addDaysISO, fmtWeekday } from "../lib/format.js";
+import { placeKey } from "../lib/places.js";
 import ItineraryMap from "./ItineraryMap.jsx";
 
 /** Exact-match placeholder names providers sometimes return — never shown raw. */
@@ -23,31 +25,18 @@ function categoryLabel(category) {
   return "Attraction";
 }
 
-/** Add n days to a YYYY-MM-DD date (UTC math, no timezone drift). */
-function addDaysISO(iso, n) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
-  if (!m) return "";
-  const dt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
-  dt.setUTCDate(dt.getUTCDate() + n);
-  const pad = (v) => String(v).padStart(2, "0");
-  return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`;
-}
+/** Day arithmetic/formatting lives in lib/format.js (validated, NaN-safe).
+ *  fmtDate mirrors it for the day scope line; shortDay keeps the compact
+ *  "Sat, 10" chip label with the same guards. */
+const fmtDate = fmtWeekday;
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const fmtDate = (iso) => {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
-  if (!m) return "";
-  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const d = new Date(`${iso}T12:00:00`);
-  return `${weekdays[d.getDay()]}, ${Number(m[3])} ${MONTHS[Number(m[2]) - 1]}`;
-};
-
-/** Compact pill date: "Sat, 10" for the day chips. */
+/** Compact pill date: "Sat, 10" for the day chips; "" when unusable. */
 const shortDay = (iso) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
   if (!m) return "";
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return "";
   return `${weekdays[d.getDay()]}, ${Number(m[3])}`;
 };
 
@@ -184,7 +173,9 @@ export default function ItinerarySection({
     const slot = stopSlot(place);
     n += 1;
     nodes.push({
-      key: `stop-${place.name}-${idx}`,
+      // Stable identity shared with the map (provider ID or
+      // name+coords+day+index) — never bare name.
+      key: placeKey(place, active.day, idx),
       type: "stop",
       place,
       num: n,
@@ -344,9 +335,9 @@ export default function ItinerarySection({
               <ul className="relative space-y-2">
               {nodes.length > 0 ? (
                 nodes.map((node) => {
-                  const selected = node.type === "stop" && selectedStop === node.place.name;
+                  const selected = node.type === "stop" && selectedStop === node.key;
                   const toggleSelected = () =>
-                    setSelectedStop(selected ? null : node.place.name);
+                    setSelectedStop(selected ? null : node.key);
                   const stopId = `itinerary-stop-${active.day}-${node.num}`;
                   const card = (
                     <>

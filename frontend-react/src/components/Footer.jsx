@@ -20,16 +20,13 @@ export default function Footer() {
         <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
           {/* Brand */}
           <div>
-            <a href="#/" className="flex items-center gap-2.5" aria-label="GhoomLo — home">
+            <a href="#/" className="flex items-center" aria-label="GhoomLo — home">
               <img
-                src="/logo.png"
+                src="/logo-full.png"
                 alt="GhoomLo logo"
-                className="h-9 w-9 rounded-full object-cover"
+                className="h-12 w-auto object-contain"
                 loading="lazy"
               />
-              <span className="font-display t-card-lg" style={{ color: "#102A43" }}>
-                GhoomLo
-              </span>
             </a>
             <p className="mt-3 max-w-xs t-body" style={{ color: "#52606D" }}>
               Plan smarter. Explore more. Spend less.

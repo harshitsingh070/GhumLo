@@ -59,26 +59,20 @@ export default function Header() {
             boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
           }}
         >
-          {/* ── Logo ── */}
+          {/* ── Logo: full lockup (emblem + wordmark baked in).
+              Keep aspect — never circle-crop a lockup. */}
           <a
             href="#/"
             onClick={() => setOpen(false)}
-            className="flex shrink-0 items-center gap-2.5 rounded-lg"
+            className="flex shrink-0 items-center rounded-lg"
             aria-label="GhoomLo home"
           >
             <img
-              src="/logo.png"
-              alt=""
-              aria-hidden="true"
-              className="h-8 w-8 rounded-full object-cover"
+              src="/logo-full.png"
+              alt="GhoomLo"
+              className="h-10 w-auto object-contain sm:h-11"
               loading="eager"
             />
-            <span
-              className="font-display hidden t-card-lg min-[360px]:inline"
-              style={{ color: "#102A43", fontWeight: 700 }}
-            >
-              GhoomLo
-            </span>
           </a>
 
           {/* ── Center nav (desktop) ── */}
@@ -91,11 +85,13 @@ export default function Header() {
                   type="button"
                   onClick={() => handleNav(item)}
                   aria-current={active ? "page" : undefined}
-                  className="tcc-focus relative rounded-[10px] px-3.5 py-2 t-nav transition-colors xl:px-4"
+                  className="tcc-focus font-display relative rounded-[10px] px-3.5 py-2 transition-colors xl:px-4"
                   style={{
-                    color: active ? "#FF6B57" : "#3E5463",
-                    background: active ? "#FFF1EE" : "transparent",
-                    fontWeight: active ? 700 : 600,
+                    color: active ? "var(--color-brand)" : "#102A43",
+                    background: active ? "var(--color-brand-bg)" : "transparent",
+                    fontWeight: 600,
+                    fontSize: 16,
+                    letterSpacing: "0",
                   }}
                   onMouseEnter={(e) => {
                     if (!active) e.currentTarget.style.color = "#102A43";
@@ -148,7 +144,8 @@ export default function Header() {
             <button
               type="button"
               onClick={goTrip}
-              className="btn-primary hidden h-[38px] px-5 t-btn sm:inline-flex"
+              className="btn-primary font-display hidden h-[38px] px-5 sm:inline-flex"
+              style={{ fontSize: 15, fontWeight: 600, letterSpacing: "0" }}
             >
               Plan a trip <span aria-hidden="true">→</span>
             </button>
@@ -206,11 +203,13 @@ export default function Header() {
                   key={item.label}
                   type="button"
                   onClick={() => handleNav(item)}
-                  className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left t-nav"
+                  className="font-display flex w-full items-center justify-between rounded-xl px-3 py-3 text-left"
                   style={{
-                    color: active ? "#FF6B57" : "#3E5463",
-                    background: active ? "#FFF1EE" : "transparent",
-                    fontWeight: active ? 700 : 600,
+                    color: active ? "var(--color-brand)" : "#102A43",
+                    background: active ? "var(--color-brand-bg)" : "transparent",
+                    fontWeight: 600,
+                    fontSize: 17,
+                    letterSpacing: "0",
                   }}
                 >
                   {item.label}
@@ -222,7 +221,8 @@ export default function Header() {
             <button
               type="button"
               onClick={goTrip}
-              className="btn-primary mt-2 h-[46px] w-full t-btn"
+              className="btn-primary font-display mt-2 h-[46px] w-full"
+              style={{ fontSize: 16, fontWeight: 600, letterSpacing: "0" }}
             >
               Plan a trip <span aria-hidden="true">→</span>
             </button>

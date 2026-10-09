@@ -1,6 +1,7 @@
 import { Play } from "lucide-react";
 import SafeImage from "./SafeImage.jsx";
 import { photoFor } from "../lib/destinations.js";
+import { sanitizeExternalUrl } from "../lib/urls.js";
 
 /** DestinationVlogs — Section 24
  *  Compact horizontal guide rows: thumbnail + play badge + duration. */
@@ -30,13 +31,16 @@ export default function DestinationVlogs({ videos, destination }) {
       <ul className="mt-3 space-y-3.5">
         {videos.slice(0, 3).map((v, i) => {
           const fallbackImg = photoFor(destination, i);
+          // Rejected provider URLs render as a non-clickable card, never a link.
+          const safeLink = sanitizeExternalUrl(v.link);
+          const CardTag = safeLink ? "a" : "span";
+          const cardProps = safeLink
+            ? { href: safeLink, target: "_blank", rel: "noopener noreferrer", title: v.title }
+            : { title: v.title };
           return (
-          <li key={i}>
-            <a
-              href={v.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={v.title}
+          <li key={v.link || v.title || i}>
+            <CardTag
+              {...cardProps}
               className="tcc-focus group flex items-center gap-3 rounded-xl"
             >
               {/* Thumbnail with Play + duration */}
@@ -74,7 +78,7 @@ export default function DestinationVlogs({ videos, destination }) {
                   </span>
                 )}
               </span>
-            </a>
+            </CardTag>
           </li>
           );
         })}

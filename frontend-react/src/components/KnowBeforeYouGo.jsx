@@ -1,5 +1,6 @@
 import { BookOpenCheck, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
+import { sanitizeExternalUrl } from "../lib/urls.js";
 
 /** KnowBeforeYouGo — Section 23
  *  Compact expandable cards for entry, safety, visa, currency, and local pointers. */
@@ -58,14 +59,18 @@ export default function KnowBeforeYouGo({ know, destination }) {
       </div>
 
       <ul className="mt-3 space-y-2">
-        {visibleItems.map((k, i) => (
+        {visibleItems.map((k, i) => {
+          // Rejected provider URLs render as plain text, never as links.
+          const safeLink = sanitizeExternalUrl(k.link);
+          return (
           <li
-            key={i}
+            key={k.link || k.title || i}
             className="rounded-xl px-3 py-2.5"
             style={{ background: "#F7F9FC", border: "1px solid #EEF2F6" }}
           >
+            {safeLink ? (
             <a
-              href={k.link}
+              href={safeLink}
               target="_blank"
               rel="noopener noreferrer"
               className="tcc-focus block truncate t-label"
@@ -76,13 +81,19 @@ export default function KnowBeforeYouGo({ know, destination }) {
             >
               {k.title}
             </a>
+            ) : (
+            <span className="block truncate t-label" style={{ color: "#102A43" }} title={k.title}>
+              {k.title}
+            </span>
+            )}
             {k.snippet && (
               <p className="mt-0.5 truncate t-meta-sm" style={{ color: "#52606D" }} title={k.snippet}>
                 {k.snippet}
               </p>
             )}
           </li>
-        ))}
+          );
+        })}
       </ul>
     </section>
   );

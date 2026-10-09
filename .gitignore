@@ -1,7 +1,11 @@
 .env
 backend/.cache/
+.cache/
 __pycache__/
 *.pyc
+*.log
+dev.log
+dev.err.log
 node_modules/
 frontend-react/node_modules/
 frontend-react/.vite/
