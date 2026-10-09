@@ -244,7 +244,7 @@ export default function TripForm({
               self-stretch; budget/submit re-pin below. */}
           <div className="flex flex-col lg:flex-row lg:items-start">
           {/* From */}
-          <label className="flex min-w-0 flex-col justify-center gap-1.5 border-b border-[#EEF2F6] px-4 py-3 sm:px-6 sm:py-4 lg:flex-1 lg:border-b-0" htmlFor="trip-origin">
+          <label className="flex min-w-0 flex-col justify-center gap-1.5 border-b border-[#EEF2F6] px-4 py-3 sm:px-6 sm:py-4 lg:flex-1 lg:border-b-0 lg:gap-1 lg:py-2" htmlFor="trip-origin">
             <span className={labelCls} style={{ color: "#102A43" }}>
               <Plane className="mb-0.5 mr-1 inline h-3.5 w-3.5" aria-hidden="true" />From
             </span>
@@ -294,7 +294,7 @@ export default function TripForm({
           <div className={dividerCls} style={{ background: "#E5E7EB" }} aria-hidden="true" />
 
           {/* To — primary destination */}
-          <label className="flex min-w-0 flex-col justify-center gap-1.5 border-b border-[#EEF2F6] px-4 py-3 sm:px-6 sm:py-4 lg:flex-1 lg:border-b-0" htmlFor="trip-destination">
+          <label className="flex min-w-0 flex-col justify-center gap-1.5 border-b border-[#EEF2F6] px-4 py-3 sm:px-6 sm:py-4 lg:flex-1 lg:border-b-0 lg:gap-1 lg:py-2" htmlFor="trip-destination">
             <span className={labelCls} style={{ color: "#102A43" }}>
               <MapPin className="mb-0.5 mr-1 inline h-3.5 w-3.5" aria-hidden="true" />To — destination
             </span>
@@ -319,7 +319,7 @@ export default function TripForm({
           <div className={dividerCls} style={{ background: "#E5E7EB" }} aria-hidden="true" />
 
           {/* Dates — primary */}
-          <div className="flex min-w-0 flex-col justify-center gap-1.5 border-b border-[#EEF2F6] px-4 py-3 sm:px-6 sm:py-4 lg:flex-[1.6] lg:border-b-0">
+          <div className="flex min-w-0 flex-col justify-center gap-1.5 border-b border-[#EEF2F6] px-4 py-3 sm:px-6 sm:py-4 lg:flex-[1.6] lg:border-b-0 lg:gap-1 lg:py-2">
             <span className={labelCls} style={{ color: "#102A43" }} id="trip-dates-label">
               <CalendarDays className="mb-0.5 mr-1 inline h-3.5 w-3.5" aria-hidden="true" />When are you going?
             </span>
@@ -365,7 +365,7 @@ export default function TripForm({
           {/* Budget — first-class, visually dominant. self-center so a
               tall sibling error can never stretch it into a giant card. */}
           <label
-            className="mx-3 my-2 flex min-w-0 flex-col justify-center gap-1 rounded-[14px] px-4 py-2.5 sm:mx-5 sm:py-3 lg:mx-3 lg:my-3 lg:w-60 lg:self-center"
+            className="mx-3 my-2 flex min-w-0 flex-col justify-center gap-1 rounded-[14px] px-4 py-2.5 sm:mx-5 sm:py-3 lg:mx-3 lg:my-2 lg:w-60 lg:self-center lg:py-2"
             htmlFor="trip-budget"
             style={{ background: "var(--color-brand-bg)", border: "1px solid var(--color-brand-border)" }}
           >
@@ -393,12 +393,12 @@ export default function TripForm({
 
           {/* Primary search action — self-stretch keeps the button
               vertically centered even when a sibling cell grows. */}
-          <div className="flex flex-col justify-center gap-2 p-3 sm:p-4 lg:min-w-[176px] lg:self-stretch">
+          <div className="flex flex-col justify-center gap-2 p-3 sm:p-4 lg:min-w-[176px] lg:self-stretch lg:p-3">
             <button
               id="trip-submit"
               type="submit"
               disabled={loading}
-              className="tcc-focus btn-primary inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[12px] px-5 t-btn"
+              className="tcc-focus btn-primary inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[12px] px-5 t-btn lg:min-h-[48px]"
             >
               {loading ? (
                 <>
