@@ -92,17 +92,37 @@ export function bundledHeroFor(destination) {
   return ALL_PHOTOS[hashString(name || "trip") % ALL_PHOTOS.length];
 }
 
+/** Upscale Google/SerpApi thumb size hints (=w400, w=400&h=300…)
+ *  so already-cached low-res URLs render sharper full-bleed. */
+export function upgradeThumb(url) {
+  if (typeof url !== "string") return url;
+  return url
+    .replace(/=w\d+/g, "=w1200").replace(/=h\d+/g, "=h800")
+    .replace(/([?&])w=\d+/g, "$1w=1200").replace(/([?&])h=\d+/g, "$1h=800")
+    .replace(/-w\d+/g, "-w1200").replace(/-h\d+/g, "-h800");
+}
+
 /** Dynamic hero image for a destination + live plan.
- *  Priority: live hotel photo from this search (real place you may stay) →
+ *  Priority: live hotel photo from this search (exact searched area) →
+ *  first live hotel-option photo → first live place photo →
  *  bundled catalogue match → hash-picked bundled photo.
- *  Returns { src, fallback } — wire fallback into img onError. */
+ *  Returns { src, fallback, isLive } — wire fallback into img onError. */
 export function heroImageFor(destination, plan) {
   const fallback = bundledHeroFor(destination);
-  const live = plan?.best_pick?.hotel?.image;
-  if (typeof live === "string" && /^https?:\/\//i.test(live.trim())) {
-    return { src: live.trim(), fallback };
+  const candidates = [
+    plan?.best_pick?.hotel?.image,
+    ...(Array.isArray(plan?.hotel_options) ? plan.hotel_options.map((h) => h?.image) : []),
+    ...(Array.isArray(plan?.places) ? plan.places.map((p) => p?.image) : []),
+    ...(Array.isArray(plan?.itinerary)
+      ? plan.itinerary.flatMap((d) => Array.isArray(d?.places) ? d.places.map((p) => p?.image) : [])
+      : []),
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && /^https?:\/\//i.test(c.trim())) {
+      return { src: upgradeThumb(c.trim()), fallback, isLive: true };
+    }
   }
-  return { src: fallback, fallback: null };
+  return { src: fallback, fallback: null, isLive: false };
 }
 
 /** Every bundled photo for a destination. Catalogue cities keep their own

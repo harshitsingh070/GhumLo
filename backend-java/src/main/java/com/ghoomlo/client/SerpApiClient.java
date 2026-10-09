@@ -346,11 +346,24 @@ public class SerpApiClient {
     } catch (Exception e) { return new double[]{Double.NaN, Double.NaN}; }
   }
 
+  /** Upscale SerpApi/Google thumbnail URLs so full-bleed heroes stay sharp.
+   *  Google user-content thumbs carry size hints (=w400, =h300, w=400&h=300,
+   *  -w400-h300); bump them to ~1200px wide. Non-sized URLs pass through. */
+  static String upgradeQuality(String url) {
+    if (url == null) return null;
+    String u = url.strip();
+    u = u.replaceAll("=w\\d+", "=w1200").replaceAll("=h\\d+", "=h800");
+    u = u.replaceAll("([?&])w=\\d+", "$1w=1200").replaceAll("([?&])h=\\d+", "$1h=800");
+    u = u.replaceAll("-w\\d+", "-w1200").replaceAll("-h\\d+", "-h800");
+    return u;
+  }
+
   @SuppressWarnings("unchecked")
   private static String imageUrl(Object value) {
-    if (value instanceof String s && (s.startsWith("http://") || s.startsWith("https://"))) return s.strip();
+    if (value instanceof String s && (s.startsWith("http://") || s.startsWith("https://"))) return upgradeQuality(s.strip());
     if (value instanceof Map m) {
-      for (String k : List.of("thumbnail", "image", "original", "link", "url")) {
+      // Prefer full-size fields first; tiny thumbnails last.
+      for (String k : List.of("original", "image", "thumbnail", "link", "url")) {
         String f = imageUrl(m.get(k));
         if (f != null) return f;
       }
@@ -479,19 +492,19 @@ public class SerpApiClient {
         hotel.put("amenities", am instanceof List ? ((List<?>) am).subList(0, Math.min(6, ((List<?>) am).size())) : List.of());
         hotel.put("lat", Double.isNaN(ll[0]) ? null : ll[0]);
         hotel.put("lng", Double.isNaN(ll[1]) ? null : ll[1]);
-        String image = imageUrl(h.get("thumbnail"));
-        if (image == null) image = imageUrl(h.get("image"));
-        if (image == null) {
-          Object imgs = h.get("images") != null ? h.get("images") : h.get("photos");
-          if (imgs instanceof List) {
-            for (Object it : (List<?>) imgs) {
-              String u = null;
-              if (it instanceof String s && (s.startsWith("http://") || s.startsWith("https://"))) u = s;
-              else u = imageUrl(it);
-              if (u != null) { image = u; break; }
-            }
+        // Prefer the full-size images list first (sharpest), then image, thumbnail last.
+        String image = null;
+        Object imgs = h.get("images") != null ? h.get("images") : h.get("photos");
+        if (imgs instanceof List) {
+          for (Object it : (List<?>) imgs) {
+            String u = null;
+            if (it instanceof String s && (s.startsWith("http://") || s.startsWith("https://"))) u = upgradeQuality(s);
+            else u = imageUrl(it);
+            if (u != null) { image = u; break; }
           }
         }
+        if (image == null) image = imageUrl(h.get("image"));
+        if (image == null) image = imageUrl(h.get("thumbnail"));
         if (image != null) hotel.put("image", image);
         out.add(hotel);
       } catch (Exception e) {
@@ -518,13 +531,15 @@ public class SerpApiClient {
           try { rating = Double.parseDouble(String.valueOf(ratingRaw)); } catch (Exception ignored) {}
         }
         double[] ll = latLng(p);
-        Object image = p.get("thumbnail") != null ? p.get("thumbnail") : p.get("image");
+        // Prefer full-size images list first (sharpest), then image, thumbnail last.
+        Object image = null;
         Object photos = p.get("images") != null ? p.get("images") : p.get("photos");
-        if (image == null && photos instanceof List && !((List<?>) photos).isEmpty()) {
+        if (photos instanceof List && !((List<?>) photos).isEmpty()) {
           Object first = ((List<?>) photos).get(0);
           if (first instanceof String s) image = s;
-          else if (first instanceof Map m) image = m.get("thumbnail") != null ? m.get("thumbnail") : m.get("image");
+          else if (first instanceof Map m) image = m.get("image") != null ? m.get("image") : m.get("thumbnail");
         }
+        if (image == null) image = p.get("image") != null ? p.get("image") : p.get("thumbnail");
         Map<String, Object> place = new LinkedHashMap<>();
         place.put("name", String.valueOf(nameObj));
         place.put("rating", rating);
@@ -545,7 +560,8 @@ public class SerpApiClient {
         place.put("address", addr == null ? "" : String.valueOf(addr));
         place.put("lat", Double.isNaN(ll[0]) ? null : ll[0]);
         place.put("lng", Double.isNaN(ll[1]) ? null : ll[1]);
-        if (image instanceof String s && !s.isBlank()) place.put("image", s.strip());
+        String placeImg = imageUrl(image);
+        if (placeImg != null) place.put("image", placeImg);
         out.add(place);
       } catch (Exception e) {
         log.warn("skip malformed place entry: {}", e.toString());

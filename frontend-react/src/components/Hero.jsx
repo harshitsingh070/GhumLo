@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Sparkles, Plane, Wallet, MapPin } from "lucide-react";
-import { DESTINATIONS, photoPoolFor } from "../lib/destinations.js";
+import { DESTINATIONS, photoPoolFor, heroImageFor } from "../lib/destinations.js";
 import { HeroEyebrow, HeroVeil, HeroShell } from "./HeroShared.jsx";
 import TripPreviewCard from "./TripPreviewCard.jsx";
 
@@ -17,6 +17,8 @@ const FEATURES = [
 export default function Hero({ plan, onViewPlan }) {
   const destination = plan?.destination || "Goa";
   const photos = photoPoolFor(destination);
+  const liveHero = heroImageFor(destination, plan);
+  const hasLive = Boolean(plan && liveHero.isLive);
   const [photoIndex, setPhotoIndex] = useState(0);
 
   useEffect(() => {
@@ -34,23 +36,40 @@ export default function Hero({ plan, onViewPlan }) {
 
   return (
     <HeroShell id="home">
-      {/* Rotating destination photos before search; static after */}
-      {photos.map((src, i) => (
+      {/* After search: exact live photo from this search (static).
+          Before search: rotating bundled photos. */}
+      {hasLive ? (
         <img
-          key={src}
-          src={src}
-          alt={i === 0 ? (known ? known.alt : `${destination} destination`) : ""}
-          aria-hidden={i !== photoIndex}
+          src={liveHero.src}
+          alt={`${destination} — live photo from your search`}
           className="absolute inset-0 h-full w-full object-cover"
-          loading={i === 0 ? "eager" : "lazy"}
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+          onError={(e) => { if (liveHero.fallback && e.currentTarget.src !== liveHero.fallback) e.currentTarget.src = liveHero.fallback; }}
           style={{
             objectPosition: "center 38%",
             filter: "contrast(1.06) saturate(1.08)",
-            opacity: i === photoIndex ? 1 : 0,
-            transition: "opacity 1.2s ease-in-out",
           }}
         />
-      ))}
+      ) : (
+        photos.map((src, i) => (
+          <img
+            key={src}
+            src={src}
+            alt={i === 0 ? (known ? known.alt : `${destination} destination`) : ""}
+            aria-hidden={i !== photoIndex}
+            className="absolute inset-0 h-full w-full object-cover"
+            loading={i === 0 ? "eager" : "lazy"}
+            style={{
+              objectPosition: "center 38%",
+              filter: "contrast(1.06) saturate(1.08)",
+              opacity: i === photoIndex ? 1 : 0,
+              transition: "opacity 1.2s ease-in-out",
+            }}
+          />
+        ))
+      )}
 
       <HeroVeil />
 

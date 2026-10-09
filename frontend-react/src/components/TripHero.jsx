@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CalendarDays, Users, Wallet, Plane, BedDouble, ArrowRight } from "lucide-react";
-import { DESTINATIONS, photoPoolFor } from "../lib/destinations.js";
+import { DESTINATIONS, photoPoolFor, heroImageFor } from "../lib/destinations.js";
 import { fmtDateRange, inr } from "../lib/format.js";
 import { HeroEyebrow, HeroVeil, HeroShell } from "./HeroShared.jsx";
 import TripPreviewCard from "./TripPreviewCard.jsx";
@@ -11,6 +11,7 @@ import TripPreviewCard from "./TripPreviewCard.jsx";
 export default function TripHero({ plan, onViewPlan }) {
   const destination = plan?.destination || "Goa";
   const photos = photoPoolFor(destination);
+  const liveHero = heroImageFor(destination, plan);
   const [photoIndex, setPhotoIndex] = useState(0);
 
   useEffect(() => {
@@ -22,7 +23,11 @@ export default function TripHero({ plan, onViewPlan }) {
     return () => window.clearInterval(timer);
   }, [destination, plan]);
 
-  const img = photos[photoIndex] || photos[0];
+  // After search: exact live photo from this search (static).
+  // Before search (no plan): rotating bundled photos.
+  const liveSrc = plan && liveHero.isLive ? liveHero.src : null;
+  const img = liveSrc || photos[photoIndex] || photos[0];
+  const imgFallback = liveSrc ? liveHero.fallback : null;
   const known = DESTINATIONS.find((d) =>
     String(destination).toLowerCase().includes(d.name.toLowerCase())
   );
@@ -58,12 +63,15 @@ export default function TripHero({ plan, onViewPlan }) {
 
   return (
     <HeroShell id="trip-hero" minHeight="clamp(520px, 75vh, 640px)">
-      {/* Full-background destination image */}
+      {/* Exact live photo from this search when available (static); bundled fallback otherwise */}
       <img
         src={img}
-        alt={known ? known.alt : `${destination} destination`}
+        alt={liveSrc ? `${destination} — live photo from your search` : (known ? known.alt : `${destination} destination`)}
         className="absolute inset-0 h-full w-full object-cover"
         loading="eager"
+        fetchPriority="high"
+        decoding="async"
+        onError={(e) => { if (imgFallback && e.currentTarget.src !== imgFallback) e.currentTarget.src = imgFallback; }}
         style={{ objectPosition: "center 38%", filter: "contrast(1.06) saturate(1.08)" }}
       />
 
