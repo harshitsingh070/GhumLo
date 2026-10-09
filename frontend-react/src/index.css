@@ -398,6 +398,15 @@ html, body {
   .t-price-lg {
     font-size: 26px;
   }
+  .t-badge {
+    font-size: 12px;
+  }
+  .t-badge-sm {
+    font-size: 12px;
+  }
+  .t-day {
+    font-size: 13px;
+  }
 }
 
 /* ─── Global content container: single source of truth ─────────────────────

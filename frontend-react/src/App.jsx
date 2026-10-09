@@ -277,16 +277,14 @@ export default function App() {
               onSelectAlternative={selectAlternative}
               onCancel={handleCancel}
             />
-            {/* Keep supporting sections under the full trip details */}
-            {plan && !loading && <Benefits />}
-            <About />
+            {/* Supporting sections removed from trip page */}
           </>
         )}
 
         {route === "home" && (
           <>
             {/* Trip builder on Explore — flows naturally on mobile. */}
-            <div id="plan" className="relative z-20 -mt-16 scroll-mt-28 sm:-mt-24">
+            <div id="plan" className="relative z-20 -mt-8 scroll-mt-28 sm:-mt-24">
               <TripForm
                 loading={loading}
                 onSubmit={handleSubmit}

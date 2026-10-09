@@ -108,7 +108,7 @@ export default function PackingList({ packing, weather, num_nights, destination 
                       type="button"
                       onClick={() => toggle(key)}
                       aria-pressed={done}
-                      className="tcc-focus flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors"
+                      className="tcc-focus tcc-touch flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors"
                       style={{ background: "transparent" }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = "#F7F9FC"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}

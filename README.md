@@ -3,13 +3,6 @@
 > **SerpApi India Hackathon 2026** — *Travel & Local Discovery Track*  
 > Plan complete, realistic trips within your exact budget using live Google Flights, Google Hotels, and Google Maps data powered by SerpApi.
 
-[![Java 17](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)](https://www.oracle.com/java/)
-[![Spring Boot 3.2](https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
-[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![SerpApi](https://img.shields.io/badge/SerpApi-10%20Engines-blue?logo=google&logoColor=white)](https://serpapi.com/)
-[![Groq AI](https://img.shields.io/badge/Groq%20AI-Llama%203%20%2F%20GPT--OSS-f55036)](https://groq.com/)
-[![Tests](https://img.shields.io/badge/Tests-23%20Passing-success)](https://github.com/)
-
 ---
 
 ## 🧭 Overview

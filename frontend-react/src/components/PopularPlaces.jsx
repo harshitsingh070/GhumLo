@@ -115,7 +115,7 @@ export default function PopularPlaces({ places, destination }) {
                 setFilter(value);
                 scrollRef.current?.scrollTo({ left: 0, behavior: "smooth" });
               }}
-              className="tcc-focus rounded-full px-3.5 py-1.5 t-btn-sm transition-colors"
+              className="tcc-focus tcc-touch rounded-full px-3.5 py-1.5 t-btn-sm transition-colors"
               style={{
                 background: active ? "#FF6B57" : "#FFFFFF",
                 color: active ? "#FFFFFF" : "#52606D",

@@ -107,7 +107,7 @@ export default function TripPreviewCard({ plan, onViewPlan }) {
       <button
         type="button"
         onClick={onViewPlan}
-        className="btn-primary mt-4 h-[42px] w-full rounded-[12px] t-btn"
+        className="btn-primary mt-4 h-[44px] w-full rounded-[12px] t-btn"
       >
         View full itinerary <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </button>

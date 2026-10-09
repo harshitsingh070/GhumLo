@@ -44,7 +44,7 @@ export default function KnowBeforeYouGo({ know, destination }) {
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="flex shrink-0 items-center gap-1 pt-0.5 t-btn-sm hover:underline"
+            className="tcc-touch flex shrink-0 items-center gap-1 px-2 py-2 t-btn-sm hover:underline"
             style={{ color: "#FF6B57" }}
             onMouseEnter={(e) => { e.currentTarget.style.color = "#F25542"; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = "#FF6B57"; }}

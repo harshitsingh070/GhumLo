@@ -113,7 +113,7 @@ export default function TripForm({
                   key={s.code}
                   type="button"
                   onClick={() => pickSuggestion(name, s.city || s.code)}
-                  className="tcc-focus rounded-full px-3 py-1.5 t-btn-sm"
+                  className="tcc-focus tcc-touch rounded-full px-3 py-1.5 t-btn-sm"
                   style={{ background: "#FFFFFF", border: "1px solid var(--color-brand)", color: "#102A43" }}
                 >
                   {label}
@@ -179,12 +179,12 @@ export default function TripForm({
       >
         <form onSubmit={submit} id="trip-form">
           {/* ── Primary: Where / When / Budget ── */}
-          <div className="px-5 pb-1 pt-5 sm:px-6">
+          <div className="px-4 pb-0.5 pt-4 sm:px-6 sm:pt-5">
             <h2 className="font-display t-card-lg" style={{ color: "#102A43" }}>Where are you going?</h2>
             <p className="mt-0.5 t-small" style={{ color: "#3E5463" }}>Describe it in words or fill the fields — the itinerary is built to respect your budget.</p>
           </div>
           {/* Travel AI — plain-words trip box, directly in the flow (no dropdown) */}
-          <div className="px-4 pb-1 pt-3 sm:px-5">
+          <div className="px-3 pb-0.5 pt-2.5 sm:px-5 sm:pt-3">
             <NaturalLanguageInput onFill={applyNlFields} />
             {dietNote && (
               <p className="mt-2 t-small" role="status" style={{ color: "#3E5463" }}>
@@ -194,7 +194,7 @@ export default function TripForm({
           </div>
           <div className="flex flex-col lg:flex-row lg:items-stretch">
           {/* From */}
-          <label className="flex min-w-0 flex-col justify-center gap-2 border-b border-[#EEF2F6] px-5 py-4 sm:px-6 lg:flex-1 lg:border-b-0" htmlFor="trip-origin">
+          <label className="flex min-w-0 flex-col justify-center gap-1.5 border-b border-[#EEF2F6] px-4 py-3 sm:px-6 sm:py-4 lg:flex-1 lg:border-b-0" htmlFor="trip-origin">
             <span className={labelCls} style={{ color: "#102A43" }}>
               <Plane className="mb-0.5 mr-1 inline h-3.5 w-3.5" aria-hidden="true" />From
             </span>
@@ -219,7 +219,7 @@ export default function TripForm({
           {/* Swap — floats centered on the seam between From and To.
               Overlaps the divider on desktop; sits on the stacked seam
               on mobile (icon rotated to match the vertical flow). */}
-          <div className="relative z-10 -my-[22px] flex items-center justify-center lg:-mx-[22px] lg:my-0">
+          <div className="relative z-10 flex items-center justify-center py-1 lg:-mx-[22px] lg:my-0 lg:py-0">
             <button
               type="button"
               onClick={swapOriginDest}
@@ -227,7 +227,7 @@ export default function TripForm({
               aria-label="Swap origin and destination"
               className="tcc-focus tcc-touch flex items-center justify-center transition-colors"
               style={{
-                width: 44, height: 44, borderRadius: "50%",
+                width: 40, height: 40, borderRadius: "50%",
                 background: "#FFFFFF",
                 border: "1px solid #E5E7EB",
                 boxShadow: "0 2px 8px rgba(15, 23, 42, 0.12)",
@@ -237,14 +237,14 @@ export default function TripForm({
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--color-brand)"; e.currentTarget.style.color = "var(--color-brand)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.color = "#3E5463"; }}
             >
-              <ArrowLeftRight className="h-4 w-4 rotate-90 lg:rotate-0" />
+              <ArrowLeftRight className="h-3.5 w-3.5 rotate-90 lg:rotate-0" />
             </button>
           </div>
 
           <div className={dividerCls} style={{ background: "#E5E7EB" }} aria-hidden="true" />
 
           {/* To — primary destination */}
-          <label className="flex min-w-0 flex-col justify-center gap-2 border-b border-[#EEF2F6] px-5 py-4 sm:px-6 lg:flex-1 lg:border-b-0" htmlFor="trip-destination">
+          <label className="flex min-w-0 flex-col justify-center gap-1.5 border-b border-[#EEF2F6] px-4 py-3 sm:px-6 sm:py-4 lg:flex-1 lg:border-b-0" htmlFor="trip-destination">
             <span className={labelCls} style={{ color: "#102A43" }}>
               <MapPin className="mb-0.5 mr-1 inline h-3.5 w-3.5" aria-hidden="true" />To — destination
             </span>
@@ -269,11 +269,11 @@ export default function TripForm({
           <div className={dividerCls} style={{ background: "#E5E7EB" }} aria-hidden="true" />
 
           {/* Dates — primary */}
-          <div className="flex min-w-0 flex-col justify-center gap-2 border-b border-[#EEF2F6] px-5 py-4 sm:px-6 lg:flex-[1.6] lg:border-b-0">
+          <div className="flex min-w-0 flex-col justify-center gap-1.5 border-b border-[#EEF2F6] px-4 py-3 sm:px-6 sm:py-4 lg:flex-[1.6] lg:border-b-0">
             <span className={labelCls} style={{ color: "#102A43" }} id="trip-dates-label">
               <CalendarDays className="mb-0.5 mr-1 inline h-3.5 w-3.5" aria-hidden="true" />When are you going?
             </span>
-            <div className="flex min-w-0 items-center gap-2" role="group" aria-labelledby="trip-dates-label">
+            <div className="flex min-w-0 flex-col gap-2 min-[400px]:flex-row min-[400px]:items-center" role="group" aria-labelledby="trip-dates-label">
               <input
                 id="trip-departure"
                 type="date"
@@ -284,7 +284,7 @@ export default function TripForm({
                 className={`${dateInputCls} tcc-focus rounded-md`}
                 style={{ color: "#102A43", fontSize: 14, fontWeight: 600, minHeight: 32 }}
               />
-              <span aria-hidden="true" className="shrink-0 t-small" style={{ color: "#3E5463" }}>→</span>
+              <span aria-hidden="true" className="shrink-0 t-small min-[400px]:block hidden" style={{ color: "#3E5463" }}>→</span>
               <input
                 id="trip-return"
                 type="date"
@@ -303,7 +303,7 @@ export default function TripForm({
 
           {/* Budget — first-class, visually dominant */}
           <label
-            className="mx-4 my-3 flex min-w-0 flex-col justify-center gap-1 rounded-[14px] px-4 py-3 sm:mx-5 lg:mx-3 lg:my-3 lg:w-60"
+            className="mx-3 my-2 flex min-w-0 flex-col justify-center gap-1 rounded-[14px] px-4 py-2.5 sm:mx-5 sm:py-3 lg:mx-3 lg:my-3 lg:w-60"
             htmlFor="trip-budget"
             style={{ background: "var(--color-brand-bg)", border: "1px solid var(--color-brand-border)" }}
           >
@@ -335,7 +335,7 @@ export default function TripForm({
               id="trip-submit"
               type="submit"
               disabled={loading}
-              className="tcc-focus btn-primary inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-[12px] px-5 t-btn"
+              className="tcc-focus btn-primary inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[12px] px-5 t-btn"
             >
               {loading ? (
                 <>
@@ -363,7 +363,7 @@ export default function TripForm({
           )}
           {/* ── Secondary: travelers + travel style ── */}
           <div
-            className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4 sm:px-6"
+            className="flex flex-col gap-3 px-4 py-3 min-[480px]:flex-row min-[480px]:flex-wrap min-[480px]:items-center min-[480px]:gap-x-4 min-[480px]:gap-y-3 sm:px-6 sm:py-4"
             style={{ borderTop: "1px solid #E5E7EB", background: "#F7F9FC" }}
           >
             <label className="flex min-w-0 items-center gap-2.5" htmlFor="trip-travelers">
@@ -377,12 +377,12 @@ export default function TripForm({
                 onChange={set("travelers")}
                 min={1} max={9} required
                 aria-label="Number of travelers"
-                className="tcc-focus w-16 rounded-lg bg-white px-2 py-2 text-center outline-none"
+                className="tcc-focus w-14 rounded-lg bg-white px-2 py-1.5 text-center outline-none min-h-[44px]"
                 style={{ color: "#102A43", fontSize: 15, fontWeight: 700, border: "1px solid #E5E7EB" }}
               />
             </label>
             <span
-              className="hidden h-6 w-px lg:block"
+              className="hidden h-6 w-px min-[480px]:block"
               style={{ background: "#D7DEE5" }}
               aria-hidden="true"
             />
@@ -395,7 +395,7 @@ export default function TripForm({
             </span>
 
             {/* Quick style pills with visible meaning */}
-            <div className="flex flex-wrap items-center gap-2" role="group" aria-labelledby="travel-style-label">
+            <div className="flex flex-wrap items-center gap-1.5 min-[480px]:gap-2" role="group" aria-labelledby="travel-style-label">
               {STYLE_OPTIONS.map(([value, title, desc]) => {
                 const active = form.travel_mode === value;
                 return (
@@ -403,12 +403,13 @@ export default function TripForm({
                   key={value}
                   title={desc}
                   aria-label={`${title} — ${desc}`}
-                  className="tcc-touch cursor-pointer rounded-full px-5 t-btn transition-all"
+                  className="tcc-touch cursor-pointer rounded-full px-3.5 min-[480px]:px-5 t-btn transition-all"
                   style={{
                     background: active ? "var(--color-brand)" : "#FFFFFF",
                     border: `1px solid ${active ? "var(--color-brand)" : "#D7DEE5"}`,
                     color: active ? "#fff" : "#102A43",
-                    minHeight: 44,
+                    minHeight: 40,
+                    fontSize: 13,
                   }}
                 >
                   <input
@@ -427,10 +428,10 @@ export default function TripForm({
                 type="button"
                 onClick={onDemo}
                 disabled={loading || demoLoading}
-                className="tcc-focus tcc-touch inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full px-5 t-btn transition-all"
-                style={{ background: "#FFF8F6", border: "1px solid #FFD9D1", color: "#F25542" }}
+                className="tcc-focus tcc-touch inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-full px-3.5 min-[480px]:px-5 t-btn transition-all"
+                style={{ background: "#FFF8F6", border: "1px solid #FFD9D1", color: "#F25542", fontSize: 13 }}
               >
-                {demoLoading ? <ButtonSpinner /> : <Play className="h-4 w-4" aria-hidden="true" />}
+                {demoLoading ? <ButtonSpinner /> : <Play className="h-3.5 w-3.5" aria-hidden="true" />}
                 {demoLoading ? "Loading demo..." : "Try demo trip"}
               </button>
             </div>

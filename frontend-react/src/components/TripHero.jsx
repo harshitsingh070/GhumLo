@@ -15,12 +15,12 @@ export default function TripHero({ plan, onViewPlan }) {
 
   useEffect(() => {
     setPhotoIndex(0);
-    if (photos.length < 2) return undefined;
+    if (plan || photos.length < 2) return undefined;
     const timer = window.setInterval(() => {
       setPhotoIndex((index) => (index + 1) % photos.length);
     }, 5000);
     return () => window.clearInterval(timer);
-  }, [destination]);
+  }, [destination, plan]);
 
   const img = photos[photoIndex] || photos[0];
   const known = DESTINATIONS.find((d) =>
@@ -70,7 +70,7 @@ export default function TripHero({ plan, onViewPlan }) {
       <HeroVeil />
 
       {/* Content — flows naturally on mobile */}
-      <div className="tcc-container relative z-10 flex min-h-[clamp(520px,75vh,640px)] items-start pb-32 pt-[118px] sm:pb-44">
+      <div className="tcc-container relative z-10 flex min-h-[clamp(420px,60vh,640px)] items-start pb-32 pt-[118px] sm:pb-44">
         <div className="grid w-full items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* Left: heading + facts + breakdown */}
           <div className="animate-fade-rise">

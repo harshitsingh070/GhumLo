@@ -21,13 +21,12 @@ export default function Hero({ plan, onViewPlan }) {
 
   useEffect(() => {
     setPhotoIndex(0);
-    if (photos.length < 2) return undefined;
+    if (plan || photos.length < 2) return undefined;
     const timer = window.setInterval(() => {
       setPhotoIndex((index) => (index + 1) % photos.length);
     }, 5000);
     return () => window.clearInterval(timer);
-  }, [destination]);
-
+  }, [destination, plan]);
 
   const known = DESTINATIONS.find((d) =>
     String(destination).toLowerCase().includes(d.name.toLowerCase())
@@ -35,7 +34,7 @@ export default function Hero({ plan, onViewPlan }) {
 
   return (
     <HeroShell id="home">
-      {/* Full-background destination images — crossfade between photos */}
+      {/* Rotating destination photos before search; static after */}
       {photos.map((src, i) => (
         <img
           key={src}
@@ -56,7 +55,7 @@ export default function Hero({ plan, onViewPlan }) {
       <HeroVeil />
 
       {/* Content — flows naturally on mobile, overlaps cleanly on desktop */}
-      <div className="tcc-container relative z-10 flex min-h-[clamp(560px,80vh,700px)] items-start pb-40 pt-[118px] sm:pb-56">
+      <div className="tcc-container relative z-10 flex min-h-[clamp(440px,65vh,700px)] items-start pb-24 pt-[118px] sm:pb-56">
         <div className="grid w-full items-start gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="max-w-[720px] animate-fade-rise">
             <HeroEyebrow>Smart travel planning</HeroEyebrow>

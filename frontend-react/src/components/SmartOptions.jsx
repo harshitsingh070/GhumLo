@@ -84,7 +84,7 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
             <button
               type="button"
               onClick={share}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3.5 t-btn-sm transition-colors"
+              className="tcc-touch inline-flex h-11 items-center gap-1.5 rounded-xl px-3.5 t-btn-sm transition-colors"
               style={{ background: "#F1F5F9", border: "1px solid #E5E7EB", color: "#102A43" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#EEF2F6"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "#F1F5F9"; }}
@@ -172,7 +172,7 @@ export default function SmartOptions({ plan, onSelectAlternative, recomputing })
                   disabled={recomputing || isCurrent || noOp}
                   title={noOp ? "Same combination as your current tier" : undefined}
                   onClick={() => onSelectAlternative?.(option)}
-                  className="tcc-focus mt-4 w-full rounded-xl py-2 t-btn-sm transition-all"
+                  className="tcc-focus tcc-touch mt-4 w-full rounded-xl py-2 t-btn-sm transition-all"
                   style={
                     isCurrent || noOp
                       ? { background: "#F1F5F9", color: "#5B6B7B", border: "1px solid #E5E7EB", cursor: "default" }

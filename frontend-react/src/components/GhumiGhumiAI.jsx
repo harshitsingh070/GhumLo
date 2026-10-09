@@ -171,7 +171,7 @@ export default function GhumiGhumiAI({ plan }) {
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Minimize Ghumi Ghumi AI chat"
-            className="tcc-focus flex h-8 w-8 items-center justify-center rounded-full text-[#5B6B7B] hover:bg-[#F1F5F9] hover:text-[#102A43]"
+            className="tcc-focus tcc-touch flex h-11 w-11 items-center justify-center rounded-full text-[#5B6B7B] hover:bg-[#F1F5F9] hover:text-[#102A43]"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -186,7 +186,7 @@ export default function GhumiGhumiAI({ plan }) {
             type="button"
             onClick={() => ask(prompt)}
             disabled={loading}
-            className="tcc-focus rounded-full px-3 py-1.5 t-btn-sm text-[#52606D] transition-colors hover:border-[#FF6B57] hover:bg-[#FFF1EE] hover:text-[#FF6B57] disabled:opacity-50"
+            className="tcc-focus tcc-touch rounded-full px-3 py-1.5 t-btn-sm text-[#52606D] transition-colors hover:border-[#FF6B57] hover:bg-[#FFF1EE] hover:text-[#FF6B57] disabled:opacity-50"
             style={{
               background: "#F1F5F9",
               border: "1px solid #E5E7EB",
