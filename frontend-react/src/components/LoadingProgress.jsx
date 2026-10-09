@@ -45,7 +45,7 @@ export default function LoadingProgress({ onCancel }) {
               Creating your trip
             </h2>
             <p className="t-small" style={{ color: "#3E5463" }}>
-              Live search can take up to 3 minutes. Elapsed {elapsed}s — you can cancel anytime.
+              Elapsed {elapsed}s — you can cancel anytime.
             </p>
           </div>
         </div>
