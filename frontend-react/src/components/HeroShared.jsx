@@ -18,7 +18,7 @@ export function HeroVeil() {
       className="absolute inset-0"
       style={{
         background:
-          "linear-gradient(to right, rgba(247,249,252,0.84) 0%, rgba(247,249,252,0.68) 35%, rgba(247,249,252,0.32) 62%, rgba(247,249,252,0.08) 85%, rgba(247,249,252,0.02) 100%)",
+          "linear-gradient(to right, rgba(247,249,252,0.58) 0%, rgba(247,249,252,0.38) 30%, rgba(247,249,252,0.14) 58%, rgba(247,249,252,0.03) 82%, rgba(247,249,252,0) 100%)",
       }}
       aria-hidden="true"
     />

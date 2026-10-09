@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import { CalendarDays, Users, Wallet, Plane, BedDouble, ArrowRight } from "lucide-react";
-import { DESTINATIONS, bundledHeroFor } from "../lib/destinations.js";
+import { DESTINATIONS, photoPoolFor } from "../lib/destinations.js";
 import { fmtDateRange, inr } from "../lib/format.js";
 import { HeroEyebrow, HeroVeil, HeroShell } from "./HeroShared.jsx";
 import TripPreviewCard from "./TripPreviewCard.jsx";
@@ -9,10 +10,19 @@ import TripPreviewCard from "./TripPreviewCard.jsx";
  *  how many / cost / action at a glance. */
 export default function TripHero({ plan, onViewPlan }) {
   const destination = plan?.destination || "Goa";
-  // Bundled location photo only (full-resolution assets): catalogue match
-  // → stable hash-picked photo per location. No live thumbnails here —
-  // small provider images pixelate when stretched full-bleed.
-  const img = bundledHeroFor(plan?.destination || "Goa");
+  const photos = photoPoolFor(destination);
+  const [photoIndex, setPhotoIndex] = useState(0);
+
+  useEffect(() => {
+    setPhotoIndex(0);
+    if (photos.length < 2) return undefined;
+    const timer = window.setInterval(() => {
+      setPhotoIndex((index) => (index + 1) % photos.length);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [destination]);
+
+  const img = photos[photoIndex] || photos[0];
   const known = DESTINATIONS.find((d) =>
     String(destination).toLowerCase().includes(d.name.toLowerCase())
   );
@@ -54,7 +64,7 @@ export default function TripHero({ plan, onViewPlan }) {
         alt={known ? known.alt : `${destination} destination`}
         className="absolute inset-0 h-full w-full object-cover"
         loading="eager"
-        style={{ objectPosition: "center 38%" }}
+        style={{ objectPosition: "center 38%", filter: "contrast(1.06) saturate(1.08)" }}
       />
 
       <HeroVeil />

@@ -5,6 +5,7 @@ import {
   IndianRupee,
   MapPin,
   Plane,
+  Play,
   Users,
   ChevronRight,
 } from "lucide-react";
@@ -23,7 +24,15 @@ const DEFAULTS = {
 
 /** Trip Builder — light card with NL helper, fields, style/options row.
  *  All form logic/validation/props unchanged. */
-export default function TripForm({ loading, onSubmit, prefillDestination, locationError, onClearLocationError }) {
+export default function TripForm({
+  loading,
+  onSubmit,
+  prefillDestination,
+  onDemo,
+  demoLoading,
+  locationError,
+  onClearLocationError,
+}) {
   const [form, setForm] = useState(DEFAULTS);
   const [dateError, setDateError] = useState("");
   // Sync guard: `loading` only disables the button after a re-render, so
@@ -320,25 +329,37 @@ export default function TripForm({ loading, onSubmit, prefillDestination, locati
             </span>
           </label>
 
-          {/* Find My Trip CTA */}
-          <button
-            id="trip-submit"
-            type="submit"
-            disabled={loading}
-            className="tcc-focus btn-primary m-4 h-auto min-h-[56px] rounded-[12px] px-7 t-btn sm:mx-5 lg:m-3 lg:min-w-[176px] lg:self-center"
-          >
-            {loading ? (
-              <>
-                <ButtonSpinner />
-                Searching…
-              </>
-            ) : (
-              <>
-                Find my trip
-                <ChevronRight className="h-4 w-4" />
-              </>
-            )}
-          </button>
+          {/* Demo first, then the primary search action below it. */}
+          <div className="flex flex-col justify-center gap-2 p-3 sm:p-4 lg:min-w-[176px]">
+            <button
+              type="button"
+              onClick={onDemo}
+              disabled={loading || demoLoading}
+              className="tcc-focus tcc-touch inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[12px] px-4 t-btn"
+              style={{ background: "#FFF8F6", border: "1px solid #FFD9D1", color: "#F25542" }}
+            >
+              {demoLoading ? <ButtonSpinner /> : <Play className="h-4 w-4" aria-hidden="true" />}
+              {demoLoading ? "Loading demo..." : "Try demo trip"}
+            </button>
+            <button
+              id="trip-submit"
+              type="submit"
+              disabled={loading || demoLoading}
+              className="tcc-focus btn-primary inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-[12px] px-5 t-btn"
+            >
+              {loading ? (
+                <>
+                  <ButtonSpinner />
+                  Searching…
+                </>
+              ) : (
+                <>
+                  Find my trip
+                  <ChevronRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          </div>
           </div>
 
           {dateError && (
