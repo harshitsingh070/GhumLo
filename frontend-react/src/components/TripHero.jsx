@@ -66,7 +66,7 @@ export default function TripHero({ plan, onViewPlan }) {
       {/* Exact live photo from this search when available (static); bundled fallback otherwise */}
       <img
         src={img}
-        alt={liveSrc ? `${destination} — live photo from your search` : (known ? known.alt : `${destination} destination`)}
+        alt={liveSrc && liveHero.name ? `${liveHero.name}, ${destination}` : (liveSrc ? `${destination} — live photo from your search` : (known ? known.alt : `${destination} destination`))}
         className="absolute inset-0 h-full w-full object-cover"
         loading="eager"
         fetchPriority="high"

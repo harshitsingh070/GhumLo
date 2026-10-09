@@ -41,7 +41,7 @@ export default function Hero({ plan, onViewPlan }) {
       {hasLive ? (
         <img
           src={liveHero.src}
-          alt={`${destination} — live photo from your search`}
+          alt={liveHero.name ? `${liveHero.name}, ${destination}` : `${destination} — live photo from your search`}
           className="absolute inset-0 h-full w-full object-cover"
           loading="eager"
           fetchPriority="high"

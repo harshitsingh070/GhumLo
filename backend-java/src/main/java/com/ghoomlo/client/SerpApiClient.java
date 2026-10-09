@@ -174,6 +174,21 @@ public class SerpApiClient {
     return false;
   }
 
+  /** True for DNS resolution failures (UnknownHost, "failed to resolve",
+   *  Netty DnsNameResolverTimeoutException). Retrying these back-to-back is
+   *  pointless — the resolver answer won't change within milliseconds. */
+  private static boolean isDnsFailure(Throwable e) {
+    for (Throwable t = e; t != null; t = t.getCause()) {
+      if (t instanceof java.net.UnknownHostException) return true;
+      String cls = t.getClass().getName().toLowerCase();
+      if (cls.contains("dns")) return true;
+      String m = String.valueOf(t.getMessage()).toLowerCase();
+      if (m.contains("failed to resolve") || m.contains("unknownhost")
+          || m.contains("nodename nor servname") || m.contains("name or service not known")) return true;
+    }
+    return false;
+  }
+
   @SuppressWarnings("unchecked")
   private Map<String, Object> search(Map<String, Object> params, String cacheName,
       boolean skipCache, Long ttlSeconds) {
@@ -232,6 +247,13 @@ public class SerpApiClient {
           log.error("SerpApi {} failed: {}: {}{}", cacheName, e.getClass().getSimpleName(),
               e.getMessage(), body.isEmpty() ? "" : " body=" + body);
           throw new RuntimeException(e);
+        }
+        if (isDnsFailure(e)) {
+          // DNS won't heal between instant retries — fail fast (~5s) instead
+          // of burning 3 attempts (~30s) before the user sees an error.
+          log.error("SerpApi {} DNS failure, not retrying: {}", cacheName, e.getMessage());
+          lastError = e;
+          break;
         }
         lastError = e;
         if (attempt < maxAttempts) {

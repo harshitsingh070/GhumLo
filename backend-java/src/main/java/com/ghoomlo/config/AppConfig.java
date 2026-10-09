@@ -1,6 +1,7 @@
 package com.ghoomlo.config;
 
 import io.netty.channel.ChannelOption;
+import io.netty.resolver.DefaultAddressResolverGroup;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -49,7 +50,12 @@ public class AppConfig {
         .maxLifeTime(Duration.ofMinutes(5))
         .evictInBackground(Duration.ofSeconds(30))
         .build();
+    // Use the OS/JVM DNS resolver instead of Netty's async UDP resolver:
+    // on networks where IPv6 DNS or raw UDP is blocked, Netty's resolver
+    // times out ("Failed to resolve 'serpapi.com' after 4 queries") while
+    // system DNS (curl/browser) works fine.
     HttpClient httpClient = HttpClient.create(provider)
+        .resolver(DefaultAddressResolverGroup.INSTANCE)
         .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
         .responseTimeout(Duration.ofSeconds(15));
     return WebClient.builder()
@@ -61,8 +67,15 @@ public class AppConfig {
 
   @Bean
   public WebClient groqWebClient() {
+    // Same OS-DNS fix as SerpApi: api.groq.com hits the identical
+    // Netty UDP-DNS timeout on restricted networks.
+    HttpClient httpClient = HttpClient.create()
+        .resolver(DefaultAddressResolverGroup.INSTANCE)
+        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+        .responseTimeout(Duration.ofSeconds(30));
     return WebClient.builder()
         .baseUrl("https://api.groq.com/openai/v1")
+        .clientConnector(new ReactorClientHttpConnector(httpClient))
         .codecs(c -> c.defaultCodecs().maxInMemorySize(2 * 1024 * 1024))
         .build();
   }

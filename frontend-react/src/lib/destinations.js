@@ -109,16 +109,25 @@ export function upgradeThumb(url) {
  *  Returns { src, fallback, isLive } — wire fallback into img onError. */
 export function heroImageFor(destination, plan) {
   const fallback = bundledHeroFor(destination);
+  const isUrl = (c) => typeof c === "string" && /^https?:\/\//i.test(c.trim());
+  // Most famous place = first attraction result from this search.
+  const allPlaces = [
+    ...(Array.isArray(plan?.places) ? plan.places : []),
+    ...(Array.isArray(plan?.itinerary)
+      ? plan.itinerary.flatMap((d) => Array.isArray(d?.places) ? d.places : [])
+      : []),
+  ];
+  const topAttraction = allPlaces.find((p) => p?.category === "attractions" && isUrl(p?.image))
+    || allPlaces.find((p) => isUrl(p?.image));
+  if (topAttraction) {
+    return { src: upgradeThumb(topAttraction.image.trim()), fallback, isLive: true, name: topAttraction.name };
+  }
   const candidates = [
     plan?.best_pick?.hotel?.image,
     ...(Array.isArray(plan?.hotel_options) ? plan.hotel_options.map((h) => h?.image) : []),
-    ...(Array.isArray(plan?.places) ? plan.places.map((p) => p?.image) : []),
-    ...(Array.isArray(plan?.itinerary)
-      ? plan.itinerary.flatMap((d) => Array.isArray(d?.places) ? d.places.map((p) => p?.image) : [])
-      : []),
   ];
   for (const c of candidates) {
-    if (typeof c === "string" && /^https?:\/\//i.test(c.trim())) {
+    if (isUrl(c)) {
       return { src: upgradeThumb(c.trim()), fallback, isLive: true };
     }
   }

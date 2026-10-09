@@ -74,6 +74,9 @@ public class PlanController {
     if (low.contains("api_key") || low.contains("missing")) return "Server API key is missing. Add SERPAPI_API_KEY to .env (see .env.example).";
     if (low.contains("invalid api key") || low.contains("401") || low.contains("403")) return "SerpApi key is invalid. Check SERPAPI_API_KEY in .env.";
     if (low.contains("quota") || low.contains("429") || low.contains("limit")) return "SerpApi quota reached (free tier = 250 searches/mo). Try again later or reuse cached results.";
+    if (low.contains("failed to resolve") || low.contains("unknownhost") || low.contains("dns")
+        || low.contains("network is unreachable") || low.contains("no route to host"))
+      return "Couldn't reach SerpApi from this server (DNS/network blocked) — check internet, firewall or VPN and retry, or use 'Try demo trip' which works offline.";
     return "Search temporarily failed. Please try again in a moment.";
   }
 
@@ -105,6 +108,14 @@ public class PlanController {
         return ResponseEntity.status(422).body(Map.of("error",
             "Trip length must be " + MAX_TRIP_NIGHTS + " nights or fewer — try a shorter date range."));
       }
+      // Past departures can never return live bookable prices — reject before
+      // spending any SerpApi quota (frontend also constrains + validates).
+      try {
+        if (LocalDate.parse(req.departure_date()).isBefore(LocalDate.now())) {
+          return ResponseEntity.status(422).body(Map.of("error",
+              "Departure date is in the past — pick today or a future date."));
+        }
+      } catch (Exception ignored) { /* format errors belong to DTO @Pattern */ }
       boolean fr = req.force_refresh();
       // Flights resolve aliases and airport codes. Use the same resolved city
       // for all destination searches so the trip cannot mix locations.

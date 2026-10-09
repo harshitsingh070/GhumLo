@@ -12,11 +12,31 @@ import {
 import NaturalLanguageInput from "./NaturalLanguageInput.jsx";
 import { ButtonSpinner } from "./Loader.jsx";
 
+/** Local YYYY-MM-DD for today + offset days. Keeps defaults future-proof
+ *  (hardcoded dates silently go stale and become unsearchable past dates). */
+const isoDay = (offsetDays = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+};
+
+/** Shift a YYYY-MM-DD string by N days (for auto-fixing return > departure). */
+const shiftIso = (iso, days) => {
+  const [y, m, d] = String(iso).split("-").map(Number);
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  dt.setDate(dt.getDate() + days);
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${dt.getFullYear()}-${mm}-${dd}`;
+};
+
 const DEFAULTS = {
   origin: "DEL",
   destination: "Goa",
-  departure_date: "2026-10-10",
-  return_date: "2026-10-13",
+  departure_date: isoDay(7),
+  return_date: isoDay(10),
   travelers: 2,
   budget: 60000,
   travel_mode: "balanced",
@@ -51,12 +71,19 @@ export default function TripForm({
   const [dietNote, setDietNote] = useState("");
   const applyNlFields = (fields) => {
     if (!fields || typeof fields !== "object") return;
+    // AI/heuristic dates can resolve to the past ("last weekend", stale year) —
+    // clamp to the future so the form never lands in an unsearchable state.
+    const today = isoDay(0);
+    let dep = fields.departure_date ?? null;
+    let ret = fields.return_date ?? null;
+    if (typeof dep === "string" && dep < today) dep = today;
+    if (dep && (typeof ret !== "string" || ret <= dep)) ret = shiftIso(dep, 3);
     setForm((f) => ({
       ...f,
       origin: fields.origin ?? f.origin,
       destination: fields.destination ?? f.destination,
-      departure_date: fields.departure_date ?? f.departure_date,
-      return_date: fields.return_date ?? f.return_date,
+      departure_date: dep ?? f.departure_date,
+      return_date: ret ?? f.return_date,
       travelers: fields.travelers ?? f.travelers,
       budget: fields.budget ?? f.budget,
       travel_mode: ["saver", "balanced", "comfort"].includes(fields.travel_mode)
@@ -93,18 +120,32 @@ export default function TripForm({
     onClearLocationError?.();
   };
 
-  /** Inline "unknown location" error + did-you-mean picks for one field. */
+  /** Inline "unknown location" error + did-you-mean picks for one field.
+   *  Layout-safe: capped height + compact pills so a long error can never
+   *  stretch the desktop row or squeeze sibling fields (see screenshot bug:
+   *  44px touch pills stacked vertically and blew up the budget card). */
   const renderLocationError = (name) => {
     if (locationError?.field !== name) return null;
-    const picks = Array.isArray(locationError.suggestions) ? locationError.suggestions : [];
+    const picks = (Array.isArray(locationError.suggestions) ? locationError.suggestions : []).slice(0, 3);
     return (
-      <span className="mt-1.5 block">
-        <span className="block t-small" role="alert" style={{ color: "var(--color-danger)", fontWeight: 600 }}>
+      <div className="mt-1.5 min-w-0 w-full overflow-hidden">
+        <p
+          className="t-small min-w-0 break-words"
+          role="alert"
+          style={{
+            color: "var(--color-danger)",
+            fontWeight: 600,
+            display: "-webkit-box",
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
           {locationError.message || "We couldn't find an airport for this place."}
-        </span>
+        </p>
         {picks.length > 0 && (
-          <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <span className="t-meta-sm" style={{ color: "#3E5463" }}>Did you mean:</span>
+          <div className="mt-1.5 flex max-h-[68px] min-w-0 flex-wrap gap-1.5 overflow-y-auto">
+            <span className="t-meta-sm shrink-0" style={{ color: "#3E5463" }}>Did you mean:</span>
             {picks.map((s) => {
               const label = s?.city ? `${s.city} (${s.code})` : s?.code;
               if (!label) return null;
@@ -113,22 +154,28 @@ export default function TripForm({
                   key={s.code}
                   type="button"
                   onClick={() => pickSuggestion(name, s.city || s.code)}
-                  className="tcc-focus tcc-touch rounded-full px-3 py-1.5 t-btn-sm"
+                  className="tcc-focus inline-flex min-h-[28px] max-w-full items-center truncate whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold"
                   style={{ background: "#FFFFFF", border: "1px solid var(--color-brand)", color: "#102A43" }}
                 >
                   {label}
                 </button>
               );
             })}
-          </span>
+          </div>
         )}
-      </span>
+      </div>
     );
   };
 
   const submit = (e) => {
     e.preventDefault();
     if (loading || submittingRef.current) return;
+    // YYYY-MM-DD strings compare chronologically — catches typed-in past dates
+    // that slip past the picker's min attribute. Zero quota spent on invalid.
+    if (form.departure_date < isoDay(0)) {
+      setDateError("Departure date is in the past — pick today or a future date.");
+      return;
+    }
     if (form.return_date <= form.departure_date) {
       setDateError("Choose a return date after your departure date.");
       return;
@@ -192,7 +239,10 @@ export default function TripForm({
               </p>
             )}
           </div>
-          <div className="flex flex-col lg:flex-row lg:items-stretch">
+          {/* lg:items-start (not stretch): a tall inline error in one cell
+              must not stretch the From/Dates/Budget cells. Dividers keep
+              self-stretch; budget/submit re-pin below. */}
+          <div className="flex flex-col lg:flex-row lg:items-start">
           {/* From */}
           <label className="flex min-w-0 flex-col justify-center gap-1.5 border-b border-[#EEF2F6] px-4 py-3 sm:px-6 sm:py-4 lg:flex-1 lg:border-b-0" htmlFor="trip-origin">
             <span className={labelCls} style={{ color: "#102A43" }}>
@@ -213,7 +263,7 @@ export default function TripForm({
               aria-invalid={locationError?.field === "origin" || undefined}
               aria-describedby={locationError?.field === "origin" ? "trip-origin-error" : undefined}
             />
-            <span id="trip-origin-error">{renderLocationError("origin")}</span>
+            <div id="trip-origin-error" className="min-w-0">{renderLocationError("origin")}</div>
           </label>
 
           {/* Swap — floats centered on the seam between From and To.
@@ -263,7 +313,7 @@ export default function TripForm({
               aria-invalid={locationError?.field === "destination" || undefined}
               aria-describedby={locationError?.field === "destination" ? "trip-destination-error" : undefined}
             />
-            <span id="trip-destination-error">{renderLocationError("destination")}</span>
+            <div id="trip-destination-error" className="min-w-0">{renderLocationError("destination")}</div>
           </label>
 
           <div className={dividerCls} style={{ background: "#E5E7EB" }} aria-hidden="true" />
@@ -278,7 +328,18 @@ export default function TripForm({
                 id="trip-departure"
                 type="date"
                 value={form.departure_date}
-                onChange={(e) => { set("departure_date")(e); setDateError(""); }}
+                min={isoDay(0)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  // Past pick or pushing past return: fix inline, no dead-end state.
+                  if (v && v < isoDay(0)) {
+                    setDateError("Departure date is in the past — reset to today.");
+                    setForm((f) => ({ ...f, departure_date: isoDay(0), return_date: f.return_date <= isoDay(0) ? shiftIso(isoDay(0), 3) : f.return_date }));
+                    return;
+                  }
+                  setForm((f) => ({ ...f, departure_date: v, return_date: f.return_date <= v ? shiftIso(v, 3) : f.return_date }));
+                  setDateError("");
+                }}
                 required
                 aria-label="Departure date"
                 className={`${dateInputCls} tcc-focus rounded-md`}
@@ -301,9 +362,10 @@ export default function TripForm({
 
           <div className={dividerCls} style={{ background: "#E5E7EB" }} aria-hidden="true" />
 
-          {/* Budget — first-class, visually dominant */}
+          {/* Budget — first-class, visually dominant. self-center so a
+              tall sibling error can never stretch it into a giant card. */}
           <label
-            className="mx-3 my-2 flex min-w-0 flex-col justify-center gap-1 rounded-[14px] px-4 py-2.5 sm:mx-5 sm:py-3 lg:mx-3 lg:my-3 lg:w-60"
+            className="mx-3 my-2 flex min-w-0 flex-col justify-center gap-1 rounded-[14px] px-4 py-2.5 sm:mx-5 sm:py-3 lg:mx-3 lg:my-3 lg:w-60 lg:self-center"
             htmlFor="trip-budget"
             style={{ background: "var(--color-brand-bg)", border: "1px solid var(--color-brand-border)" }}
           >
@@ -329,8 +391,9 @@ export default function TripForm({
             </span>
           </label>
 
-          {/* Primary search action */}
-          <div className="flex flex-col justify-center gap-2 p-3 sm:p-4 lg:min-w-[176px]">
+          {/* Primary search action — self-stretch keeps the button
+              vertically centered even when a sibling cell grows. */}
+          <div className="flex flex-col justify-center gap-2 p-3 sm:p-4 lg:min-w-[176px] lg:self-stretch">
             <button
               id="trip-submit"
               type="submit"
