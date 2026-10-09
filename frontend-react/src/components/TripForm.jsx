@@ -329,22 +329,12 @@ export default function TripForm({
             </span>
           </label>
 
-          {/* Demo first, then the primary search action below it. */}
+          {/* Primary search action */}
           <div className="flex flex-col justify-center gap-2 p-3 sm:p-4 lg:min-w-[176px]">
-            <button
-              type="button"
-              onClick={onDemo}
-              disabled={loading || demoLoading}
-              className="tcc-focus tcc-touch inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[12px] px-4 t-btn"
-              style={{ background: "#FFF8F6", border: "1px solid #FFD9D1", color: "#F25542" }}
-            >
-              {demoLoading ? <ButtonSpinner /> : <Play className="h-4 w-4" aria-hidden="true" />}
-              {demoLoading ? "Loading demo..." : "Try demo trip"}
-            </button>
             <button
               id="trip-submit"
               type="submit"
-              disabled={loading || demoLoading}
+              disabled={loading}
               className="tcc-focus btn-primary inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-[12px] px-5 t-btn"
             >
               {loading ? (
@@ -433,6 +423,16 @@ export default function TripForm({
                 </label>
                 );
               })}
+              <button
+                type="button"
+                onClick={onDemo}
+                disabled={loading || demoLoading}
+                className="tcc-focus tcc-touch inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full px-5 t-btn transition-all"
+                style={{ background: "#FFF8F6", border: "1px solid #FFD9D1", color: "#F25542" }}
+              >
+                {demoLoading ? <ButtonSpinner /> : <Play className="h-4 w-4" aria-hidden="true" />}
+                {demoLoading ? "Loading demo..." : "Try demo trip"}
+              </button>
             </div>
           </div>
 

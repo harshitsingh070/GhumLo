@@ -28,21 +28,30 @@ export default function Hero({ plan, onViewPlan }) {
     return () => window.clearInterval(timer);
   }, [destination]);
 
-  const img = photos[photoIndex] || photos[0];
+
   const known = DESTINATIONS.find((d) =>
     String(destination).toLowerCase().includes(d.name.toLowerCase())
   );
 
   return (
     <HeroShell id="home">
-      {/* Full-background destination image */}
-      <img
-        src={img}
-        alt={known ? known.alt : `${destination} destination`}
-        className="absolute inset-0 h-full w-full object-cover"
-        loading="eager"
-        style={{ objectPosition: "center 38%", filter: "contrast(1.06) saturate(1.08)" }}
-      />
+      {/* Full-background destination images — crossfade between photos */}
+      {photos.map((src, i) => (
+        <img
+          key={src}
+          src={src}
+          alt={i === 0 ? (known ? known.alt : `${destination} destination`) : ""}
+          aria-hidden={i !== photoIndex}
+          className="absolute inset-0 h-full w-full object-cover"
+          loading={i === 0 ? "eager" : "lazy"}
+          style={{
+            objectPosition: "center 38%",
+            filter: "contrast(1.06) saturate(1.08)",
+            opacity: i === photoIndex ? 1 : 0,
+            transition: "opacity 1.2s ease-in-out",
+          }}
+        />
+      ))}
 
       <HeroVeil />
 
@@ -77,7 +86,7 @@ export default function Hero({ plan, onViewPlan }) {
               {FEATURES.map(({ icon: Icon, title, sub }) => (
                 <div
                   key={title}
-                  className="flex shrink-0 items-center gap-2.5 rounded-[14px] px-3 py-2.5 transition-all hover:-translate-y-0.5"
+                  className="flex shrink-0 items-center gap-2.5 rounded-[14px] px-3 py-2.5"
                   style={{
                     background: "#FFFFFF",
                     border: "1px solid #E5E7EB",
@@ -99,21 +108,6 @@ export default function Hero({ plan, onViewPlan }) {
               ))}
             </div>
 
-            {/* Destination chip — in-flow below pills so it can never
-                overlap them */}
-            <div className="mt-4">
-              <span
-                className="t-meta inline-flex items-center gap-1.5 rounded-full px-4 py-2"
-                style={{
-                  background: "#FFFFFF",
-                  border: "1px solid #E5E7EB",
-                  color: "#0B2237",
-                  boxShadow: "0 4px 20px rgba(15, 23, 42, 0.08)",
-                }}
-              >
-                <span style={{ color: "#FF6B57" }}>📍</span> {destination}{known ? ` · ${known.tag}` : ""}
-              </span>
-            </div>
             {plan?.best_pick && (
               <div className="mt-6 lg:hidden">
                 <TripPreviewCard plan={plan} onViewPlan={onViewPlan} />
