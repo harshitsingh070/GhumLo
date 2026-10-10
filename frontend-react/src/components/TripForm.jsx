@@ -269,7 +269,9 @@ export default function TripForm({
           {/* Swap — floats centered on the seam between From and To.
               Overlaps the divider on desktop; sits on the stacked seam
               on mobile (icon rotated to match the vertical flow). */}
-          <div className="relative z-10 flex items-center justify-center py-1 lg:-mx-[22px] lg:my-0 lg:py-0">
+          {/* lg:self-stretch: spans the row height so the button stays
+              vertically centered on the From/To seam (row is items-start). */}
+          <div className="relative z-10 flex items-center justify-center py-1 lg:-mx-[22px] lg:my-0 lg:self-stretch lg:py-0">
             <button
               type="button"
               onClick={swapOriginDest}
