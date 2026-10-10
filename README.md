@@ -27,7 +27,7 @@ Planning a trip with a strict budget is exhausting. Travelers spend hours juggli
 ### 1. Setup Environment
 ```bash
 # Clone the repository
-git clone https://github.com/harshitsingh070/Travel-Compass.git
+git clone https://github.com/harshitsingh070/GhumLo
 cd Travel-Compass
 
 # Create your .env file
